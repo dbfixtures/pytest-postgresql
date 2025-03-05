@@ -22,18 +22,21 @@ jobs:
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 15
+      os: "ubuntu-22.04"
       python-versions: '["3.11", "3.12", "3.13"]'
   postgresql_14:
     needs: [postgresql_15]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 14
+      os: "ubuntu-22.04"
       python-versions: '["3.13"]'
   postgresql_13:
     needs: [postgresql_14]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 13
+      os: "ubuntu-20.04"
       python-versions: '["3.13"]'
   macos_postgres_17:
     needs: [postgresql_17]
