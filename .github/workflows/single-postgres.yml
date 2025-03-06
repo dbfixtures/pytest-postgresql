@@ -42,6 +42,9 @@ jobs:
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
+      - name: Check pg_hba
+        if: ${{ failure() }}
+        run: ls -l /etc/postgresql/
       - name: Check installed locales
         run: |
           locale -a
