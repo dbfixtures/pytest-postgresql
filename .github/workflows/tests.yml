@@ -36,7 +36,7 @@ jobs:
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 13
-      os: "ubuntu-20.04"
+#      os: "ubuntu-20.04"
       python-versions: '["3.13"]'
   macos_postgres_17:
     needs: [postgresql_17]
