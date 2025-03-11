@@ -15,7 +15,7 @@ towncrier = "==24.8.0"
 psycopg-binary = {version = "==3.2.5", markers="implementation_name == 'cpython'"}
 pytest-cov = "==6.0.0"
 pytest-xdist = "==3.6.1"
-mock = "==5.1.0"
+mock = "==5.2.0"
 mypy = "==1.15.0"
 types-setuptools = "==75.8.2.20250305"
 tbump = "==6.11.0"
