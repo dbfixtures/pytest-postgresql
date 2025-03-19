@@ -25,8 +25,8 @@ def build_loader(load: Union[Callable, str, Path]) -> Callable:
 
 def sql(sql_filename: Path, **kwargs: Any) -> None:
     """Database loader for sql files."""
-    db_connection = psycopg.connect(**kwargs)
-    with open(sql_filename, "r") as _fd:
-        with db_connection.cursor() as cur:
-            cur.execute(_fd.read())
-    db_connection.commit()
+    with psycopg.connect(**kwargs) as db_connection:
+        with open(sql_filename, "r") as _fd:
+            with db_connection.cursor() as cur:
+                cur.execute(_fd.read())
+        db_connection.commit()
