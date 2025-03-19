@@ -3,6 +3,19 @@ CHANGELOG
 
 .. towncrier release notes start
 
+7.0.1 (2025-03-19)
+==================
+
+Bugfixes
+--------
+
+- Close postgresql connection after loading sql files.
+
+  Fixes possible `ResourceWarning`
+- Fixed an issue, where defining load paths in ini/toml configuration would fail
+  due to pytest's LocalPath not having an endswith method.
+
+
 7.0.0 (2025-02-23)
 ==================
 
