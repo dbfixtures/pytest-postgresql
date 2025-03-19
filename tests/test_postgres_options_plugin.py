@@ -48,6 +48,15 @@ def test_postgres_loader_in_cli(pointed_pytester: Pytester) -> None:
     ret.assert_outcomes(passed=1)
 
 
+def test_postgres_loader_in_ini(pointed_pytester: Pytester) -> None:
+    """Check that pytest.ini arguments are honored for load."""
+    pointed_pytester.copy_example("test_load.py")
+    test_sql_path = pointed_pytester.copy_example("test.sql")
+    pointed_pytester.makefile(".ini", pytest=f"[pytest]\npostgresql_load = {test_sql_path}\n")
+    ret = pointed_pytester.runpytest("test_load.py")
+    ret.assert_outcomes(passed=1)
+
+
 postgresql_proc_to_override = postgresql_proc()
 
 
