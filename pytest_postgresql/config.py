@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any, List, Optional, TypedDict, Union
 
+from _pytest._py.path import LocalPath
 from pytest import FixtureRequest
 
 
@@ -50,10 +51,12 @@ def get_config(request: FixtureRequest) -> PostgresqlConfigDict:
     )
 
 
-def detect_paths(load_paths: List[str]) -> List[Union[Path, str]]:
+def detect_paths(load_paths: List[Union[LocalPath, str]]) -> List[Union[Path, str]]:
     """Convert path to sql files to Path instances."""
     converted_load_paths: List[Union[Path, str]] = []
     for path in load_paths:
+        if isinstance(path, LocalPath):
+            path = str(path)
         if path.endswith(".sql"):
             converted_load_paths.append(Path(path))
         else:

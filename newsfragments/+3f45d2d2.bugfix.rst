@@ -1,0 +1,2 @@
+Fixed an issue, where defining load paths in ini/toml configuration would fail
+due to pytest's LocalPath not having an endswith method.
