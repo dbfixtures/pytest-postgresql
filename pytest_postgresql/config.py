@@ -28,9 +28,9 @@ class PostgresqlConfigDict(TypedDict):
 def get_config(request: FixtureRequest) -> PostgresqlConfigDict:
     """Return a dictionary with config options."""
 
-    def get_postgresql_option(option: str, default: Any = None) -> Any:
+    def get_postgresql_option(option: str) -> Any:
         name = "postgresql_" + option
-        return request.config.getoption(name) or request.config.getini(name) or default
+        return request.config.getoption(name) or request.config.getini(name)
 
     load_paths = detect_paths(get_postgresql_option("load"))
 
@@ -39,7 +39,7 @@ def get_config(request: FixtureRequest) -> PostgresqlConfigDict:
         host=get_postgresql_option("host"),
         port=get_postgresql_option("port"),
         # Parse as int, because if it's defined in an INI file then it'll always be a string
-        port_search_count=int(get_postgresql_option("port_search_count", default=5)),
+        port_search_count=int(get_postgresql_option("port_search_count")),
         user=get_postgresql_option("user"),
         password=get_postgresql_option("password"),
         options=get_postgresql_option("options"),
