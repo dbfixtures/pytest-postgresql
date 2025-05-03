@@ -61,7 +61,7 @@ def test_postgres_port_search_count_in_cli_is_int(pointed_pytester: Pytester) ->
     """Check that the --postgresql-port-search-count command line argument is parsed as an int."""
     pointed_pytester.copy_example("test_assert_port_search_count_is_ten.py")
     ret = pointed_pytester.runpytest(
-        "--postgresql-port-search-count", "test_assert_port_search_count_is_ten.py"
+        "--postgresql-port-search-count", "10", "test_assert_port_search_count_is_ten.py"
     )
     ret.assert_outcomes(passed=1)
 
