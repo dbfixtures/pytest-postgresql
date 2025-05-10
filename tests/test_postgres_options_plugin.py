@@ -57,6 +57,23 @@ def test_postgres_loader_in_ini(pointed_pytester: Pytester) -> None:
     ret.assert_outcomes(passed=1)
 
 
+def test_postgres_port_search_count_in_cli_is_int(pointed_pytester: Pytester) -> None:
+    """Check that the --postgresql-port-search-count command line argument is parsed as an int."""
+    pointed_pytester.copy_example("test_assert_port_search_count_is_ten.py")
+    ret = pointed_pytester.runpytest(
+        "--postgresql-port-search-count", "10", "test_assert_port_search_count_is_ten.py"
+    )
+    ret.assert_outcomes(passed=1)
+
+
+def test_postgres_port_search_count_in_ini_is_int(pointed_pytester: Pytester) -> None:
+    """Check that pytest.ini arguments are honored for load."""
+    pointed_pytester.copy_example("test_assert_port_search_count_is_ten.py")
+    pointed_pytester.makefile(".ini", pytest="[pytest]\npostgresql_port_search_count = 10\n")
+    ret = pointed_pytester.runpytest("test_assert_port_search_count_is_ten.py")
+    ret.assert_outcomes(passed=1)
+
+
 postgresql_proc_to_override = postgresql_proc()
 
 

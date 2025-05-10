@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Plugin module of pytest-postgresql."""
+
 from tempfile import gettempdir
 
 from _pytest.config.argparsing import Parser
@@ -92,7 +93,6 @@ def pytest_addoption(parser: Parser) -> None:
         action="store",
         dest="postgresql_port_search_count",
         help=_help_port_search_count,
-        default=5,
     )
 
     parser.addoption("--postgresql-user", action="store", dest="postgresql_user", help=_help_user)
