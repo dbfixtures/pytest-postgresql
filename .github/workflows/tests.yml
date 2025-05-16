@@ -11,6 +11,9 @@ jobs:
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 17
+  postgresql_oldest:
+    needs: [postgresql_17]
+    uses: ./.github/workflows/oldest-postgres.yml
   postgresql_16:
     needs: [postgresql_17]
     uses: ./.github/workflows/single-postgres.yml

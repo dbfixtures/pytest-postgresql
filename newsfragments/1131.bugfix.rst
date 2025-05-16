@@ -1,0 +1,3 @@
+Update minimum required pytest version to 7.2
+
+Additionally added test run of `pytest-postgresql` against oldest supported versions.

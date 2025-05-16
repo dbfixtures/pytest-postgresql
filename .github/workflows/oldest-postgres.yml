@@ -1,0 +1,79 @@
+name: Run pytest tests
+
+on:
+  workflow_call:
+    inputs:
+      python-versions:
+        description: 'Supported python versions'
+        default: '["3.9", "3.10", "3.11", "3.12", "3.13", "pypy-3.10"]'
+        required: false
+        type: string
+      postgresql:
+        description: 'PostgreSQL version'
+        default: 13
+        type: number
+      os:
+        description: 'Operating system to run tests on'
+        default: 'ubuntu-latest'
+        required: false
+        type: string
+    secrets:
+      codecov_token:
+        description: 'Codecov token'
+        required: false
+
+jobs:
+  postgres:
+    runs-on: ${{ inputs.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJSON(inputs.python-versions) }}
+    env:
+      OS: ${{ inputs.os }}
+      PYTHON: ${{ matrix.python-version }}
+      POSTGRES: ${{ inputs.postgresql }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Pipenv on python ${{ matrix.python-version }}
+        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v3.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: false
+      - uses: ankane/setup-postgres@v1
+        with:
+          postgres-version: ${{ inputs.postgresql }}
+      - name: Check installed locales
+        run: |
+          locale -a
+      - name: update locale for tests
+        if: ${{ inputs.os == 'ubuntu-latest' }}
+        run: |
+          sudo locale-gen de_DE.UTF-8
+      - name: install libpq
+        if: ${{ contains(inputs.python-versions, 'pypy') }}
+        run: sudo apt install libpq5
+      - name: Install oldest supported versions
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v3.1.0
+        with:
+          command: pip install -r oldest-requirements.txt
+      - name: Run tests without xdist
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v3.1.0
+        with:
+          command: py.test -svv -p no:xdist --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --cov-report=xml
+      - name: Run xdist test
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v3.1.0
+        with:
+          command: py.test -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --cov-report=xml:coverage-xdist.xml
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
+          path: /tmp/pytest-of-runner/**
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5.4.2
+        with:
+          token: ${{ secrets.codecov_token }}
+          flags: unittests
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
