@@ -71,7 +71,7 @@ jobs:
           name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
           path: /tmp/pytest-of-runner/**
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.4.2
+        uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
