@@ -1,0 +1,4 @@
+pytest == 7.2
+port-for == 0.7.3
+mirakuru == 2.6.0
+psycopg == 3.0.0
