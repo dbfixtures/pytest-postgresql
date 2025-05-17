@@ -3,6 +3,25 @@ CHANGELOG
 
 .. towncrier release notes start
 
+7.0.2 (2025-05-17)
+==================
+
+Bugfixes
+--------
+
+- Fix an issue where number of search counts has been hard-default set to 5 by command-line default and ini setting could not override it. (`#1115 <https://github.com/dbfixtures/pytest-postgresql/issues/1115>`__)
+- Update minimum required pytest version to 7.2
+
+  Additionally added test run of `pytest-postgresql` against oldest supported versions. (`#1131 <https://github.com/dbfixtures/pytest-postgresql/issues/1131>`__)
+
+
+Miscellaneus
+------------
+
+- Different approach to oldest requirements file. Trying to get dependabot off of it.
+- Test pipeline optimisations
+
+
 7.0.1 (2025-03-19)
 ==================
 

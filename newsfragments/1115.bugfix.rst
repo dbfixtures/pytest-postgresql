@@ -1,1 +1,0 @@
-Fix an issue where number of search counts has been hard-default set to 5 by command-line default and ini setting could not override it.
