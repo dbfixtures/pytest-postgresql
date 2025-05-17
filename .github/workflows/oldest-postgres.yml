@@ -56,7 +56,7 @@ jobs:
       - name: Install oldest supported versions
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v3.1.0
         with:
-          command: pip install -r oldest-requirements.txt
+          command: pip install -r oldest/requirements.txt
       - name: Run tests without xdist
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v3.1.0
         with:
