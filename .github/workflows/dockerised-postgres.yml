@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run test noproc fixture on docker
-        uses: fizyk/actions-reuse/.github/actions/pipenv@v3.1.0
+        uses: fizyk/actions-reuse/.github/actions/pipenv@v3.1.1
         with:
           python-version: ${{ matrix.python-version }}
           command: pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --cov-report=xml:coverage-docker.xml
