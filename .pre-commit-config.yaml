@@ -8,7 +8,7 @@ minimum_pre_commit_version: 4.0.0
 default_stages: [pre-commit]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -29,7 +29,7 @@ repos:
         entry: black --config pyproject.toml .
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.7
+    rev: v0.12.8
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix, --respect-gitignore, --show-fixes]
