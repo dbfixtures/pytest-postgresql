@@ -48,7 +48,7 @@ jobs:
           - 5433:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run test noproc fixture on docker
         uses: fizyk/actions-reuse/.github/actions/pipenv@v3.1.1
         with:
