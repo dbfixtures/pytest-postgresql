@@ -34,7 +34,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       POSTGRES: ${{ inputs.postgresql }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Pipenv on python ${{ matrix.python-version }}
         uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v3.1.1
         with:
