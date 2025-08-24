@@ -55,7 +55,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           command: pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --cov-report=xml:coverage-docker.xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@v5.5.0
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
