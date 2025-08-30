@@ -17,15 +17,15 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """PostgreSQL executor crafter around pg_ctl."""
 
+import os
 import os.path
 import platform
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
-import os
-import signal
 from typing import Any, Optional, TypeVar
 
 from mirakuru import TCPExecutor
@@ -56,9 +56,9 @@ class PostgreSQLExecutor(TCPExecutor):
             # Windows doesn't handle single quotes well in subprocess calls
             return (
                 '{executable} start -D "{datadir}" '
-                "-o \"-F -p {port} -c log_destination=stderr "
+                '-o "-F -p {port} -c log_destination=stderr '
                 "-c logging_collector=off "
-                "-c unix_socket_directories={unixsocketdir} {postgres_options}\" "
+                '-c unix_socket_directories={unixsocketdir} {postgres_options}" '
                 '-l "{logfile}" {startparams}'
             )
         else:
@@ -240,7 +240,7 @@ class PostgreSQLExecutor(TCPExecutor):
         """Terminate process on Windows."""
         if self.process is None:
             return
-        
+
         try:
             if platform.system() == "Windows":
                 # On Windows, try to terminate gracefully first
