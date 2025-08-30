@@ -24,6 +24,8 @@ import shutil
 import subprocess
 import tempfile
 import time
+import os
+import signal
 from typing import Any, Optional, TypeVar
 
 from mirakuru import TCPExecutor
@@ -48,13 +50,28 @@ class PostgreSQLExecutor(TCPExecutor):
     <http://www.postgresql.org/docs/current/static/app-pg-ctl.html>`_
     """
 
-    BASE_PROC_START_COMMAND = (
-        '{executable} start -D "{datadir}" '
-        "-o \"-F -p {port} -c log_destination='stderr' "
-        "-c logging_collector=off "
-        "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
-        '-l "{logfile}" {startparams}'
-    )
+    def _get_base_command(self) -> str:
+        """Get the base PostgreSQL command, Windows-compatible."""
+        if platform.system() == "Windows":
+            # Windows doesn't handle single quotes well in subprocess calls
+            return (
+                '{executable} start -D "{datadir}" '
+                "-o \"-F -p {port} -c log_destination=stderr "
+                "-c logging_collector=off "
+                "-c unix_socket_directories={unixsocketdir} {postgres_options}\" "
+                '-l "{logfile}" {startparams}'
+            )
+        else:
+            # Unix/Linux systems work with single quotes
+            return (
+                '{executable} start -D "{datadir}" '
+                "-o \"-F -p {port} -c log_destination='stderr' "
+                "-c logging_collector=off "
+                "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
+                '-l "{logfile}" {startparams}'
+            )
+
+    BASE_PROC_START_COMMAND = ""  # Will be set dynamically
 
     VERSION_RE = re.compile(r".* (?P<version>\d+(?:\.\d+)?)")
     MIN_SUPPORTED_VERSION = parse("10")
@@ -108,7 +125,7 @@ class PostgreSQLExecutor(TCPExecutor):
         self.logfile = logfile
         self.startparams = startparams
         self.postgres_options = postgres_options
-        command = self.BASE_PROC_START_COMMAND.format(
+        command = self._get_base_command().format(
             executable=self.executable,
             datadir=self.datadir,
             port=port,
@@ -219,6 +236,30 @@ class PostgreSQLExecutor(TCPExecutor):
         status_code = subprocess.getstatusoutput(f'{self.executable} status -D "{self.datadir}"')[0]
         return status_code == 0
 
+    def _windows_terminate_process(self, sig: Optional[int] = None) -> None:
+        """Terminate process on Windows."""
+        if self.process is None:
+            return
+        
+        try:
+            if platform.system() == "Windows":
+                # On Windows, try to terminate gracefully first
+                self.process.terminate()
+                # Give it a chance to terminate gracefully
+                try:
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    # If it doesn't terminate gracefully, force kill
+                    self.process.kill()
+                    self.process.wait()
+            else:
+                # On Unix systems, use the signal
+                actual_sig = sig or signal.SIGTERM
+                os.killpg(self.process.pid, actual_sig)
+        except (OSError, AttributeError):
+            # Process might already be dead or other issues
+            pass
+
     def stop(self: T, sig: Optional[int] = None, exp_sig: Optional[int] = None) -> T:
         """Issue a stop request to executable."""
         subprocess.check_output(
@@ -226,10 +267,19 @@ class PostgreSQLExecutor(TCPExecutor):
             shell=True,
         )
         try:
-            super().stop(sig, exp_sig)
+            if platform.system() == "Windows":
+                self._windows_terminate_process(sig)
+            else:
+                super().stop(sig, exp_sig)
         except ProcessFinishedWithError:
             # Finished, leftovers ought to be cleaned afterwards anyway
             pass
+        except AttributeError as e:
+            # Handle case where os.killpg doesn't exist (shouldn't happen now)
+            if "killpg" in str(e):
+                self._windows_terminate_process(sig)
+            else:
+                raise
         return self
 
     def __del__(self) -> None:
