@@ -31,7 +31,7 @@ class TestWindowsCompatibility:
 
         # Both should be the same now
         assert windows_command == unix_command
-        
+
         # Both should use the simplified format without single quotes
         assert "log_destination=stderr" in windows_command
         assert "log_destination='stderr'" not in windows_command
