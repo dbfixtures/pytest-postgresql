@@ -51,25 +51,17 @@ class PostgreSQLExecutor(TCPExecutor):
     """
 
     def _get_base_command(self) -> str:
-        """Get the base PostgreSQL command, Windows-compatible."""
-        if platform.system() == "Windows":
-            # Windows doesn't handle single quotes well in subprocess calls
-            return (
-                '{executable} start -D "{datadir}" '
-                '-o "-F -p {port} -c log_destination=stderr '
-                "-c logging_collector=off "
-                '-c unix_socket_directories={unixsocketdir} {postgres_options}" '
-                '-l "{logfile}" {startparams}'
-            )
-        else:
-            # Unix/Linux systems work with single quotes
-            return (
-                '{executable} start -D "{datadir}" '
-                "-o \"-F -p {port} -c log_destination='stderr' "
-                "-c logging_collector=off "
-                "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
-                '-l "{logfile}" {startparams}'
-            )
+        """Get the base PostgreSQL command, cross-platform compatible."""
+        # Use unified format without single quotes around values
+        # This format works on both Windows and Unix systems since PostgreSQL
+        # configuration values without spaces don't require quotes
+        return (
+            '{executable} start -D "{datadir}" '
+            '-o "-F -p {port} -c log_destination=stderr '
+            "-c logging_collector=off "
+            '-c unix_socket_directories={unixsocketdir} {postgres_options}" '
+            '-l "{logfile}" {startparams}'
+        )
 
     BASE_PROC_START_COMMAND = ""  # Will be set dynamically
 
@@ -242,20 +234,28 @@ class PostgreSQLExecutor(TCPExecutor):
             return
 
         try:
-            if platform.system() == "Windows":
-                # On Windows, try to terminate gracefully first
-                self.process.terminate()
-                # Give it a chance to terminate gracefully
-                try:
-                    self.process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    # If it doesn't terminate gracefully, force kill
-                    self.process.kill()
-                    self.process.wait()
-            else:
-                # On Unix systems, use the signal
-                actual_sig = sig or signal.SIGTERM
-                os.killpg(self.process.pid, actual_sig)
+            # On Windows, try to terminate gracefully first
+            self.process.terminate()
+            # Give it a chance to terminate gracefully
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                # If it doesn't terminate gracefully, force kill
+                self.process.kill()
+                self.process.wait()
+        except (OSError, AttributeError):
+            # Process might already be dead or other issues
+            pass
+
+    def _unix_terminate_process(self, sig: Optional[int] = None) -> None:
+        """Terminate process on Unix systems."""
+        if self.process is None:
+            return
+
+        try:
+            # On Unix systems, use the signal
+            actual_sig = sig or signal.SIGTERM
+            os.killpg(self.process.pid, actual_sig)
         except (OSError, AttributeError):
             # Process might already be dead or other issues
             pass

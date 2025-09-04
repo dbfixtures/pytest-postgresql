@@ -9,8 +9,8 @@ from pytest_postgresql.executor import PostgreSQLExecutor
 class TestWindowsCompatibility:
     """Test Windows-specific functionality."""
 
-    def test_get_base_command_windows(self):
-        """Test that Windows base command doesn't use single quotes."""
+    def test_get_base_command_unified(self):
+        """Test that base command is unified across platforms."""
         executor = PostgreSQLExecutor(
             executable="/path/to/pg_ctl",
             host="localhost",
@@ -22,32 +22,21 @@ class TestWindowsCompatibility:
             dbname="test",
         )
 
+        # Test that command format is consistent across platforms
         with patch("platform.system", return_value="Windows"):
-            command = executor._get_base_command()
-            # Windows command should not have single quotes around stderr
-            assert "log_destination=stderr" in command
-            assert "log_destination='stderr'" not in command
-            assert "unix_socket_directories={unixsocketdir}" in command
-            assert "unix_socket_directories='{unixsocketdir}'" not in command
-
-    def test_get_base_command_unix(self):
-        """Test that Unix base command uses single quotes."""
-        executor = PostgreSQLExecutor(
-            executable="/path/to/pg_ctl",
-            host="localhost",
-            port=5432,
-            datadir="/tmp/data",
-            unixsocketdir="/tmp/socket",
-            logfile="/tmp/log",
-            startparams="-w",
-            dbname="test",
-        )
+            windows_command = executor._get_base_command()
 
         with patch("platform.system", return_value="Linux"):
-            command = executor._get_base_command()
-            # Unix command should have single quotes around stderr
-            assert "log_destination='stderr'" in command
-            assert "unix_socket_directories='{unixsocketdir}'" in command
+            unix_command = executor._get_base_command()
+
+        # Both should be the same now
+        assert windows_command == unix_command
+        
+        # Both should use the simplified format without single quotes
+        assert "log_destination=stderr" in windows_command
+        assert "log_destination='stderr'" not in windows_command
+        assert "unix_socket_directories={unixsocketdir}" in windows_command
+        assert "unix_socket_directories='{unixsocketdir}'" not in windows_command
 
     def test_windows_terminate_process(self):
         """Test Windows process termination."""
@@ -66,12 +55,12 @@ class TestWindowsCompatibility:
         mock_process = MagicMock()
         executor.process = mock_process
 
-        with patch("platform.system", return_value="Windows"):
-            executor._windows_terminate_process()
+        # No need to mock platform.system() since the method doesn't check it anymore
+        executor._windows_terminate_process()
 
-            # Should call terminate first
-            mock_process.terminate.assert_called_once()
-            mock_process.wait.assert_called()
+        # Should call terminate first
+        mock_process.terminate.assert_called_once()
+        mock_process.wait.assert_called()
 
     def test_windows_terminate_process_force_kill(self):
         """Test Windows process termination with force kill on timeout."""
@@ -91,13 +80,13 @@ class TestWindowsCompatibility:
         mock_process.wait.side_effect = [subprocess.TimeoutExpired(cmd="test", timeout=5), None]
         executor.process = mock_process
 
-        with patch("platform.system", return_value="Windows"):
-            executor._windows_terminate_process()
+        # No need to mock platform.system() since the method doesn't check it anymore
+        executor._windows_terminate_process()
 
-            # Should call terminate, wait (timeout), then kill, then wait again
-            mock_process.terminate.assert_called_once()
-            mock_process.kill.assert_called_once()
-            assert mock_process.wait.call_count == 2
+        # Should call terminate, wait (timeout), then kill, then wait again
+        mock_process.terminate.assert_called_once()
+        mock_process.kill.assert_called_once()
+        assert mock_process.wait.call_count == 2
 
     def test_stop_method_windows(self):
         """Test stop method on Windows."""
