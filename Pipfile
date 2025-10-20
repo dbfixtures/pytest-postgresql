@@ -12,7 +12,7 @@ psycopg = "==3.2.10"
 
 [dev-packages]
 towncrier = "==25.8.0"
-psycopg-binary = {version = "==3.2.10", markers="implementation_name == 'cpython'"}
+psycopg-binary = {version = "==3.2.11", markers="implementation_name == 'cpython'"}
 pytest-cov = "==7.0.0"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"
