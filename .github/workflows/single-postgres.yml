@@ -60,7 +60,7 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v3.1.1
         with:
           command: py.test -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --cov-report=xml:coverage-xdist.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
