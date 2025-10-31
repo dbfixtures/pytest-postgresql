@@ -18,7 +18,7 @@
 """Fixture factory for existing postgresql server."""
 import os
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Union
+from typing import Callable, Iterator
 
 import pytest
 from pytest import FixtureRequest
@@ -37,13 +37,13 @@ def xdistify_dbname(dbname: str) -> str:
 
 
 def postgresql_noproc(
-    host: Optional[str] = None,
-    port: Union[str, int, None] = None,
-    user: Optional[str] = None,
-    password: Optional[str] = None,
-    dbname: Optional[str] = None,
+    host: str | None = None,
+    port: str | int | None = None,
+    user: str | None = None,
+    password: str | None = None,
+    dbname: str | None = None,
     options: str = "",
-    load: Optional[List[Union[Callable, str, Path]]] = None,
+    load: list[Callable | str | Path] | None = None,
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 

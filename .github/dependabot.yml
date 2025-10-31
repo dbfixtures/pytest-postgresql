@@ -3,6 +3,8 @@ updates:
 - package-ecosystem: pip
   directories:
     - "/"
+  exclude-paths:
+    - "oldest/*"
   schedule:
     interval: daily
     time: "02:00"

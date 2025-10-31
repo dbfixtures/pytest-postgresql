@@ -3,7 +3,7 @@
 from contextlib import contextmanager
 from pathlib import Path
 from types import TracebackType
-from typing import Callable, Iterator, Optional, Type, TypeVar, Union
+from typing import Callable, Iterator, Type, TypeVar
 
 import psycopg
 from packaging.version import parse
@@ -26,12 +26,12 @@ class DatabaseJanitor:
         *,
         user: str,
         host: str,
-        port: Union[str, int],
-        version: Union[str, float, Version],  # type: ignore[valid-type]
-        dbname: Optional[str] = None,
-        template_dbname: Optional[str] = None,
-        password: Optional[str] = None,
-        isolation_level: "Optional[psycopg.IsolationLevel]" = None,
+        port: str | int,
+        version: str | float | Version,  # type: ignore[valid-type]
+        dbname: str | None = None,
+        template_dbname: str | None = None,
+        password: str | None = None,
+        isolation_level: "psycopg.IsolationLevel | None" = None,
         connection_timeout: int = 60,
     ) -> None:
         """Initialize janitor.
@@ -106,7 +106,7 @@ class DatabaseJanitor:
             (dbname,),
         )
 
-    def load(self, load: Union[Callable, str, Path]) -> None:
+    def load(self, load: Callable | str | Path) -> None:
         """Load data into a database.
 
         Expects:
@@ -159,9 +159,9 @@ class DatabaseJanitor:
 
     def __exit__(
         self: DatabaseJanitorType,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: Type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit from Database janitor context cleaning after itself."""
         self.drop()

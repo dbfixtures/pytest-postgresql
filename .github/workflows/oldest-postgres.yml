@@ -5,7 +5,7 @@ on:
     inputs:
       python-versions:
         description: 'Supported python versions'
-        default: '["3.9", "3.10", "3.11", "3.12", "3.13", "pypy-3.10"]'
+        default: '["3.10", "3.11", "3.12", "3.13", "3.14", "pypy-3.11"]'
         required: false
         type: string
       postgresql:
@@ -57,7 +57,7 @@ jobs:
       - name: Install oldest supported versions
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
-          command: pip install -r oldest/requirements.rq
+          command: pip install -r oldest/requirements.txt
       - name: Run tests without xdist
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:

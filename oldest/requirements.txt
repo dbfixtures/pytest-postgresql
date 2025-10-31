@@ -1,0 +1,5 @@
+pytest == 7.4; python_version >= "3.14"
+pytest == 7.2; python_version < "3.14"
+port-for == 0.7.3
+mirakuru == 2.6.0
+psycopg == 3.0.0

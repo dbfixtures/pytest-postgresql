@@ -3,12 +3,12 @@
 import re
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 import psycopg
 
 
-def build_loader(load: Union[Callable, str, Path]) -> Callable:
+def build_loader(load: Callable | str | Path) -> Callable:
     """Build a loader callable."""
     if isinstance(load, Path):
         return partial(sql, load)

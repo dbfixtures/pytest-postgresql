@@ -1,7 +1,7 @@
 """Plugin's configuration."""
 
 from pathlib import Path
-from typing import Any, List, Optional, TypedDict, Union
+from typing import Any, TypedDict
 
 from _pytest._py.path import LocalPath
 from pytest import FixtureRequest
@@ -12,7 +12,7 @@ class PostgresqlConfigDict(TypedDict):
 
     exec: str
     host: str
-    port: Optional[str]
+    port: str | None
     port_search_count: int
     user: str
     password: str
@@ -20,7 +20,7 @@ class PostgresqlConfigDict(TypedDict):
     startparams: str
     unixsocketdir: str
     dbname: str
-    load: List[Union[Path, str]]
+    load: list[Path | str]
     postgres_options: str
     drop_test_database: bool
 
@@ -52,9 +52,9 @@ def get_config(request: FixtureRequest) -> PostgresqlConfigDict:
     )
 
 
-def detect_paths(load_paths: List[Union[LocalPath, str]]) -> List[Union[Path, str]]:
+def detect_paths(load_paths: list[LocalPath | str]) -> list[Path | str]:
     """Convert path to sql files to Path instances."""
-    converted_load_paths: List[Union[Path, str]] = []
+    converted_load_paths: list[Path | str] = []
     for path in load_paths:
         if isinstance(path, LocalPath):
             path = str(path)
