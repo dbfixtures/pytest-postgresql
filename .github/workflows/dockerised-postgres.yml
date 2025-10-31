@@ -50,10 +50,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Run test noproc fixture on docker
-        uses: fizyk/actions-reuse/.github/actions/pipenv@v3.1.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv@v4.1.1
         with:
           python-version: ${{ matrix.python-version }}
           command: pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --cov-report=xml:coverage-docker.xml
+          allow-prereleases: true
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.1
         with:
