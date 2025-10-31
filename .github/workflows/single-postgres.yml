@@ -39,6 +39,7 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.1.1
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
