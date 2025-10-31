@@ -19,46 +19,46 @@ jobs:
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 16
-      python-versions: '["3.10", "3.11", "3.12", "3.13", "pypy-3.10"]'
+      python-versions: '["3.11", "3.12", "3.13", "3.14", "pypy-3.11"]'
   postgresql_15:
     needs: [postgresql_16]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 15
-      python-versions: '["3.11", "3.12", "3.13"]'
+      python-versions: '["3.12", "3.13", "3.14"]'
   postgresql_14:
     needs: [postgresql_15]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 14
-      python-versions: '["3.13"]'
+      python-versions: '["3.14"]'
   postgresql_13:
     needs: [postgresql_14]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 13
-      python-versions: '["3.13"]'
+      python-versions: '["3.14"]'
   macos_postgres_17:
     needs: [postgresql_17]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 17
       os: macos-latest
-      python-versions: '["3.11", "3.12", "3.13"]'
+      python-versions: '["3.12", "3.13", "3.14"]'
   macos_postgres_16:
     needs: [postgresql_16, macos_postgres_17]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 16
       os: macos-latest
-      python-versions: '["3.11", "3.12", "3.13"]'
+      python-versions: '["3.12", "3.13", "3.14"]'
   macos_postgres_15:
     needs: [postgresql_15, macos_postgres_16]
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 15
       os: macos-latest
-      python-versions: '["3.12", "3.13"]'
+      python-versions: '["3.13", "3.14"]'
   docker_postgresql_17:
     needs: [postgresql_17]
     uses: ./.github/workflows/dockerised-postgres.yml
@@ -69,22 +69,22 @@ jobs:
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 16
-      python-versions: '["3.10", "3.11", "3.12", "3.13"]'
+      python-versions: '["3.11", "3.12", "3.13", "3.14"]'
   docker_postgresql_15:
     needs: [postgresql_15, docker_postgresql_17]
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 15
-      python-versions: '["3.11", "3.12", "3.13"]'
+      python-versions: '["3.12", "3.13", "3.14"]'
   docker_postgresql_14:
     needs: [postgresql_14, docker_postgresql_15]
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 14
-      python-versions: '["3.12", "3.13"]'
+      python-versions: '["3.13", "3.14"]'
   docker_postgresql_13:
     needs: [postgresql_13, docker_postgresql_14]
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 13
-      python-versions: '["3.13"]'
+      python-versions: '["3.14"]'

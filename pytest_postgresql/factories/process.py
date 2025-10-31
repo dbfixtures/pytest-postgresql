@@ -21,7 +21,7 @@ import os.path
 import platform
 import subprocess
 from pathlib import Path
-from typing import Callable, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Callable, Iterable, Iterator
 
 import port_for
 import pytest
@@ -36,11 +36,11 @@ from pytest_postgresql.janitor import DatabaseJanitor
 PortType = port_for.PortType  # mypy requires explicit export
 
 
-def _pg_exe(executable: Optional[str], config: PostgresqlConfigDict) -> str:
+def _pg_exe(executable: str | None, config: PostgresqlConfigDict) -> str:
     """If executable is set, use it. Otherwise best effort to find the executable."""
     postgresql_ctl = executable or config["exec"]
-    # check if that executable exists, as it's no on system PATH
-    # only replace if executable isn't passed manually
+    # check if that executable exists, as it's no on systems' PATH
+    # only replace it if executable isn't passed manually
     if not os.path.exists(postgresql_ctl) and executable is None:
         try:
             pg_bindir = subprocess.check_output(
@@ -55,7 +55,7 @@ def _pg_exe(executable: Optional[str], config: PostgresqlConfigDict) -> str:
 
 
 def _pg_port(
-    port: Optional[PortType], config: PostgresqlConfigDict, excluded_ports: Iterable[int]
+    port: PortType | None, config: PostgresqlConfigDict, excluded_ports: Iterable[int]
 ) -> int:
     """User specified port, otherwise find an unused port from config."""
     pg_port = get_port(port, excluded_ports) or get_port(config["port"], excluded_ports)
@@ -63,8 +63,8 @@ def _pg_port(
     return pg_port
 
 
-def _prepare_dir(tmpdir: Path, pg_port: PortType) -> Tuple[Path, Path]:
-    """Prepare directory for the executor."""
+def _prepare_dir(tmpdir: Path, pg_port: PortType) -> tuple[Path, Path]:
+    """Prepare a directory for the executor."""
     datadir = tmpdir / f"data-{pg_port}"
     datadir.mkdir()
     logfile_path = tmpdir / f"postgresql.{pg_port}.log"
@@ -76,17 +76,17 @@ def _prepare_dir(tmpdir: Path, pg_port: PortType) -> Tuple[Path, Path]:
 
 
 def postgresql_proc(
-    executable: Optional[str] = None,
-    host: Optional[str] = None,
-    port: Optional[PortType] = -1,
-    user: Optional[str] = None,
-    password: Optional[str] = None,
-    dbname: Optional[str] = None,
+    executable: str | None = None,
+    host: str | None = None,
+    port: PortType | None = -1,
+    user: str | None = None,
+    password: str | None = None,
+    dbname: str | None = None,
     options: str = "",
-    startparams: Optional[str] = None,
-    unixsocketdir: Optional[str] = None,
-    postgres_options: Optional[str] = None,
-    load: Optional[List[Union[Callable, str, Path]]] = None,
+    startparams: str | None = None,
+    unixsocketdir: str | None = None,
+    postgres_options: str | None = None,
+    load: list[Callable | str | Path] | None = None,
 ) -> Callable[[FixtureRequest, TempPathFactory], Iterator[PostgreSQLExecutor]]:
     """Postgresql process factory.
 
