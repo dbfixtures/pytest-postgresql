@@ -30,7 +30,8 @@ classifiers = [
 dependencies = [
     "pytest >= 7.2",
     "port-for >= 0.7.3",
-    "mirakuru >= 2.6.0",
+    "mirakuru >= 2.6.0,<3.0; python_version == '3.9'",
+    "mirakuru >= 2.6.0; python_version >= '3.9'",
     "packaging",
     "psycopg >= 3.0.0"
 ]
