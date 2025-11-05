@@ -22,23 +22,23 @@ repos:
       - id: detect-private-key
       - id: debug-statements
 
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 25.9.0
-    hooks:
-      - id: black
-        entry: black --config pyproject.toml .
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.3
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix, --respect-gitignore, --show-fixes]
+      - id: ruff-format
 
   - repo: https://github.com/rstcheck/rstcheck
     rev: v6.2.5
     hooks:
       - id: rstcheck
         additional_dependencies: [sphinx, toml]
+
+  - repo: https://github.com/fizyk/pyproject-validator
+    rev: v0.1.0
+    hooks:
+    -   id: check-python-version-consistency
 
   - repo: local
     hooks:

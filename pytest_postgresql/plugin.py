@@ -44,9 +44,7 @@ _help_drop_test_database = (
 
 def pytest_addoption(parser: Parser) -> None:
     """Configure options for pytest-postgresql."""
-    parser.addini(
-        name="postgresql_exec", help=_help_executable, default="/usr/lib/postgresql/13/bin/pg_ctl"
-    )
+    parser.addini(name="postgresql_exec", help=_help_executable, default="/usr/lib/postgresql/13/bin/pg_ctl")
 
     parser.addini(name="postgresql_host", help=_help_host, default="127.0.0.1")
 
@@ -97,13 +95,9 @@ def pytest_addoption(parser: Parser) -> None:
 
     parser.addoption("--postgresql-user", action="store", dest="postgresql_user", help=_help_user)
 
-    parser.addoption(
-        "--postgresql-password", action="store", dest="postgresql_password", help=_help_password
-    )
+    parser.addoption("--postgresql-password", action="store", dest="postgresql_password", help=_help_password)
 
-    parser.addoption(
-        "--postgresql-options", action="store", dest="postgresql_options", help=_help_options
-    )
+    parser.addoption("--postgresql-options", action="store", dest="postgresql_options", help=_help_options)
 
     parser.addoption(
         "--postgresql-startparams",
@@ -119,9 +113,7 @@ def pytest_addoption(parser: Parser) -> None:
         help=_help_unixsocketdir,
     )
 
-    parser.addoption(
-        "--postgresql-dbname", action="store", dest="postgresql_dbname", help=_help_dbname
-    )
+    parser.addoption("--postgresql-dbname", action="store", dest="postgresql_dbname", help=_help_dbname)
 
     parser.addoption("--postgresql-load", action="append", dest="postgresql_load", help=_help_load)
 

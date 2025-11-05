@@ -67,10 +67,8 @@ def test_postgres_terminate_connection(postgresql2: Connection, _: int) -> None:
     with postgresql2.cursor() as cur:
 
         def check_if_one_connection() -> None:
-            cur.execute("SELECT * FROM pg_stat_activity " "WHERE backend_type = 'client backend';")
+            cur.execute("SELECT * FROM pg_stat_activity WHERE backend_type = 'client backend';")
             existing_connections = cur.fetchall()
-            assert (
-                len(existing_connections) == 1
-            ), f"there is always only one connection, {existing_connections}"
+            assert len(existing_connections) == 1, f"there is always only one connection, {existing_connections}"
 
         retry(check_if_one_connection, timeout=120, possible_exception=AssertionError)

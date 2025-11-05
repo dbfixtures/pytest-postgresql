@@ -164,9 +164,7 @@ def test_postgres_options(postgres_max_conns: Connection) -> None:
     assert cur.fetchone() == ("42",)
 
 
-postgres_isolation_level = postgresql(
-    "postgresql_proc", isolation_level=psycopg.IsolationLevel.SERIALIZABLE
-)
+postgres_isolation_level = postgresql("postgresql_proc", isolation_level=psycopg.IsolationLevel.SERIALIZABLE)
 
 
 def test_custom_isolation_level(postgres_isolation_level: Connection) -> None:

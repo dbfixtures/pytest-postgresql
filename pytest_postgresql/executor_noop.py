@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """PostgreSQL Noop executor providing connection details for postgres client."""
+
 from typing import Any
 
 import psycopg
