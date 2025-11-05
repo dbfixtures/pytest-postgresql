@@ -15,22 +15,16 @@ VERSION = parse("10")
 @pytest.mark.parametrize("version", (VERSION, 10, "10"))
 def test_version_cast(version: Any) -> None:
     """Test that version is cast to Version object."""
-    janitor = DatabaseJanitor(
-        user="user", host="host", port="1234", dbname="database_name", version=version
-    )
+    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=version)
     assert janitor.version == VERSION
 
 
 @patch("pytest_postgresql.janitor.psycopg.connect")
 def test_cursor_selects_postgres_database(connect_mock: MagicMock) -> None:
     """Test that the cursor requests the postgres database."""
-    janitor = DatabaseJanitor(
-        user="user", host="host", port="1234", dbname="database_name", version=10
-    )
+    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=10)
     with janitor.cursor():
-        connect_mock.assert_called_once_with(
-            dbname="postgres", user="user", password=None, host="host", port="1234"
-        )
+        connect_mock.assert_called_once_with(dbname="postgres", user="user", password=None, host="host", port="1234")
 
 
 @patch("pytest_postgresql.janitor.psycopg.connect")
@@ -50,12 +44,8 @@ def test_cursor_connects_with_password(connect_mock: MagicMock) -> None:
         )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 8), reason="Unittest call_args.kwargs was introduced since python 3.8"
-)
-@pytest.mark.parametrize(
-    "load_database", ("tests.loader.load_database", "tests.loader:load_database")
-)
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="Unittest call_args.kwargs was introduced since python 3.8")
+@pytest.mark.parametrize("load_database", ("tests.loader.load_database", "tests.loader:load_database"))
 @patch("pytest_postgresql.janitor.psycopg.connect")
 def test_janitor_populate(connect_mock: MagicMock, load_database: str) -> None:
     """Test that the cursor requests the postgres database.

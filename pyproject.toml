@@ -63,13 +63,11 @@ testpaths = "tests"
 pytester_example_dir = "tests/examples"
 norecursedirs = "examples"
 
-[tool.black]
-line-length = 100
-target-version = ['py310']
-include = '.*\.pyi?$'
-
 [tool.ruff]
-line-length = 100
+line-length = 120
+target-version = 'py310'
+
+[tool.ruff.lint]
 select = [
   "E",   # pycodestyle
   "F",   # pyflakes
@@ -79,6 +77,27 @@ select = [
 
 [tool.rstcheck]
 report_level = "warning"
+
+[tool.mypy]
+allow_redefinition = "False"
+allow_untyped_globals = "False"
+check_untyped_defs = "True"
+disallow_incomplete_defs = "True"
+disallow_subclassing_any = "True"
+disallow_untyped_calls = "True"
+disallow_untyped_decorators = "True"
+disallow_untyped_defs = "True"
+follow_imports = "silent"
+ignore_missing_imports = "False"
+implicit_reexport = "False"
+no_implicit_optional = "True"
+pretty = "True"
+show_error_codes = "True"
+strict_equality = "True"
+warn_no_return = "True"
+warn_return_any = "True"
+warn_unreachable = "True"
+warn_unused_ignores = "True"
 
 [tool.towncrier]
 directory = "newsfragments"

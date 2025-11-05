@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql client."""
+
 from typing import Callable, Iterator
 
 import psycopg
@@ -50,9 +51,7 @@ def postgresql(
         :param request: fixture request object
         :returns: postgresql client
         """
-        proc_fixture: PostgreSQLExecutor | NoopExecutor = request.getfixturevalue(
-            process_fixture_name
-        )
+        proc_fixture: PostgreSQLExecutor | NoopExecutor = request.getfixturevalue(process_fixture_name)
         config = get_config(request)
 
         pg_host = proc_fixture.host

@@ -43,20 +43,14 @@ def _pg_exe(executable: str | None, config: PostgresqlConfigDict) -> str:
     # only replace it if executable isn't passed manually
     if not os.path.exists(postgresql_ctl) and executable is None:
         try:
-            pg_bindir = subprocess.check_output(
-                ["pg_config", "--bindir"], universal_newlines=True
-            ).strip()
+            pg_bindir = subprocess.check_output(["pg_config", "--bindir"], universal_newlines=True).strip()
         except FileNotFoundError as ex:
-            raise ExecutableMissingException(
-                "Could not found pg_config executable. Is it in systenm $PATH?"
-            ) from ex
+            raise ExecutableMissingException("Could not found pg_config executable. Is it in systenm $PATH?") from ex
         postgresql_ctl = os.path.join(pg_bindir, "pg_ctl")
     return postgresql_ctl
 
 
-def _pg_port(
-    port: PortType | None, config: PostgresqlConfigDict, excluded_ports: Iterable[int]
-) -> int:
+def _pg_port(port: PortType | None, config: PostgresqlConfigDict, excluded_ports: Iterable[int]) -> int:
     """User specified port, otherwise find an unused port from config."""
     pg_port = get_port(port, excluded_ports) or get_port(config["port"], excluded_ports)
     assert pg_port is not None

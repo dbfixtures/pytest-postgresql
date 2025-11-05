@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for existing postgresql server."""
+
 import os
 from pathlib import Path
 from typing import Callable, Iterator
