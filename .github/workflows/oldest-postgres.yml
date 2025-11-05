@@ -10,7 +10,7 @@ on:
         type: string
       postgresql:
         description: 'PostgreSQL version'
-        default: 13
+        default: 14
         type: number
       os:
         description: 'Operating system to run tests on'
