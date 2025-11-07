@@ -1,0 +1,1 @@
+Drop PostgreSQL 13 and add PostgreSQL 18 to the CI
