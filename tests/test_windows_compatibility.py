@@ -107,7 +107,6 @@ class TestWindowsCompatibility:
             patch("platform.system", return_value="Windows"),
             patch.object(executor, "_windows_terminate_process") as mock_terminate,
         ):
-
             result = executor.stop()
 
             # Should call pg_ctl stop and Windows terminate
@@ -134,7 +133,6 @@ class TestWindowsCompatibility:
             patch("platform.system", return_value="Linux"),
             patch("pytest_postgresql.executor.TCPExecutor.stop") as mock_super_stop,
         ):
-
             mock_super_stop.return_value = executor
             result = executor.stop()
 
@@ -166,7 +164,6 @@ class TestWindowsCompatibility:
             ),
             patch.object(executor, "_windows_terminate_process") as mock_terminate,
         ):
-
             result = executor.stop()
 
             # Should call pg_ctl stop, fail on super().stop, then use Windows terminate
