@@ -254,7 +254,7 @@ Example usage:
 
     .. code-block:: sh
 
-        py.test tests --postgresql-port=8888
+        pytest tests --postgresql-port=8888
 
 
 * specify your port as ``postgresql_port`` in your ``pytest.ini`` file.
