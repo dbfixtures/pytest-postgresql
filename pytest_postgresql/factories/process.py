@@ -166,14 +166,17 @@ def postgresql_proc(
         # start server
         with postgresql_executor:
             postgresql_executor.wait_for_postgres()
-            with DatabaseJanitor(
+            janitor = DatabaseJanitor(
                 user=postgresql_executor.user,
                 host=postgresql_executor.host,
                 port=postgresql_executor.port,
                 template_dbname=postgresql_executor.template_dbname,
                 version=postgresql_executor.version,
                 password=postgresql_executor.password,
-            ) as janitor:
+            )
+            if config["drop_test_database"]:
+                janitor.drop()
+            with janitor:
                 for load_element in pg_load:
                     janitor.load(load_element)
                 yield postgresql_executor
