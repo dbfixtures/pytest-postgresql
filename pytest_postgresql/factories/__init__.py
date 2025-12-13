@@ -17,7 +17,7 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factories for postgresql fixtures."""
 
-from pytest_postgresql.factories.client import postgresql
+from pytest_postgresql.factories.client import postgresql, postgresql_async
 from pytest_postgresql.factories.noprocess import postgresql_noproc
 from pytest_postgresql.factories.process import PortType, postgresql_proc
 
