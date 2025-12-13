@@ -22,8 +22,8 @@ from pathlib import Path
 from typing import Callable, Iterator
 
 import pytest
-from pytest import FixtureRequest
 from _pytest.scope import _ScopeName
+from pytest import FixtureRequest
 
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor_noop import NoopExecutor
@@ -46,7 +46,7 @@ def postgresql_noproc(
     dbname: str | None = None,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
-    scope: _ScopeName="session"
+    scope: _ScopeName = "session",
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 

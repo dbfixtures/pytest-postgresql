@@ -3,7 +3,7 @@
 import decimal
 
 import pytest
-from psycopg import Connection, AsyncConnection
+from psycopg import AsyncConnection, Connection
 from psycopg.pq import ConnStatus
 
 from pytest_postgresql.executor import PostgreSQLExecutor

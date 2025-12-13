@@ -32,6 +32,7 @@ def sql(sql_filename: Path, **kwargs: Any) -> None:
                 cur.execute(_fd.read())
         db_connection.commit()
 
+
 def build_loader_async(load: Callable | str | Path) -> Callable:
     """Build a loader callable."""
     if isinstance(load, Path):
@@ -45,6 +46,7 @@ def build_loader_async(load: Callable | str | Path) -> Callable:
         return _loader
     else:
         return load
+
 
 async def sql_async(sql_filename: Path, **kwargs: Any) -> None:
     """Async database loader for sql files."""

@@ -1,7 +1,7 @@
 """Template database tests."""
 
 import pytest
-from psycopg import Connection, AsyncConnection
+from psycopg import AsyncConnection, Connection
 
 from pytest_postgresql.factories import postgresql, postgresql_proc
 from tests.loader import load_database
@@ -30,6 +30,7 @@ def test_template_database(postgresql_template: Connection, _: int) -> None:
         cur.execute("SELECT * FROM stories")
         res = cur.fetchall()
         assert len(res) == 0
+
 
 @pytest.mark.parametrize("_", range(5))
 def test_template_database(async_postgresql_template: AsyncConnection, _: int) -> None:

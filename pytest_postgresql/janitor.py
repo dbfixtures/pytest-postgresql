@@ -1,7 +1,7 @@
 """Database Janitor."""
 
 import inspect
-from contextlib import contextmanager, asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from types import TracebackType
 from typing import Callable, Iterator, Type, TypeVar
@@ -279,7 +279,7 @@ class AsyncDatabaseJanitor:
         """Async context manager for postgresql cursor."""
 
         async def connect() -> psycopg.AsyncConnection:
-            return await  psycopg.AsyncConnection.connect(
+            return await psycopg.AsyncConnection.connect(
                 dbname=dbname,
                 user=self.user,
                 password=self.password,

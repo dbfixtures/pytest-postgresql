@@ -3,7 +3,7 @@
 import pathlib
 
 import pytest
-from psycopg import Connection, AsyncConnection
+from psycopg import AsyncConnection, Connection
 
 import pytest_postgresql.factories.client
 import pytest_postgresql.factories.noprocess
