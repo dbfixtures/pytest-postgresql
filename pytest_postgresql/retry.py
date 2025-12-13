@@ -1,9 +1,10 @@
 """Small retry callable in case of specific error occurred."""
 
+import asyncio
 import datetime
 import sys
 from time import sleep
-from typing import Callable, Type, TypeVar
+from typing import Awaitable, Callable, Type, TypeVar
 
 T = TypeVar("T")
 
@@ -34,6 +35,34 @@ def retry(
             if time + timeout_diff < get_current_datetime():
                 raise TimeoutError(f"Failed after {i} attempts") from e
             sleep(1)
+
+
+async def retry_async(
+    func: Callable[[], Awaitable[T]],
+    timeout: int = 60,
+    possible_exception: Type[Exception] = Exception,
+) -> T:
+    """Attempt to retry the async function for timeout time.
+
+    Most often used for connecting to postgresql database as,
+    especially on macos on github-actions, first few tries fails
+    with this message:
+
+    ... ::
+        FATAL:  the database system is starting up
+    """
+    time: datetime.datetime = get_current_datetime()
+    timeout_diff: datetime.timedelta = datetime.timedelta(seconds=timeout)
+    i = 0
+    while True:
+        i += 1
+        try:
+            res = await func()
+            return res
+        except possible_exception as e:
+            if time + timeout_diff < get_current_datetime():
+                raise TimeoutError(f"Failed after {i} attempts") from e
+            await asyncio.sleep(1)
 
 
 def get_current_datetime() -> datetime.datetime:

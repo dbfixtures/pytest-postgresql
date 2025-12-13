@@ -23,6 +23,7 @@ from typing import Callable, Iterator
 
 import pytest
 from pytest import FixtureRequest
+from _pytest.scope import _ScopeName
 
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor_noop import NoopExecutor
@@ -45,6 +46,7 @@ def postgresql_noproc(
     dbname: str | None = None,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
+    scope: _ScopeName="session"
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 
@@ -55,10 +57,11 @@ def postgresql_noproc(
     :param dbname: postgresql database name
     :param options: Postgresql connection options
     :param load: List of functions used to initialize database's template.
+    :param scope: fixture scope; by default "session" which is recommended.
     :returns: function which makes a postgresql process
     """
 
-    @pytest.fixture(scope="session")
+    @pytest.fixture(scope=scope)
     def postgresql_noproc_fixture(request: FixtureRequest) -> Iterator[NoopExecutor]:
         """Noop Process fixture for PostgreSQL.
 
