@@ -56,7 +56,7 @@ jobs:
           command: pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --cov-report=xml:coverage-docker.xml
           allow-prereleases: true
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.5.1
+        uses: codecov/codecov-action@v5.5.2
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
