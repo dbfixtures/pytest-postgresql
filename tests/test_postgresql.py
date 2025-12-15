@@ -109,6 +109,10 @@ async def test_rand_postgres_port_async(postgresql2_async: AsyncConnection) -> N
     assert postgresql2_async.info.status == ConnStatus.OK
 
 
+@pytest.mark.skipif(
+    decimal.Decimal(POSTGRESQL_VERSION) < 10,
+    reason="Test query not supported in those postgresql versions, and soon will not be supported.",
+)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("_", range(2))
 async def test_postgres_terminate_connection_async(postgresql2_async: AsyncConnection, _: int) -> None:
