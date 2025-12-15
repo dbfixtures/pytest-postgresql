@@ -17,7 +17,7 @@ def build_loader(load: Callable | str | Path) -> Callable:
         loader_parts = re.split("[.:]", load, maxsplit=2)
         import_path = ".".join(loader_parts[:-1])
         loader_name = loader_parts[-1]
-        _temp_import = importlib.import_module(import_path, loader_name)
+        _temp_import = importlib.import_module(import_path)
         _loader: Callable = getattr(_temp_import, loader_name)
         return _loader
     else:
@@ -41,7 +41,7 @@ def build_loader_async(load: Callable | str | Path) -> Callable:
         loader_parts = re.split("[.:]", load, maxsplit=2)
         import_path = ".".join(loader_parts[:-1])
         loader_name = loader_parts[-1]
-        _temp_import = importlib.import_module(import_path, loader_name)
+        _temp_import = importlib.import_module(import_path)
         _loader: Callable = getattr(_temp_import, loader_name)
         return _loader
     else:
