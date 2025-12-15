@@ -293,7 +293,7 @@ class AsyncDatabaseJanitor:
             await conn.set_autocommit(True)
             # We must not run a transaction since we create a database.
             async with conn.cursor() as cur:
-                    yield cur
+                yield cur
         finally:
             await conn.close()
 
