@@ -89,7 +89,6 @@ def postgresql(
     return postgresql_factory
 
 
-
 def postgresql_async(
     process_fixture_name: str,
     dbname: str | None = None,
@@ -105,7 +104,6 @@ def postgresql_async(
     :param scope: fixture scope; by default "function" which is recommended.
     :returns: function which makes a connection to postgresql
     """
-
     import pytest_asyncio
 
     @pytest_asyncio.fixture(scope=scope)

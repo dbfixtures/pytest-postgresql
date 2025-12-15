@@ -1,6 +1,5 @@
 """Database Janitor tests."""
 
-import asyncio
 import sys
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -8,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from packaging.version import parse
 
-from pytest_postgresql.janitor import DatabaseJanitor, AsyncDatabaseJanitor
+from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 
 VERSION = parse("10")
 
@@ -18,6 +17,7 @@ def test_version_cast(version: Any) -> None:
     """Test that version is cast to Version object."""
     janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=version)
     assert janitor.version == VERSION
+
 
 @pytest.mark.parametrize("version", (VERSION, 10, "10"))
 @pytest.mark.asyncio

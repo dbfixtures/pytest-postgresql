@@ -1,7 +1,7 @@
 """Template database tests."""
 
 import pytest
-from psycopg import Connection, AsyncConnection
+from psycopg import AsyncConnection, Connection
 
 from pytest_postgresql.factories import postgresql, postgresql_async, postgresql_proc
 from tests.loader import load_database
