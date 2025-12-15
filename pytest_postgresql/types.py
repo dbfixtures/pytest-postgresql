@@ -1,4 +1,4 @@
-"""Pytest Postgresql Types"""
+"""Pytest Postgresql Types."""
 
 from typing import Literal
 

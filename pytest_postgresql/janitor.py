@@ -41,7 +41,7 @@ class DatabaseJanitor:
         :param host: postgresql host
         :param port: postgresql port
         :param dbname: database name
-        :param dbname: template database name
+        :param template_dbname: template database name
         :param version: postgresql version number
         :param password: optional postgresql password
         :param isolation_level: optional postgresql isolation level
@@ -188,7 +188,7 @@ class AsyncDatabaseJanitor:
         :param host: postgresql host
         :param port: postgresql port
         :param dbname: database name
-        :param dbname: template database name
+        :param template_dbname: template database name
         :param version: postgresql version number
         :param password: optional postgresql password
         :param isolation_level: optional postgresql isolation level
