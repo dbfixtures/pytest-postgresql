@@ -27,14 +27,15 @@ from pytest import FixtureRequest
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
-from pytest_postgresql.types import FixtureScopeT
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
+from pytest_postgresql.types import FixtureScopeT
+
 
 def postgresql(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-    scope: FixtureScopeT="function"
+    scope: FixtureScopeT = "function",
 ) -> Callable[[FixtureRequest], Iterator[Connection]]:
     """Return connection fixture factory for PostgreSQL.
 
@@ -93,7 +94,7 @@ def postgresql_async(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-    scope: FixtureScopeT="function"
+    scope: FixtureScopeT = "function",
 ) -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
     """Return async connection fixture factory for PostgreSQL.
 
@@ -108,8 +109,7 @@ def postgresql_async(
 
     @pytest_asyncio.fixture(scope=scope)
     async def postgresql_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
-        """
-        Async connection fixture factory for PostgreSQL.
+        """Async connection fixture factory for PostgreSQL.
 
         :param request: fixture request object
         :returns: postgresql client

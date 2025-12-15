@@ -26,8 +26,8 @@ from pytest import FixtureRequest
 
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor_noop import NoopExecutor
-from pytest_postgresql.types import FixtureScopeT
 from pytest_postgresql.janitor import DatabaseJanitor
+from pytest_postgresql.types import FixtureScopeT
 
 
 def xdistify_dbname(dbname: str) -> str:
@@ -46,7 +46,7 @@ def postgresql_noproc(
     dbname: str | None = None,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
-    scope: FixtureScopeT="session"
+    scope: FixtureScopeT = "session",
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 

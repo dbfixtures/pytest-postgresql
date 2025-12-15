@@ -50,7 +50,6 @@ def build_loader_async(load: Callable | str | Path) -> Callable:
 
 async def sql_async(sql_filename: Path, **kwargs: Any) -> None:
     """Async database loader for sql files."""
-
     import aiofiles
 
     async with await psycopg.AsyncConnection.connect(**kwargs) as db_connection:
