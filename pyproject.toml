@@ -38,7 +38,8 @@ requires-python = ">= 3.10"
 
 [project.optional-dependencies]
 async = [
-  "pytest-asyncio"
+  "pytest-asyncio",
+  "aiofiles"
 ]
 
 [project.urls]

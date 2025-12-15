@@ -3,7 +3,7 @@
 import pytest
 from psycopg import Connection, AsyncConnection
 
-from pytest_postgresql.factories import postgresql, postgresql_proc
+from pytest_postgresql.factories import postgresql, postgresql_async, postgresql_proc
 from tests.loader import load_database
 
 postgresql_proc_with_template = postgresql_proc(
@@ -13,6 +13,11 @@ postgresql_proc_with_template = postgresql_proc(
 )
 
 postgresql_template = postgresql(
+    "postgresql_proc_with_template",
+    dbname="stories_templated",
+)
+
+async_postgresql_template = postgresql_async(
     "postgresql_proc_with_template",
     dbname="stories_templated",
 )
@@ -31,12 +36,14 @@ def test_template_database(postgresql_template: Connection, _: int) -> None:
         res = cur.fetchall()
         assert len(res) == 0
 
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("_", range(5))
-def test_template_database(async_postgresql_template: AsyncConnection, _: int) -> None:
+async def test_template_database_async(async_postgresql_template: AsyncConnection, _: int) -> None:
     """Check that the database structure gets recreated out of a template."""
-    async with postgresql_template.cursor() as cur:
+    async with async_postgresql_template.cursor() as cur:
         await cur.execute("SELECT * FROM stories")
-        res = cur.fetchall()
+        res = await cur.fetchall()
         assert len(res) == 4
         await cur.execute("TRUNCATE stories")
         await cur.execute("SELECT * FROM stories")

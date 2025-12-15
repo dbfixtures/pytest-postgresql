@@ -7,7 +7,7 @@ from psycopg import Connection, AsyncConnection
 from psycopg.pq import ConnStatus
 
 from pytest_postgresql.executor import PostgreSQLExecutor
-from pytest_postgresql.retry import retry
+from pytest_postgresql.retry import retry, retry_async
 from tests.conftest import POSTGRESQL_VERSION
 
 MAKE_Q = "CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);"
@@ -123,4 +123,4 @@ async def test_postgres_terminate_connection_async(postgresql2_async: AsyncConne
             existing_connections = await cur.fetchall()
             assert len(existing_connections) == 1, f"there is always only one connection, {existing_connections}"
 
-        await retry(check_if_one_connection, timeout=120, possible_exception=AssertionError)
+        await retry_async(check_if_one_connection, timeout=120, possible_exception=AssertionError)

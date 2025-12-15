@@ -53,8 +53,8 @@ class DatabaseJanitor:
         self.password = password
         self.host = host
         self.port = port
-        # At least one of the dbname or template_dbname has to be filled.
-        assert any([dbname, template_dbname])
+        if not (dbname or template_dbname):
+            raise ValueError("At least one of the dbname or template_dbname has to be filled.")
         self.dbname = dbname
         self.template_dbname = template_dbname
         self._connection_timeout = connection_timeout
@@ -200,8 +200,8 @@ class AsyncDatabaseJanitor:
         self.password = password
         self.host = host
         self.port = port
-        # At least one of the dbname or template_dbname has to be filled.
-        assert any([dbname, template_dbname])
+        if not (dbname or template_dbname):
+            raise ValueError("At least one of the dbname or template_dbname has to be filled.")
         self.dbname = dbname
         self.template_dbname = template_dbname
         self._connection_timeout = connection_timeout
@@ -288,9 +288,9 @@ class AsyncDatabaseJanitor:
             )
 
         conn = await retry_async(connect, timeout=self._connection_timeout, possible_exception=psycopg.OperationalError)
-        conn.isolation_level = self.isolation_level
+        await conn.set_isolation_level(self.isolation_level)
+        await conn.set_autocommit(True)
         # We must not run a transaction since we create a database.
-        conn.autocommit = True
         async with conn.cursor() as cur:
             try:
                 yield cur

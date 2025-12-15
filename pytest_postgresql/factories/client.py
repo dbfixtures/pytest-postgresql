@@ -17,25 +17,24 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql client."""
 
-from typing import Callable, Iterator
+from typing import AsyncIterator, Callable, Iterator
 
 import psycopg
 import pytest
-from psycopg import Connection
+from psycopg import AsyncConnection, Connection
 from pytest import FixtureRequest
-from _pytest.scope import _ScopeName
 
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
-from pytest_postgresql.janitor import DatabaseJanitor
-
+from pytest_postgresql.types import FixtureScopeT
+from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 
 def postgresql(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-    scope: _ScopeName="function"
+    scope: FixtureScopeT="function"
 ) -> Callable[[FixtureRequest], Iterator[Connection]]:
     """Return connection fixture factory for PostgreSQL.
 
@@ -49,7 +48,7 @@ def postgresql(
 
     @pytest.fixture(scope=scope)
     def postgresql_factory(request: FixtureRequest) -> Iterator[Connection]:
-        """Fixture factory for PostgreSQL.
+        """Fixture connection factory for PostgreSQL.
 
         :param request: fixture request object
         :returns: postgresql client
@@ -95,8 +94,8 @@ def postgresql_async(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-    scope: _ScopeName="function"
-) -> Callable[[FixtureRequest], Iterator[Connection]]:
+    scope: FixtureScopeT="function"
+) -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
     """Return async connection fixture factory for PostgreSQL.
 
     :param process_fixture_name: name of the process fixture
@@ -108,14 +107,11 @@ def postgresql_async(
     """
 
     import pytest_asyncio
-    from psycopg import AsyncConnection
-
-    from pytest_postgresql.janitor import AsyncDatabaseJanitor
 
     @pytest_asyncio.fixture(scope=scope)
-    async def postgresql_factory(request: FixtureRequest) -> Iterator[AsyncConnection]:
+    async def postgresql_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
         """
-        Async fixture factory for PostgreSQL.
+        Async connection fixture factory for PostgreSQL.
 
         :param request: fixture request object
         :returns: postgresql client
@@ -129,7 +125,7 @@ def postgresql_async(
         pg_password = proc_fixture.password
         pg_options = proc_fixture.options
         pg_db = dbname or proc_fixture.dbname
-        janitor = DatabaseJanitor(
+        janitor = AsyncDatabaseJanitor(
             user=pg_user,
             host=pg_host,
             port=pg_port,
@@ -140,11 +136,8 @@ def postgresql_async(
             isolation_level=isolation_level,
         )
         if config["drop_test_database"]:
-            janitor.drop()
-        with AsyncDatabaseJanitor(
-            pg_user, pg_host, pg_port, pg_db, proc_fixture.version, pg_password, isolation_level
-        ) as janitor:
-            # Line modified here
+            await janitor.drop()
+        async with janitor:
             db_connection: AsyncConnection = await AsyncConnection.connect(
                 dbname=pg_db,
                 user=pg_user,
@@ -153,10 +146,7 @@ def postgresql_async(
                 port=pg_port,
                 options=pg_options,
             )
-            for load_element in pg_load:
-                janitor.load(load_element)
             yield db_connection
-            # And here
             await db_connection.close()
 
     return postgresql_factory
