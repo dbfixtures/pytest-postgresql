@@ -279,6 +279,7 @@ class AsyncDatabaseJanitor:
         """Async context manager for postgresql cursor."""
 
         async def connect() -> psycopg.AsyncConnection:
+            """Return postgresql async cursor."""
             return await psycopg.AsyncConnection.connect(
                 dbname=dbname,
                 user=self.user,
@@ -298,8 +299,10 @@ class AsyncDatabaseJanitor:
             await conn.close()
 
     async def __aenter__(self):
+        """Initialize Database Janitor."""
         await self.init()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Exit from Database janitor context cleaning after itself."""
         await self.drop()

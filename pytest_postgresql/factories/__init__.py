@@ -21,4 +21,4 @@ from pytest_postgresql.factories.client import postgresql, postgresql_async
 from pytest_postgresql.factories.noprocess import postgresql_noproc
 from pytest_postgresql.factories.process import PortType, postgresql_proc
 
-__all__ = ("postgresql_proc", "postgresql_noproc", "postgresql", "PortType")
+__all__ = ("postgresql_proc", "postgresql_noproc", "postgresql", "postgresql_async", "PortType")
