@@ -20,7 +20,7 @@ async def test_loader_callables_async() -> None:
     assert load_database == build_loader_async(load_database)
     assert load_database == build_loader_async("tests.loader:load_database")
 
-    async def afun(*args, **kwargs):
+    async def afun(*_args, **_kwargs):
         return 0
 
     assert afun == build_loader_async(afun)
