@@ -37,7 +37,23 @@ PortType = port_for.PortType  # mypy requires explicit export
 
 
 def _pg_exe(executable: str | None, config: PostgreSQLConfig) -> str:
-    """If executable is set, use it. Otherwise best effort to find the executable."""
+    """
+    Resolve the filesystem path to the PostgreSQL control executable (pg_ctl).
+    
+    If `executable` is provided, it is returned as-is. Otherwise the function uses
+    `config.exec` if that path exists; if not, it attempts to locate `pg_ctl` using
+    `pg_config --bindir` and returns the `pg_ctl` path from that bindir.
+    
+    Parameters:
+        executable (str | None): Explicit path to a pg_ctl-like executable, or None to auto-resolve.
+        config (PostgreSQLConfig): Configuration providing a fallback executable path via `config.exec`.
+    
+    Returns:
+        str: Absolute path to the pg_ctl executable to use.
+    
+    Raises:
+        ExecutableMissingException: If neither an existing executable path nor `pg_config` can be found.
+    """
     postgresql_ctl = executable or config.exec
     # check if that executable exists, as it's no on systems' PATH
     # only replace it if executable isn't passed manually
@@ -51,7 +67,17 @@ def _pg_exe(executable: str | None, config: PostgreSQLConfig) -> str:
 
 
 def _pg_port(port: PortType | None, config: PostgreSQLConfig, excluded_ports: Iterable[int]) -> int:
-    """User specified port, otherwise find an unused port from config."""
+    """
+    Select the PostgreSQL port to use, preferring an explicit port and falling back to the configured port.
+    
+    Parameters:
+        port (PortType | None): Preferred port provided by the caller; may be None.
+        config (PostgreSQLConfig): Configuration containing the default port to use when `port` is not specified.
+        excluded_ports (Iterable[int]): Ports that must not be selected.
+    
+    Returns:
+        int: A port number that is not in `excluded_ports`.
+    """
     pg_port = get_port(port, excluded_ports) or get_port(config.port, excluded_ports)
     assert pg_port is not None
     return pg_port
@@ -82,37 +108,38 @@ def postgresql_proc(
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
 ) -> Callable[[FixtureRequest, TempPathFactory], Iterator[PostgreSQLExecutor]]:
-    """Postgresql process factory.
-
-    :param executable: path to postgresql_ctl
-    :param host: hostname
-    :param port:
-        exact port (e.g. '8000', 8000)
-        randomly selected port (None) - any random available port
-        -1 - command line or pytest.ini configured port
-        [(2000,3000)] or (2000,3000) - random available port from a given range
-        [{4002,4003}] or {4002,4003} - random of 4002 or 4003 ports
-        [(2000,3000), {4002,4003}] - random of given range and set
-    :param user: postgresql username
-    :param password: postgresql password
-    :param dbname: postgresql database name
-    :param options: Postgresql connection options
-    :param startparams: postgresql starting parameters
-    :param unixsocketdir: directory to create postgresql's unixsockets
-    :param postgres_options: Postgres executable options for use by pg_ctl
-    :param load: List of functions used to initialize database's template.
-    :returns: function which makes a postgresql process
+    """
+    Create a pytest fixture factory that starts a temporary PostgreSQL server process for tests.
+    
+    This factory returns a session-scoped fixture which allocates a port, initializes a data directory, starts PostgreSQL, runs initial load steps into the template database, and yields a PostgreSQLExecutor for test use. The fixture ensures the server is stopped and cleaned up when tests finish.
+    
+    Parameters:
+        executable (str | None): Path to the PostgreSQL control executable (pg_ctl). If None, the configured executable or pg_config discovery will be used.
+        port (PortType | None | int): Port selection specification. Accepts:
+            - an exact port (e.g. 8000 or "8000"),
+            - None to select any available port,
+            - -1 to use the command-line or pytest.ini configured port,
+            - a range tuple/list (e.g. (2000, 3000)) to pick a random available port from that range,
+            - a set/list of ports (e.g. {4002, 4003}) to pick a random port from the set,
+            - a list combining ranges and sets (e.g. [(2000,3000), {4002,4003}]).
+        postgres_options (str | None): Additional options for the PostgreSQL server process passed through pg_ctl.
+        load (list[Callable | str | Path] | None): Initialization steps applied to the template database before tests run; each element is either a callable or a path/SQL identifier that DatabaseJanitor.load understands.
+    
+    Returns:
+        Callable[[FixtureRequest, TempPathFactory], Iterator[PostgreSQLExecutor]]: A pytest fixture factory that yields a started PostgreSQLExecutor configured per the provided arguments and test configuration.
     """
 
     @pytest.fixture(scope="session")
     def postgresql_proc_fixture(
         request: FixtureRequest, tmp_path_factory: TempPathFactory
     ) -> Iterator[PostgreSQLExecutor]:
-        """Process fixture for PostgreSQL.
-
-        :param request: fixture request object
-        :param tmp_path_factory: temporary path object (fixture)
-        :returns: tcp executor
+        """
+        Create, start, and yield a PostgreSQL server process configured for the requesting test.
+        
+        This fixture selects an available port, prepares a data directory and logfile, starts a PostgreSQL server via PostgreSQLExecutor, applies any configured initialization/load steps, and yields the running executor to the test. The server is stopped and resources are cleaned up when the fixture context exits.
+        
+        Returns:
+            PostgreSQLExecutor: A configured and started executor connected to the test PostgreSQL instance.
         """
         config = get_config(request)
         pg_dbname = dbname or config.dbname

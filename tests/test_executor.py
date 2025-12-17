@@ -49,7 +49,11 @@ class PatchedPostgreSQLExecutor(PostgreSQLExecutor):
 
 
 def test_unsupported_version(request: FixtureRequest) -> None:
-    """Check that the error gets raised on unsupported postgres version."""
+    """
+    Verify that starting an executor with an unsupported PostgreSQL version raises PostgreSQLUnsupported.
+    
+    Creates a PatchedPostgreSQLExecutor configured to simulate an unsupported server version and asserts that invoking its start() method raises `PostgreSQLUnsupported`.
+    """
     config = get_config(request)
     port = get_port(config.port)
     assert port is not None
@@ -75,7 +79,14 @@ def test_executor_init_with_password(
     tmp_path_factory: pytest.TempPathFactory,
     locale: str,
 ) -> None:
-    """Test whether the executor initializes properly."""
+    """
+    Verify that a PostgreSQLExecutor initialized with a password and database name can start and stop successfully when running under the specified locale.
+    
+    The test sets LC_ALL to `locale`, prepares a temporary data directory and logfile, constructs a PostgreSQLExecutor using the test configuration and provided credentials, and asserts the executor can start and stop.
+    
+    Parameters:
+        locale (str): Locale string to set for the test environment (e.g., "en_US.UTF-8").
+    """
     config = get_config(request)
     monkeypatch.setenv("LC_ALL", locale)
     pg_exe = process._pg_exe(None, config)
@@ -100,7 +111,9 @@ def test_executor_init_bad_tmp_path(
     request: FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
-    r"""Test init with \ and space chars in the path."""
+    """
+    Verifies executor initialization, startup, and shutdown succeed when the datadir path contains backslash and space characters.
+    """
     config = get_config(request)
     pg_exe = process._pg_exe(None, config)
     port = process._pg_port(-1, config, [])
