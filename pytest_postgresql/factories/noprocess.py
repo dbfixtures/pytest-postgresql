@@ -46,12 +46,12 @@ def postgresql_noproc(
     options: str = "",
     load: list[Callable | str | Path] | None = None,
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
-    """
-    Create a pytest session-scoped fixture that provides a NoopExecutor connected to an existing PostgreSQL server.
-    
+    """Create a pytest session-scoped fixture that provides a NoopExecutor connected to an existing PostgreSQL server.
+
     The returned fixture resolves connection parameters from the explicit arguments or from the test configuration, applies xdist worker-specific adjustment to the database name, and uses a DatabaseJanitor to optionally drop the test database and load initialization elements into the template before yielding the configured NoopExecutor.
-    
-    Parameters:
+
+    Parameters
+    ----------
         host (str | None): Hostname to connect to; if None, taken from test configuration.
         port (str | int | None): Port to connect to; if None, taken from configuration or defaults to 5432.
         user (str | None): Username to authenticate as; if None, taken from configuration.
@@ -59,23 +59,27 @@ def postgresql_noproc(
         dbname (str | None): Base database name; if None, taken from configuration. The name is adjusted when pytest-xdist is in use.
         options (str): Additional connection options; if empty, taken from configuration.
         load (list[Callable | str | Path] | None): Sequence of initialization elements (callables or filesystem paths) to load into the database template; if None, taken from configuration.
-    
-    Returns:
+
+    Returns
+    -------
         Callable[[FixtureRequest], Iterator[NoopExecutor]]: A pytest fixture function which yields a configured NoopExecutor instance.
+
     """
 
     @pytest.fixture(scope="session")
     def postgresql_noproc_fixture(request: FixtureRequest) -> Iterator[NoopExecutor]:
-        """
-        Provide a pytest fixture that yields a NoopExecutor configured for an existing PostgreSQL server.
-        
+        """Provide a pytest fixture that yields a NoopExecutor configured for an existing PostgreSQL server.
+
         The fixture resolves connection parameters from the fixture request and the factory's closure values, applies xdist-aware database name transformation, and uses a DatabaseJanitor context to optionally drop the test database (if configured) and load initialization elements into the database template before yielding the executor.
-        
-        Parameters:
+
+        Parameters
+        ----------
             request (FixtureRequest): Pytest fixture request used to obtain configuration.
-        
-        Returns:
+
+        Returns
+        -------
             noop_exec (NoopExecutor): Executor-like object configured with the resolved host, port, user, password, dbname, and options.
+
         """
         config = get_config(request)
         pg_host = host or config.host

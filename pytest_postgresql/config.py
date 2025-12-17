@@ -28,27 +28,31 @@ class PostgreSQLConfig:
 
 
 def get_config(request: FixtureRequest) -> PostgreSQLConfig:
-    """
-    Create a PostgreSQLConfig populated from pytest configuration options.
-    
+    """Create a PostgreSQLConfig populated from pytest configuration options.
+
     Reads pytest options and INI values prefixed with "postgresql_" to populate a PostgreSQLConfig dataclass. The "load" option is normalized to Paths or strings and "port_search_count" is converted to an int.
-    
-    Parameters:
+
+    Parameters
+    ----------
         request (FixtureRequest): pytest fixture request used to read config options and INI values.
-    
-    Returns:
+
+    Returns
+    -------
         PostgreSQLConfig: Configuration populated from the pytest settings.
+
     """
 
     def get_postgresql_option(option: str) -> Any:
-        """
-        Retrieve a PostgreSQL-related pytest configuration value.
-        
-        Parameters:
+        """Retrieve a PostgreSQL-related pytest configuration value.
+
+        Parameters
+        ----------
             option (str): The suffix of the configuration name (without the "postgresql_" prefix).
-        
-        Returns:
+
+        Returns
+        -------
             The value of the pytest configuration option named "postgresql_<option>", or `None` if not set.
+
         """
         name = "postgresql_" + option
         return request.config.getoption(name) or request.config.getini(name)
@@ -75,14 +79,16 @@ def get_config(request: FixtureRequest) -> PostgreSQLConfig:
 
 
 def detect_paths(load_paths: list[LocalPath | str]) -> list[Path | str]:
-    """
-    Normalize a sequence of load paths so SQL file paths are Path objects and other entries are preserved.
-    
-    Parameters:
+    """Normalize a sequence of load paths so SQL file paths are Path objects and other entries are preserved.
+
+    Parameters
+    ----------
         load_paths (list[LocalPath | str]): Iterable of paths to normalize; entries may be pytest LocalPath objects or strings.
-    
-    Returns:
+
+    Returns
+    -------
         list[Path | str]: A new list where entries that refer to files ending with ".sql" are returned as pathlib.Path objects and all other entries are returned unchanged (strings).
+
     """
     converted_load_paths: list[Path | str] = []
     for path in load_paths:

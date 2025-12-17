@@ -35,30 +35,34 @@ def postgresql(
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
 ) -> Callable[[FixtureRequest], Iterator[Connection]]:
-    """
-    Create a pytest fixture factory that yields a PostgreSQL connection.
-    
-    Parameters:
+    """Create a pytest fixture factory that yields a PostgreSQL connection.
+
+    Parameters
+    ----------
         process_fixture_name (str): Name of the pytest fixture that provides the database process executor (used to obtain host, port, user, password, template DB name, and server version).
         dbname (str | None): Database name to connect to; if None, use the executor's database name.
         isolation_level (psycopg.IsolationLevel | None): Optional transaction isolation level to configure the janitor; if None, use the server default.
-    
-    Returns:
+
+    Returns
+    -------
         Callable[[FixtureRequest], Iterator[psycopg.Connection]]: A pytest fixture factory function which, when used in a test, yields an open psycopg Connection to the specified database and ensures database janitor lifecycle management around the connection.
+
     """
 
     @pytest.fixture
     def postgresql_factory(request: FixtureRequest) -> Iterator[Connection]:
-        """
-        Provide a pytest fixture that yields a psycopg Connection to the test PostgreSQL database.
-        
+        """Provide a pytest fixture that yields a psycopg Connection to the test PostgreSQL database.
+
         The fixture resolves the process executor and global config from the given request, prepares or drops the test database as configured, and manages the database janitor and connection lifecycle so the connection is open for the duration of the consuming test.
-        
-        Parameters:
+
+        Parameters
+        ----------
             request (FixtureRequest): Pytest fixture request used to obtain the process fixture and test configuration.
-        
-        Returns:
+
+        Returns
+        -------
             Connection: A psycopg Connection connected to the selected test database; the connection is closed after the fixture completes.
+
         """
         proc_fixture: PostgreSQLExecutor | NoopExecutor = request.getfixturevalue(process_fixture_name)
         config = get_config(request)
