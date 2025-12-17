@@ -66,14 +66,14 @@ def postgresql_noproc(
         :returns: tcp executor-like object
         """
         config = get_config(request)
-        pg_host = host or config["host"]
-        pg_port = port or config["port"] or 5432
-        pg_user = user or config["user"]
-        pg_password = password or config["password"]
-        pg_dbname = xdistify_dbname(dbname or config["dbname"])
-        pg_options = options or config["options"]
-        pg_load = load or config["load"]
-        drop_test_database = config["drop_test_database"]
+        pg_host = host or config.host
+        pg_port = port or config.port or 5432
+        pg_user = user or config.user
+        pg_password = password or config.password
+        pg_dbname = xdistify_dbname(dbname or config.dbname)
+        pg_options = options or config.options
+        pg_load = load or config.load
+        drop_test_database = config.drop_test_database
 
         noop_exec = NoopExecutor(
             host=pg_host,

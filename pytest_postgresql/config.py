@@ -1,14 +1,16 @@
 """Plugin's configuration."""
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 from _pytest._py.path import LocalPath
 from pytest import FixtureRequest
 
 
-class PostgresqlConfigDict(TypedDict):
-    """Typed Config dictionary."""
+@dataclass
+class PostgreSQLConfig:
+    """PostgreSQL Config."""
 
     exec: str
     host: str
@@ -25,16 +27,16 @@ class PostgresqlConfigDict(TypedDict):
     drop_test_database: bool
 
 
-def get_config(request: FixtureRequest) -> PostgresqlConfigDict:
+def get_config(request: FixtureRequest) -> PostgreSQLConfig:
     """Return a dictionary with config options."""
 
     def get_postgresql_option(option: str) -> Any:
         name = "postgresql_" + option
         return request.config.getoption(name) or request.config.getini(name)
 
-    load_paths = detect_paths(get_postgresql_option("load"))
+    load_paths: list[Path | str] = detect_paths(get_postgresql_option("load"))
 
-    return PostgresqlConfigDict(
+    cfg = PostgreSQLConfig(
         exec=get_postgresql_option("exec"),
         host=get_postgresql_option("host"),
         port=get_postgresql_option("port"),
@@ -50,6 +52,7 @@ def get_config(request: FixtureRequest) -> PostgresqlConfigDict:
         postgres_options=get_postgresql_option("postgres_options"),
         drop_test_database=request.config.getoption("postgresql_drop_test_database"),
     )
+    return cfg
 
 
 def detect_paths(load_paths: list[LocalPath | str]) -> list[Path | str]:
