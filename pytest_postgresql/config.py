@@ -28,7 +28,7 @@ class PostgreSQLConfig:
 
 
 def get_config(request: FixtureRequest) -> PostgreSQLConfig:
-    """Return a dictionary with config options."""
+    """Return a PostgreSQLConfig instance with configuration options."""
 
     def get_postgresql_option(option: str) -> Any:
         name = "postgresql_" + option
