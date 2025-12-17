@@ -113,6 +113,10 @@ showcontent = true
 name = "Bugfixes"
 showcontent = true
 
+[tool.towncrier.fragment.docs]
+name = "Documentation"
+showcontent = true
+
 [tool.towncrier.fragment.deprecate]
 name = "Deprecations"
 showcontent = true

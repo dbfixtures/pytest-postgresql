@@ -282,18 +282,19 @@ Sample below is simplified session fixture from
 
 .. code-block:: python
 
+    from psycopg import Connection
     from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker
+    from sqlalchemy.orm import scoped_session, sessionmaker, Session
     from sqlalchemy.pool import NullPool
     from zope.sqlalchemy import register
 
 
     @pytest.fixture
-    def db_session(postgresql):
+    def db_session(postgresql: Connection) -> Iterator[Session]:
         """Session for SQLAlchemy."""
         from pyramid_fullauth.models import Base
 
-        connection = f'postgresql+psycopg2://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+        connection = f'postgresql+psycopg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
 
         engine = create_engine(connection, echo=False, poolclass=NullPool)
         pyramid_basemodel.Session = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
@@ -307,7 +308,7 @@ Sample below is simplified session fixture from
 
 
     @pytest.fixture
-    def user(db_session):
+    def user(db_session: Session) -> User:
         """Test user fixture."""
         from pyramid_fullauth.models import User
         from tests.tools import DEFAULT_USER
@@ -318,7 +319,7 @@ Sample below is simplified session fixture from
         return new_user
 
 
-    def test_remove_last_admin(db_session, user):
+    def test_remove_last_admin(db_session: pyramid_basemodel.Session, user: User) -> None:
         """
         Sample test checks internal login, but shows usage in tests with SQLAlchemy
         """
@@ -346,11 +347,16 @@ For this import DatabaseJanitor and use its init and drop methods:
 
 .. code-block:: python
 
+    from typing import Iterator
+
+    import psycopg
+    from psycopg import Connection
     import pytest
     from pytest_postgresql.janitor import DatabaseJanitor
+    from pytest_postgresql.executor import PostgreSQLExecutor
 
     @pytest.fixture
-    def database(postgresql_proc):
+    def database(postgresql_proc: PostgreSQLExecutor) -> Iterator[Connection]:
         # variable definition
 
         janitor = DatabaseJanitor(
@@ -362,7 +368,7 @@ For this import DatabaseJanitor and use its init and drop methods:
             password="secret_password",
         )
         janitor.init()
-        yield psycopg2.connect(
+        yield psycopg.connect(
             dbname="my_test_database",
             user=postgresql_proc.user,
             password="secret_password",
@@ -375,11 +381,16 @@ or use it as a context manager:
 
 .. code-block:: python
 
+    from typing import Iterator
+
+    import psycopg
+    from psycopg import Connection
     import pytest
     from pytest_postgresql.janitor import DatabaseJanitor
+    from pytest_postgresql.executor import PostgreSQLExecutor
 
     @pytest.fixture
-    def database(postgresql_proc):
+    def database(postgresql_proc: PostgreSQLExecutor) -> Iterator[Connection]:
         # variable definition
 
         with DatabaseJanitor(
@@ -390,7 +401,7 @@ or use it as a context manager:
             version=postgresql_proc.version,
             password="secret_password",
         ):
-            yield psycopg2.connect(
+            yield psycopg.connect(
                 dbname="my_test_database",
                 user=postgresql_proc.user,
                 password="secret_password",
@@ -425,14 +436,14 @@ In tests, make sure that all your tests are using **postgresql_noproc** fixture 
 
 .. code-block:: python
 
+    from psycopg import Connection
     from pytest_postgresql import factories
-
 
     postgresql_in_docker = factories.postgresql_noproc()
     postgresql = factories.postgresql("postgresql_in_docker", dbname="test")
 
 
-    def test_postgres_docker(postgresql):
+    def test_postgres_docker(postgresql: Connection) -> None:
         """Run test."""
         cur = postgresql.cursor()
         cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
@@ -453,9 +464,10 @@ your custom postgresql process fixture:
 
 .. code-block:: python
 
+    import psycopg
     import pytest_postgresql.factories
-    def load_database(**kwargs):
-        db_connection: connection = psycopg2.connect(**kwargs)
+    def load_database(**kwargs: str) -> None:
+        db_connection: psycopg.Connection = psycopg.connect(**kwargs)
         with db_connection.cursor() as cur:
             cur.execute("CREATE TABLE stories (id serial PRIMARY KEY, name varchar);")
             cur.execute(
@@ -486,8 +498,14 @@ How to use SQLAlchemy for common initialisation:
 
 .. code-block:: python
 
-    def load_database(**kwargs):
-        connection = f"postgresql+psycopg2://{kwargs['user']}:@{kwargs['host']}:{kwargs['port']}/{kwargs['dbname']}"
+    from typing import Iterator
+
+    import psycopg
+    from sqlalchemy.orm import Session
+
+    def load_database(**kwargs: str) -> None:
+        from your_package import Base
+        connection = f"postgresql+psycopg://{kwargs['user']}:@{kwargs['host']}:{kwargs['port']}/{kwargs['dbname']}"
         engine = create_engine(connection)
         Base.metadata.create_all(engine)
         session = scoped_session(sessionmaker(bind=engine))
@@ -499,8 +517,8 @@ How to use SQLAlchemy for common initialisation:
     postgresql = factories.postgresql('postgresql_proc') # still need to check if this is actually needed or not
 
     @pytest.fixture
-    def dbsession(postgresql):
-        connection = f'postgresql+psycopg2://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+    def dbsession(postgresql: psycopg.Connection) -> Iterator[Session]:
+        connection = f'postgresql+psycopg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
         engine = create_engine(connection)
 
         session = scoped_session(sessionmaker(bind=engine))
