@@ -70,7 +70,7 @@ def postgresql(
             password=pg_password,
             isolation_level=isolation_level,
         )
-        if config["drop_test_database"]:
+        if config.drop_test_database:
             janitor.drop()
         with janitor:
             db_connection: Connection = psycopg.connect(

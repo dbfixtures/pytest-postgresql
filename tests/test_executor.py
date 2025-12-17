@@ -51,16 +51,16 @@ class PatchedPostgreSQLExecutor(PostgreSQLExecutor):
 def test_unsupported_version(request: FixtureRequest) -> None:
     """Check that the error gets raised on unsupported postgres version."""
     config = get_config(request)
-    port = get_port(config["port"])
+    port = get_port(config.port)
     assert port is not None
     executor = PatchedPostgreSQLExecutor(
-        executable=config["exec"],
-        host=config["host"],
+        executable=config.exec,
+        host=config.host,
         port=port,
         datadir="/tmp/error",
-        unixsocketdir=config["unixsocketdir"],
+        unixsocketdir=config.unixsocketdir,
         logfile="/tmp/version.error.log",
-        startparams=config["startparams"],
+        startparams=config.startparams,
         dbname="random_name",
     )
 
@@ -84,12 +84,12 @@ def test_executor_init_with_password(
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
     executor = PostgreSQLExecutor(
         executable=pg_exe,
-        host=config["host"],
+        host=config.host,
         port=port,
         datadir=str(datadir),
-        unixsocketdir=config["unixsocketdir"],
+        unixsocketdir=config.unixsocketdir,
         logfile=str(logfile_path),
-        startparams=config["startparams"],
+        startparams=config.startparams,
         password="somepassword",
         dbname="somedatabase",
     )
@@ -109,12 +109,12 @@ def test_executor_init_bad_tmp_path(
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
     executor = PostgreSQLExecutor(
         executable=pg_exe,
-        host=config["host"],
+        host=config.host,
         port=port,
         datadir=str(datadir),
-        unixsocketdir=config["unixsocketdir"],
+        unixsocketdir=config.unixsocketdir,
         logfile=str(logfile_path),
-        startparams=config["startparams"],
+        startparams=config.startparams,
         password="some password",
         dbname="some database",
     )
