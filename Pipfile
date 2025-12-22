@@ -17,5 +17,5 @@ pytest-cov = "==7.0.0"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"
 mypy = {version = "==1.19.1", markers="implementation_name == 'cpython'"}
-types-setuptools = "==80.9.0.20250822"
+types-setuptools = "==80.9.0.20251221"
 tbump = "==6.11.0"
