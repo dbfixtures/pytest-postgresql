@@ -3,11 +3,11 @@
 import decimal
 
 import pytest
-from psycopg import Connection
+from psycopg import AsyncConnection, Connection
 from psycopg.pq import ConnStatus
 
 from pytest_postgresql.executor import PostgreSQLExecutor
-from pytest_postgresql.retry import retry
+from pytest_postgresql.retry import retry, retry_async
 from tests.conftest import POSTGRESQL_VERSION
 
 MAKE_Q = "CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);"
@@ -72,3 +72,59 @@ def test_postgres_terminate_connection(postgresql2: Connection, _: int) -> None:
             assert len(existing_connections) == 1, f"there is always only one connection, {existing_connections}"
 
         retry(check_if_one_connection, timeout=120, possible_exception=AssertionError)
+
+
+@pytest.mark.asyncio
+async def test_main_postgres_async(postgresql_async: AsyncConnection) -> None:
+    """Async check main postgresql fixture."""
+    async with postgresql_async.cursor() as cur:
+        await cur.execute(MAKE_Q)
+        await postgresql_async.commit()
+
+
+@pytest.mark.asyncio
+async def test_two_postgreses_async(postgresql_async: AsyncConnection, postgresql2_async: AsyncConnection) -> None:
+    """Async check two postgresql fixtures on one test (async)."""
+    async with postgresql_async.cursor() as cur:
+        await cur.execute(MAKE_Q)
+        await postgresql_async.commit()
+
+    async with postgresql2_async.cursor() as cur:
+        await cur.execute(MAKE_Q)
+        await postgresql2_async.commit()
+
+
+@pytest.mark.asyncio
+async def test_postgres_load_two_files_async(postgresql_load_1_async: AsyncConnection) -> None:
+    """Async check postgresql fixture can load two files."""
+    async with postgresql_load_1_async.cursor() as cur:
+        await cur.execute(SELECT_Q)
+        results = await cur.fetchall()
+        assert len(results) == 2
+
+
+@pytest.mark.asyncio
+async def test_rand_postgres_port_async(postgresql2_async: AsyncConnection) -> None:
+    """Async check if postgres fixture can be started on random port."""
+    assert postgresql2_async.info.status == ConnStatus.OK
+
+
+@pytest.mark.skipif(
+    decimal.Decimal(POSTGRESQL_VERSION) < 10,
+    reason="Test query not supported in those postgresql versions, and soon will not be supported.",
+)
+@pytest.mark.asyncio
+@pytest.mark.parametrize("_", range(2))
+async def test_postgres_terminate_connection_async(postgresql2_async: AsyncConnection, _: int) -> None:
+    """Async test that connections are terminated between tests.
+
+    And check that only one exists at a time.
+    """
+    async with postgresql2_async.cursor() as cur:
+
+        async def check_if_one_connection() -> None:
+            await cur.execute("SELECT * FROM pg_stat_activity WHERE backend_type = 'client backend';")
+            existing_connections = await cur.fetchall()
+            assert len(existing_connections) == 1, f"there is always only one connection, {existing_connections}"
+
+        await retry_async(check_if_one_connection, timeout=120, possible_exception=AssertionError)
