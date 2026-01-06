@@ -16,6 +16,7 @@ repos:
       - id: trailing-whitespace
       - id: check-toml
       - id: end-of-file-fixer
+        exclude_types: [svg]
       - id: mixed-line-ending
       - id: check-yaml
       - id: pretty-format-json

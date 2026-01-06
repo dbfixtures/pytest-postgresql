@@ -1,4 +1,4 @@
-.. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/master/logo.png
+.. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/main/logo.png
     :width: 100px
     :height: 100px
 
@@ -43,6 +43,14 @@ Install with:
 You will also need to install ``psycopg``. See `its installation instructions <https://www.psycopg.org/psycopg3/docs/basic/install.html>`_.
 Note that this plugin requires ``psycopg`` version 3. It is possible to simultaneously install version 3
 and version 2 for libraries that require the latter (see `those instructions <https://www.psycopg.org/docs/install.html>`_).
+
+How does it work
+----------------
+
+.. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/main/docs/images/architecture.svg
+    :alt: Project Architecture Diagram
+    :align: center
+
 
 Plugin contains three fixtures:
 
