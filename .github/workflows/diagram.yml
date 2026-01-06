@@ -1,0 +1,27 @@
+name: Render Mermaid Diagrams
+on:
+  push:
+    paths:
+      - 'docs/*.mmd' # Trigger only when mermaid files change
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    # Grant the action permission to write to the repository
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: Render Diagram
+        run: mmdc -p docs/puppeteer-config.json -i docs/architecture.mmd -o docs/images/architecture.svg -t neutral
+
+      - name: Commit and Push
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "docs: update rendered mermaid diagram [skip ci]"
+          file_pattern: 'docs/images/*.svg'
