@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant Pytest as Pytest runner
+    participant ProcFactory as postgresql_proc_factory
+    participant PgServer as PostgreSQL process
+    participant TemplateDB as Template DB (seeded)
+    participant TestDB as Per-test DB (clone)
+
+    Pytest->>ProcFactory: request postgresql_proc with load=[load_database]
+    ProcFactory->>PgServer: start server
+    ProcFactory->>TemplateDB: invoke load_database (create metadata, seed data)
+    Note right of TemplateDB: Template is created and seeded once per full run
+    loop per test
+        Pytest->>PgServer: request clone of TemplateDB
+        PgServer->>TestDB: create cloned database for test
+        Pytest->>TestDB: run test using cloned DB
+        Pytest->>TestDB: teardown: commit transaction
+        Pytest->>TestDB: teardown: drop_all metadata (cleanup)
+    end
