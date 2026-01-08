@@ -24,8 +24,35 @@ pytest-postgresql
 What is this?
 =============
 
-This is a pytest plugin, that enables you to test your code that relies on a running PostgreSQL Database.
-It allows you to specify fixtures for PostgreSQL process and client.
+This is a pytest plugin that enables you to test code relying on a running PostgreSQL database.
+It provides fixtures for managing both the PostgreSQL process and the client connections.
+
+Quick Start
+===========
+
+1. **Install the plugin:**
+
+   .. code-block:: sh
+
+       pip install pytest-postgresql
+
+   You will also need to install ``psycopg`` (version 3). See `its installation instructions <https://www.psycopg.org/psycopg3/docs/basic/install.html>`_.
+
+   .. note::
+
+       While this plugin requires ``psycopg`` 3 to manage the database, your application code can still use ``psycopg`` 2.
+
+2. **Run a test:**
+
+   Simply include the ``postgresql`` fixture in your test. It provides a connected ``psycopg.Connection`` object.
+
+   .. code-block:: python
+
+       def test_example(postgresql):
+           """Check main postgresql fixture."""
+           with postgresql.cursor() as cur:
+               cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
+               postgresql.commit()
 
 How to use
 ==========
@@ -34,16 +61,6 @@ How to use
 
     Tested on PostgreSQL versions >= 10. See tests for more details.
 
-Install with:
-
-.. code-block:: sh
-
-    pip install pytest-postgresql
-
-You will also need to install ``psycopg``. See `its installation instructions <https://www.psycopg.org/psycopg3/docs/basic/install.html>`_.
-Note that this plugin requires ``psycopg`` version 3. It is possible to simultaneously install version 3
-and version 2 for libraries that require the latter (see `those instructions <https://www.psycopg.org/docs/install.html>`_).
-
 How does it work
 ----------------
 
@@ -51,108 +68,92 @@ How does it work
     :alt: Project Architecture Diagram
     :align: center
 
+The plugin provides two main types of fixtures:
 
-Plugin contains three fixtures:
+**1. Client Fixtures**
+    These provide a connection to a database for your tests.
 
-* **postgresql** - it's a client fixture that has functional scope.
-  After each test it ends all leftover connections, and drops test database
-  from PostgreSQL ensuring repeatability.
-  This fixture returns already connected psycopg connection.
+    * **postgresql** - A function-scoped fixture. It returns a connected ``psycopg.Connection``.
+      After each test, it terminates leftover connections and drops the test database to ensure isolation.
 
-* **postgresql_proc** - session scoped fixture, that starts PostgreSQL instance
-  at it's first use and stops at the end of the tests.
-* **postgresql_noproc** - a noprocess fixture, that's connecting to already
-  running postgresql instance.
-  For example on dockerized test environments, or CI providing postgresql services
+**2. Process Fixtures**
+    These manage the PostgreSQL server lifecycle.
 
-Simply include one of these fixtures into your tests fixture list.
+    * **postgresql_proc** - A session-scoped fixture that starts a PostgreSQL instance on its first use and stops it when all tests are finished.
+    * **postgresql_noproc** - A fixture for connecting to an already running PostgreSQL instance (e.g., in Docker or CI).
 
-You can also create additional postgresql client and process fixtures if you'd need to:
+Customizing Fixtures
+--------------------
 
+You can create additional fixtures using factories:
 
 .. code-block:: python
 
     from pytest_postgresql import factories
 
+    # Create a custom process fixture
     postgresql_my_proc = factories.postgresql_proc(
         port=None, unixsocketdir='/var/run')
+
+    # Create a client fixture that uses the custom process
     postgresql_my = factories.postgresql('postgresql_my_proc')
 
 .. note::
 
-    Each PostgreSQL process fixture can be configured in a different way than the others through the fixture factory arguments.
-
-Sample test
-
-.. code-block:: python
-
-    def test_example_postgres(postgresql):
-        """Check main postgresql fixture."""
-        cur = postgresql.cursor()
-        cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
-        postgresql.commit()
-        cur.close()
+    Each process fixture can be configured independently through factory arguments.
 
 Pre-populating the database for tests
 -------------------------------------
 
-If you want the database fixture to be automatically pre-populated with your schema and data, there are two lewels you can achieve it:
+If you want the database to be automatically pre-populated with your schema and data, there are two levels you can achieve it:
 
-#. per test in a client fixture, by an intermediary fixture between client and your test (or other fixtures)
-#. per session in a process fixture
+#. **Per test:** In a client fixture, by using an intermediary fixture.
+#. **Per session:** In a process fixture.
 
-The process fixture accepts a load parameter, which accepts these loaders:
+The process fixture accepts a ``load`` parameter, which supports:
 
-* sql file path - which will load and execute sql files
-* loading functions - either by string import path, actual callable.
-  Loading functions will receive **host**, **port**, **user**, **dbname** and **password** arguments and will have to perform
-  connection to the database inside. Or start session in the ORM of your choice to perform actions with given ORM.
-  This way, you'd be able to trigger ORM based data manipulations, or even trigger database migrations programmatically.
+* **SQL file paths:** Loads and executes the SQL files.
+* **Loading functions:** A callable or an import string (e.g., ``"path.to.module:function"``).
+  These functions receive **host**, **port**, **user**, **dbname**, and **password** and must perform the connection themselves (or use an ORM).
 
-The process fixture pre-populates the database once per test session (at the start of the process fixture),
-and loads the schema and data into the template database. Client fixture then creates test database out of the template database each test,
-which significantly **speeds up the tests**.
+The process fixture pre-populates the database once per session into a **template database**. The client fixture then clones this template for each test, which significantly **speeds up your tests**.
 
 .. code-block:: python
 
     from pathlib import Path
     postgresql_my_proc = factories.postgresql_proc(
-        load=[Path("schemafile.sql"), Path("otherschema.sql"), "import.path.to.function", "import.path.to:otherfunction", load_this]
+        load=[
+            Path("schemafile.sql"),
+            "import.path.to.function",
+            load_this_callable
+        ]
     )
 
-Additional benefit, is that test code might safely use separate database connection, and can safely test it's behaviour with transactions and rollbacks,
-as tests and code will work on separate database connections.
-
-Defining pre-populate on command line:
+Defining pre-population on the command line:
 
 .. code-block:: sh
 
-    pytest --postgresql-populate-template=path.to.loading_function --postgresql-populate-template=path.to.other:loading_function --postgresql-populate-template=path/to/file.sql
+    pytest --postgresql-populate-template=path/to/file.sql --postgresql-populate-template=path.to.function
 
-Connecting to already existing postgresql database
---------------------------------------------------
+Connecting to an existing PostgreSQL database
+----------------------------------------------
 
-Some projects are using already running postgresql servers (ie on docker instances).
-In order to connect to them, one would be using the ``postgresql_noproc`` fixture.
+To connect to an external server (e.g., running in Docker), use the ``postgresql_noproc`` fixture.
 
 .. code-block:: python
 
     postgresql_external = factories.postgresql('postgresql_noproc')
 
-By default the  ``postgresql_noproc`` fixture would connect to postgresql instance using **5432** port. Standard configuration options apply to it.
-
-These are the configuration options that are working on all levels with the ``postgresql_noproc`` fixture:
+By default, it connects to ``127.0.0.1:5432``.
 
 Configuration
 =============
 
-You can define your settings in three ways, it's fixture factory argument, command line option and pytest.ini configuration option.
-You can pick which you prefer, but remember that these settings are handled in the following order:
+You can define settings via fixture factory arguments, command line options, or ``pytest.ini``. They are resolved in this order:
 
-    * ``Fixture factory argument``
-    * ``Command line option``
-    * ``Configuration option in your pytest.ini file``
-
+1. ``Fixture factory argument``
+2. ``Command line option``
+3. ``pytest.ini configuration option``
 
 .. list-table:: Configuration options
    :header-rows: 1
@@ -168,7 +169,7 @@ You can pick which you prefer, but remember that these settings are handled in t
      - --postgresql-exec
      - postgresql_exec
      - -
-     - /usr/lib/postgresql/13/bin/pg_ctl
+     - ``pg_config --bindir`` + ``pg_ctl``
    * - host
      - host
      - --postgresql-host
@@ -217,13 +218,13 @@ You can pick which you prefer, but remember that these settings are handled in t
      - postgresql_unixsocketdir
      - -
      - $TMPDIR
-   * - Database name which will be created by the fixtures
+   * - Database name
      - dbname
      - --postgresql-dbname
      - postgresql_dbname
-     - yes, however with xdist an index is being added to name, resulting in test0, test1 for each worker.
+     - yes (handles xdist)
      - test
-   * - Default Schema either in sql files or import path to function that will load it (list of values for each)
+   * - Default Schema (load list)
      - load
      - --postgresql-load
      - postgresql_load
@@ -235,312 +236,142 @@ You can pick which you prefer, but remember that these settings are handled in t
      - postgresql_options
      - yes
      -
-   * - Drop test database on start.
-
-       .. warning::
-
-           Use carefully as it might lead to unexpected results within your test suite.
+   * - Drop test database on start
      -
      - --postgresql-drop-test-database
      -
+     - -
      - false
-     -
 
+.. note::
 
-
-
-Example usage:
-
-* pass it as an argument in your own fixture
-
-    .. code-block:: python
-
-        postgresql_proc = factories.postgresql_proc(
-            port=8888)
-
-* use ``--postgresql-port`` command line option when you run your tests
-
-    .. code-block:: sh
-
-        pytest tests --postgresql-port=8888
-
-
-* specify your port as ``postgresql_port`` in your ``pytest.ini`` file.
-
-    To do so, put a line like the following under the ``[pytest]`` section of your ``pytest.ini``:
-
-    .. code-block:: ini
-
-        [pytest]
-        postgresql_port = 8888
+    If the ``executable`` is not provided, the plugin attempts to find it by calling ``pg_config``. If that fails, it fallbacks to a common path like ``/usr/lib/postgresql/13/bin/pg_ctl``.
 
 Examples
 ========
 
-Populating database for tests
------------------------------
+Using SQLAlchemy
+----------------
 
-With SQLAlchemy
-+++++++++++++++
-
-This example shows how to populate database and create an SQLAlchemy's ORM connection:
-
-Sample below is simplified session fixture from
-`pyramid_fullauth <https://github.com/fizyk/pyramid_fullauth/>`_ tests:
+This example shows how to create an SQLAlchemy session fixture:
 
 .. code-block:: python
 
+    from typing import Iterator
+    import pytest
     from psycopg import Connection
     from sqlalchemy import create_engine
-    from sqlalchemy.orm import scoped_session, sessionmaker, Session
+    from sqlalchemy.orm import Session, sessionmaker, scoped_session
     from sqlalchemy.pool import NullPool
-    from zope.sqlalchemy import register
-
 
     @pytest.fixture
     def db_session(postgresql: Connection) -> Iterator[Session]:
         """Session for SQLAlchemy."""
-        from pyramid_fullauth.models import Base
+        user = postgresql.info.user
+        host = postgresql.info.host
+        port = postgresql.info.port
+        dbname = postgresql.info.dbname
 
-        connection = f'postgresql+psycopg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
+        connection_str = f'postgresql+psycopg://{user}:@{host}:{port}/{dbname}'
+        engine = create_engine(connection_str, echo=False, poolclass=NullPool)
 
-        engine = create_engine(connection, echo=False, poolclass=NullPool)
-        pyramid_basemodel.Session = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
-        pyramid_basemodel.bind_engine(
-            engine, pyramid_basemodel.Session, should_create=True, should_drop=True)
+        # Assuming you use a Base model
+        from my_app.models import Base
+        Base.metadata.create_all(engine)
 
-        yield pyramid_basemodel.Session
+        SessionLocal = scoped_session(sessionmaker(bind=engine))
+        yield SessionLocal()
 
-        transaction.commit()
+        SessionLocal.close()
         Base.metadata.drop_all(engine)
 
+Advanced Usage: DatabaseJanitor
+-------------------------------
 
-    @pytest.fixture
-    def user(db_session: Session) -> User:
-        """Test user fixture."""
-        from pyramid_fullauth.models import User
-        from tests.tools import DEFAULT_USER
-
-        new_user = User(**DEFAULT_USER)
-        db_session.add(new_user)
-        transaction.commit()
-        return new_user
-
-
-    def test_remove_last_admin(db_session: pyramid_basemodel.Session, user: User) -> None:
-        """
-        Sample test checks internal login, but shows usage in tests with SQLAlchemy
-        """
-        user = db_session.merge(user)
-        user.is_admin = True
-        transaction.commit()
-        user = db_session.merge(user)
-
-        with pytest.raises(AttributeError):
-            user.is_admin = False
-.. note::
-
-    See the original code at `pyramid_fullauth's conftest file <https://github.com/fizyk/pyramid_fullauth/blob/2950e7f4a397b313aaf306d6d1a763ab7d8abf2b/tests/conftest.py#L35>`_.
-    Depending on your needs, that in between code can fire alembic migrations in case of sqlalchemy stack or any other code
-
-Maintaining database state outside of the fixtures
---------------------------------------------------
-
-It is possible and appears it's used in other libraries for tests,
-to maintain database state with the use of the ``pytest-postgresql`` database
-managing functionality:
-
-For this import DatabaseJanitor and use its init and drop methods:
-
+``DatabaseJanitor`` is an advanced API for managing database state outside of standard fixtures. It is used by projects like `Warehouse <https://github.com/pypa/warehouse>`_ (pypi.org).
 
 .. code-block:: python
 
-    from typing import Iterator
-
     import psycopg
-    from psycopg import Connection
-    import pytest
     from pytest_postgresql.janitor import DatabaseJanitor
-    from pytest_postgresql.executor import PostgreSQLExecutor
 
-    @pytest.fixture
-    def database(postgresql_proc: PostgreSQLExecutor) -> Iterator[Connection]:
-        # variable definition
-
-        janitor = DatabaseJanitor(
-            user=postgresql_proc.user,
-            host=postgresql_proc.host,
-            proc=postgresql_proc.port,
-            testdb="my_test_database",
-            version=postgresql_proc.version,
-            password="secret_password",
-        )
-        janitor.init()
-        yield psycopg.connect(
-            dbname="my_test_database",
-            user=postgresql_proc.user,
-            password="secret_password",
-            host=postgresql_proc.host,
-            port=postgresql_proc.port,
-        )
-        janitor.drop()
-
-or use it as a context manager:
-
-.. code-block:: python
-
-    from typing import Iterator
-
-    import psycopg
-    from psycopg import Connection
-    import pytest
-    from pytest_postgresql.janitor import DatabaseJanitor
-    from pytest_postgresql.executor import PostgreSQLExecutor
-
-    @pytest.fixture
-    def database(postgresql_proc: PostgreSQLExecutor) -> Iterator[Connection]:
-        # variable definition
-
+    def test_manual_janitor(postgresql_proc):
         with DatabaseJanitor(
             user=postgresql_proc.user,
             host=postgresql_proc.host,
             port=postgresql_proc.port,
-            dbname="my_test_database",
+            dbname="my_custom_db",
             version=postgresql_proc.version,
             password="secret_password",
         ):
-            yield psycopg.connect(
-                dbname="my_test_database",
+            with psycopg.connect(
+                dbname="my_custom_db",
                 user=postgresql_proc.user,
-                password="secret_password",
                 host=postgresql_proc.host,
                 port=postgresql_proc.port,
-            )
+                password="secret_password",
+            ) as conn:
+                # use connection
+                pass
 
-.. note::
+Connecting to PostgreSQL in Docker
+----------------------------------
 
-    DatabaseJanitor manages the state of the database, but you'll have to create
-    connection to use in test code yourself.
-
-    You can optionally pass in a recognized postgresql ISOLATION_LEVEL for
-    additional control.
-
-.. note::
-
-    See DatabaseJanitor usage in python's warehouse test code https://github.com/pypa/warehouse/blob/5d15bfe/tests/conftest.py#L127
-
-Connecting to Postgresql (in a docker)
---------------------------------------
-
-To connect to a docker run postgresql and run test on it, use noproc fixtures.
+To connect to a Docker-run PostgreSQL, use the ``noproc`` fixture.
 
 .. code-block:: sh
 
-    docker run --name some-postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+    docker run --name some-postgres -e POSTGRES_PASSWORD=mysecret -d postgres
 
-This will start postgresql in a docker container, however using a postgresql installed locally is not much different.
-
-In tests, make sure that all your tests are using **postgresql_noproc** fixture like that:
+In your tests:
 
 .. code-block:: python
 
-    from psycopg import Connection
     from pytest_postgresql import factories
 
     postgresql_in_docker = factories.postgresql_noproc()
     postgresql = factories.postgresql("postgresql_in_docker", dbname="test")
 
+    def test_docker(postgresql):
+        with postgresql.cursor() as cur:
+            cur.execute("SELECT 1")
 
-    def test_postgres_docker(postgresql: Connection) -> None:
-        """Run test."""
-        cur = postgresql.cursor()
-        cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
-        postgresql.commit()
-        cur.close()
-
-And run tests:
+Run with:
 
 .. code-block:: sh
 
-    pytest --postgresql-host=172.17.0.2 --postgresql-password=mysecretpassword
+    pytest --postgresql-host=172.17.0.2 --postgresql-password=mysecret
 
 Basic database state for all tests
 ----------------------------------
 
-If you've got several tests that require common initialisation, you can to define a `load` and pass it to
-your custom postgresql process fixture:
+You can define a ``load`` function and pass it to your process fixture factory:
 
 .. code-block:: python
 
     import psycopg
-    import pytest_postgresql.factories
-    def load_database(**kwargs: str) -> None:
-        db_connection: psycopg.Connection = psycopg.connect(**kwargs)
-        with db_connection.cursor() as cur:
-            cur.execute("CREATE TABLE stories (id serial PRIMARY KEY, name varchar);")
-            cur.execute(
-                "INSERT INTO stories (name) VALUES"
-                "('Silmarillion'), ('Star Wars'), ('The Expanse'), ('Battlestar Galactica')"
-            )
-            db_connection.commit()
+    from pytest_postgresql import factories
 
-    postgresql_proc = factories.postgresql_proc(
-        load=[load_database],
-    )
-
-    postgresql = factories.postgresql(
-        "postgresql_proc",
-    )
-
-The way this will work is that the process fixture will populate template database,
-which in turn will be used automatically by client fixture to create a test database from scratch.
-Fast, clean and no dangling transactions, that could be accidentally rolled back.
-
-Same approach will work with noproces fixture, while connecting to already running postgresql instance whether
-it'll be on a docker machine or running remotely or locally.
-
-Using SQLAlchemy to initialise basic database state
-+++++++++++++++++++++++++++++++++++++++++++++++++++
-
-How to use SQLAlchemy for common initialisation:
-
-.. code-block:: python
-
-    from typing import Iterator
-
-    import psycopg
-    from sqlalchemy.orm import Session
-
-    def load_database(**kwargs: str) -> None:
-        from your_package import Base
-        connection = f"postgresql+psycopg://{kwargs['user']}:@{kwargs['host']}:{kwargs['port']}/{kwargs['dbname']}"
-        engine = create_engine(connection)
-        Base.metadata.create_all(engine)
-        session = scoped_session(sessionmaker(bind=engine))
-        # add things to session
-        session.commit()
+    def load_database(**kwargs):
+        with psycopg.connect(**kwargs) as conn:
+            with conn.cursor() as cur:
+                cur.execute("CREATE TABLE stories (id serial PRIMARY KEY, name varchar);")
+                cur.execute("INSERT INTO stories (name) VALUES ('Silmarillion'), ('The Expanse');")
 
     postgresql_proc = factories.postgresql_proc(load=[load_database])
+    postgresql = factories.postgresql("postgresql_proc")
 
-    postgresql = factories.postgresql('postgresql_proc') # still need to check if this is actually needed or not
+    def test_stories(postgresql):
+        with postgresql.cursor() as cur:
+            cur.execute("SELECT count(*) FROM stories")
+            assert cur.fetchone()[0] == 2
 
-    @pytest.fixture
-    def dbsession(postgresql: psycopg.Connection) -> Iterator[Session]:
-        connection = f'postgresql+psycopg://{postgresql.info.user}:@{postgresql.info.host}:{postgresql.info.port}/{postgresql.info.dbname}'
-        engine = create_engine(connection)
-
-        session = scoped_session(sessionmaker(bind=engine))
-
-        yield session
-        # 'Base.metadata.drop_all(engine)' here specifically does not work. It is also not needed. If you leave out the session.close()
-        # all the tests still run, but you get a warning/error at the end of the tests.
-        session.close()
-
+The process fixture populates the **template database** once, and the client fixture clones it for every test. This is fast, clean, and ensures no dangling transactions. This approach works with both ``postgresql_proc`` and ``postgresql_noproc``.
 
 Release
 =======
 
-Install pipenv and --dev dependencies first, Then run:
+Install ``pipenv`` and dev dependencies, then run:
 
 .. code-block:: sh
 
