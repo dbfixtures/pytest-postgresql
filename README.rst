@@ -59,7 +59,7 @@ How to use
 
 .. warning::
 
-    Tested on PostgreSQL versions >= 10. See tests for more details.
+    Tested on PostgreSQL versions >= 14. See tests for more details.
 
 How does it work
 ----------------

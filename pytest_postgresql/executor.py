@@ -57,7 +57,7 @@ class PostgreSQLExecutor(TCPExecutor):
     )
 
     VERSION_RE = re.compile(r".* (?P<version>\d+(?:\.\d+)?)")
-    MIN_SUPPORTED_VERSION = parse("10")
+    MIN_SUPPORTED_VERSION = parse("14")
 
     def __init__(
         self,
