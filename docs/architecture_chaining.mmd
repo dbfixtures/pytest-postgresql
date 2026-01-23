@@ -1,0 +1,22 @@
+sequenceDiagram
+        participant Test as Test
+        participant ProcF as base_proc Fixture
+        participant NoProc1 as seeded_noproc Fixture
+        participant NoProc2 as more_seeded_noproc Fixture
+        participant DB as PostgreSQL DB
+
+        Test->>ProcF: request base_proc
+        ProcF->>DB: init database & run load_schema
+        ProcF-->>Test: return PostgreSQLExecutor
+
+        Test->>NoProc1: request seeded_noproc (depends_on=base_proc)
+        NoProc1->>ProcF: read connection/template info
+        NoProc1->>DB: create layered DB / run load_data
+        NoProc1-->>Test: return NoopExecutor
+
+        Test->>NoProc2: request more_seeded_noproc (depends_on=seeded_noproc)
+        NoProc2->>NoProc1: read connection/template info
+        NoProc2->>DB: run load_more_data on layered DB
+        NoProc2-->>Test: return NoopExecutor
+
+        Test->>Test: validate tables and data across layers

@@ -1,0 +1,5 @@
+Bump the minimum supported pytest version to 8.2.
+
+The previous minimum was about two years old, and older pytest versions
+can be flaky with fixture chaining that relies on `getfixturevalue` on
+Python 3.12-3.13 when used alongside xdist.

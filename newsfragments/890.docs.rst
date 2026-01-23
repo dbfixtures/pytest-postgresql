@@ -1,0 +1,1 @@
+Add a Mermaid sequence diagram to the documentation to illustrate fixture chaining and hierarchical cloning.

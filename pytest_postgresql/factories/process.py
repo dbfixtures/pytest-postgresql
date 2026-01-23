@@ -170,7 +170,8 @@ def postgresql_proc(
                 user=postgresql_executor.user,
                 host=postgresql_executor.host,
                 port=postgresql_executor.port,
-                template_dbname=postgresql_executor.template_dbname,
+                dbname=postgresql_executor.template_dbname,
+                as_template=True,
                 version=postgresql_executor.version,
                 password=postgresql_executor.password,
             )

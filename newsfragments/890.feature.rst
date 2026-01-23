@@ -1,0 +1,1 @@
+Add ``depends_on`` parameter to ``postgresql_noproc`` factory to allow hierarchical cloning and chaining of process fixtures.

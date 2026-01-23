@@ -146,6 +146,33 @@ To connect to an external server (e.g., running in Docker), use the ``postgresql
 
 By default, it connects to ``127.0.0.1:5432``.
 
+Chaining fixtures
+-----------------
+
+You can chain multiple ``postgresql_noproc`` fixtures to layer your data pre-population. Each fixture in the chain will create its own template database based on the previous one.
+
+.. code-block:: python
+
+    from pytest_postgresql import factories
+
+    # 1. Start with a process or a no-process base
+    base_proc = factories.postgresql_proc(load=[load_schema])
+
+    # 2. Add a layer with some data
+    seeded_noproc = factories.postgresql_noproc(depends_on="base_proc", load=[load_data])
+
+    # 3. Add another layer with more data
+    more_seeded_noproc = factories.postgresql_noproc(depends_on="seeded_noproc", load=[load_more_data])
+
+    # 4. Use the final layer in your test
+    client = factories.postgresql("more_seeded_noproc")
+
+
+
+.. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/main/docs/images/architecture_chaining.svg
+    :alt: Fixture Chaining Diagram
+    :align: center
+
 Configuration
 =============
 

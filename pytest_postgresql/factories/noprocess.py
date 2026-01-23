@@ -45,6 +45,7 @@ def postgresql_noproc(
     dbname: str | None = None,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
+    depends_on: str | None = None,
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 
@@ -55,6 +56,7 @@ def postgresql_noproc(
     :param dbname: postgresql database name
     :param options: Postgresql connection options
     :param load: List of functions used to initialize database's template.
+    :param depends_on: Optional name of the fixture to depend on.
     :returns: function which makes a postgresql process
     """
 
@@ -66,32 +68,53 @@ def postgresql_noproc(
         :returns: tcp executor-like object
         """
         config = get_config(request)
-        pg_host = host or config.host
-        pg_port = port or config.port or 5432
-        pg_user = user or config.user
-        pg_password = password or config.password
+
+        if depends_on:
+            base = request.getfixturevalue(depends_on)
+            pg_host = host or base.host
+            pg_port = port or base.port
+            pg_user = user or base.user
+            pg_password = password or base.password
+            pg_options = options or base.options
+            base_template_dbname = base.template_dbname
+        else:
+            pg_host = host or config.host
+            pg_port = port or config.port or 5432
+            pg_user = user or config.user
+            pg_password = password or config.password
+            pg_options = options or config.options
+            base_template_dbname = None
+
         pg_dbname = xdistify_dbname(dbname or config.dbname)
-        pg_options = options or config.options
         pg_load = load or config.load
         drop_test_database = config.drop_test_database
+
+        # In this case there's a risk that both seeded and depends_on fixture
+        # might end up with the same configured dbname.
+        if depends_on and not dbname:
+            noop_exec_dbname = f"{pg_dbname}_{depends_on}"
+        else:
+            noop_exec_dbname = pg_dbname
 
         noop_exec = NoopExecutor(
             host=pg_host,
             port=pg_port,
             user=pg_user,
             password=pg_password,
-            dbname=pg_dbname,
+            dbname=noop_exec_dbname,
             options=pg_options,
         )
         janitor = DatabaseJanitor(
             user=noop_exec.user,
             host=noop_exec.host,
             port=noop_exec.port,
-            template_dbname=noop_exec.template_dbname,
+            dbname=noop_exec.template_dbname,
+            template_dbname=base_template_dbname,
+            as_template=True,
             version=noop_exec.version,
             password=noop_exec.password,
         )
-        if drop_test_database is True:
+        if drop_test_database:
             janitor.drop()
         with janitor:
             for load_element in pg_load:
