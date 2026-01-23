@@ -1,1 +1,0 @@
-Support only PostgreSQL version 14 and up.

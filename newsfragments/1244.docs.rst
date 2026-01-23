@@ -1,1 +1,0 @@
-Add plugins' architecture diagram and display it in project's README.

@@ -3,6 +3,66 @@ CHANGELOG
 
 .. towncrier release notes start
 
+pytest-postgresql 8.0.0 (2026-01-23)
+====================================
+
+Breaking changes
+----------------
+
+- Refactor ``DatabaseJanitor`` to use explicit template management. This includes a new ``as_template`` flag and making ``dbname`` a required parameter. (`#890 <https://github.com/dbfixtures/pytest-postgresql/issues/890>`__)
+- Bump the minimum supported pytest version to 8.2.
+
+  The previous minimum was about two years old, and older pytest versions
+  can be flaky with fixture chaining that relies on `getfixturevalue` on
+  Python 3.12-3.13 when used alongside xdist. (`#890 <https://github.com/dbfixtures/pytest-postgresql/issues/890>`__)
+- Support only PostgreSQL version 14 and up. (`#1250 <https://github.com/dbfixtures/pytest-postgresql/issues/1250>`__)
+- Dropped support for Python 3.9 as it has reached End of Life
+
+
+Bugfixes
+--------
+
+- Fix issue where `--postgresql-drop-test-database` was applied in process fixture.
+
+  It was already being read in client and noprocess fixtures. (`#1148 <https://github.com/dbfixtures/pytest-postgresql/issues/1148>`__)
+
+
+Documentation
+-------------
+
+- Add a Mermaid sequence diagram to the documentation to illustrate fixture chaining and hierarchical cloning. (`#890 <https://github.com/dbfixtures/pytest-postgresql/issues/890>`__)
+- Improve code examples by adding types (`#1233 <https://github.com/dbfixtures/pytest-postgresql/issues/1233>`__)
+- Add plugins' architecture diagram and display it in project's README. (`#1244 <https://github.com/dbfixtures/pytest-postgresql/issues/1244>`__)
+- Improved README.rst:
+  - Added a "Quick Start" section with a simple example.
+  - Clarified `psycopg` 3 requirement for the plugin vs. `psycopg` 2 support for the application.
+  - Updated PostgreSQL versioning notes (>= 10).
+  - Explained the binary discovery mechanism (`pg_config` vs. fallbacks).
+  - Promoted `DatabaseJanitor` as an advanced API.
+  - Fixed broken table layouts and corrected various typos.
+
+
+Features
+--------
+
+- Add ``depends_on`` parameter to ``postgresql_noproc`` factory to allow hierarchical cloning and chaining of process fixtures. (`#890 <https://github.com/dbfixtures/pytest-postgresql/issues/890>`__)
+- Convert Config kept in TypedDict into a dataclass (`#1225 <https://github.com/dbfixtures/pytest-postgresql/issues/1225>`__)
+- Marked support for Python 3.14
+
+
+Miscellaneus
+------------
+
+- `#1127 <https://github.com/dbfixtures/pytest-postgresql/issues/1127>`__, `#1218 <https://github.com/dbfixtures/pytest-postgresql/issues/1218>`__
+- Add new release workflow, which will allow releasing new versions directly from GitHub.
+- Drop PostgreSQL 13 and add PostgreSQL 18 to the CI
+- Update github-actions for actions-reuse 4.x
+- Updates to pre-commit
+
+  Replaced black with ruff-format, Added https://github.com/fizyk/pyproject-validator,
+  Moved mypy configuration into pyproject.toml, extended line length to 120 characters.
+
+
 7.0.2 (2025-05-17)
 ==================
 

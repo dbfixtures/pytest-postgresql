@@ -1,4 +1,0 @@
-Updates to pre-commit
-
-Replaced black with ruff-format, Added https://github.com/fizyk/pyproject-validator,
-Moved mypy configuration into pyproject.toml, extended line length to 120 characters.

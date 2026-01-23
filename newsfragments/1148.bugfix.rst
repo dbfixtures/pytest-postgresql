@@ -1,3 +1,0 @@
-Fix issue where `--postgresql-drop-test-database` was applied in process fixture.
-
-It was already being read in client and noprocess fixtures.

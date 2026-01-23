@@ -1,7 +1,0 @@
-Improved README.rst:
-- Added a "Quick Start" section with a simple example.
-- Clarified `psycopg` 3 requirement for the plugin vs. `psycopg` 2 support for the application.
-- Updated PostgreSQL versioning notes (>= 10).
-- Explained the binary discovery mechanism (`pg_config` vs. fallbacks).
-- Promoted `DatabaseJanitor` as an advanced API.
-- Fixed broken table layouts and corrected various typos.
