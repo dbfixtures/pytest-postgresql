@@ -68,6 +68,7 @@ def test_unsupported_version(request: FixtureRequest) -> None:
         executor.start()
 
 
+@pytest.mark.xdist_group(name="executor_no_xdist_guard")
 @pytest.mark.parametrize("locale", ("en_US.UTF-8", "de_DE.UTF-8", "nl_NO.UTF-8"))
 def test_executor_init_with_password(
     request: FixtureRequest,

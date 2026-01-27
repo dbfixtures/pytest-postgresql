@@ -1,0 +1,4 @@
+Attempt to overcome random failure on CI on MacOS on xdist workers where test_executor_init_with_password is receiving
+`FATAL: the database system is starting up` error message from psycopg.
+
+That's the only test that doesn't have guards against attempting to start on the same port as other xdist worker.
