@@ -17,6 +17,7 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """PostgreSQL executor crafter around pg_ctl."""
 
+import os
 import os.path
 import platform
 import re
@@ -48,11 +49,14 @@ class PostgreSQLExecutor(TCPExecutor):
     <http://www.postgresql.org/docs/current/static/app-pg-ctl.html>`_
     """
 
+    # Base PostgreSQL start command template - cross-platform compatible
+    # Use unified format without single quotes around values
+    # This format works on both Windows and Unix systems
     BASE_PROC_START_COMMAND = (
         '{executable} start -D "{datadir}" '
-        "-o \"-F -p {port} -c log_destination='stderr' "
+        '-o "-F -p {port} -c log_destination=stderr '
         "-c logging_collector=off "
-        "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
+        '-c unix_socket_directories={unixsocketdir} {postgres_options}" '
         '-l "{logfile}" {startparams}'
     )
 
@@ -219,17 +223,47 @@ class PostgreSQLExecutor(TCPExecutor):
         status_code = subprocess.getstatusoutput(f'{self.executable} status -D "{self.datadir}"')[0]
         return status_code == 0
 
+    def _windows_terminate_process(self, _sig: Optional[int] = None) -> None:
+        """Terminate process on Windows.
+
+        :param _sig: Signal parameter (unused on Windows but included for consistency)
+        """
+        if self.process is None:
+            return
+
+        try:
+            # On Windows, try to terminate gracefully first
+            self.process.terminate()
+            # Give it a chance to terminate gracefully
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                # If it doesn't terminate gracefully, force kill
+                self.process.kill()
+                self.process.wait()
+        except (OSError, AttributeError):
+            # Process might already be dead or other issues
+            pass
+
     def stop(self: T, sig: Optional[int] = None, exp_sig: Optional[int] = None) -> T:
         """Issue a stop request to executable."""
         subprocess.check_output(
-            f'{self.executable} stop -D "{self.datadir}" -m f',
-            shell=True,
+            [self.executable, "stop", "-D", self.datadir, "-m", "f"],
         )
         try:
-            super().stop(sig, exp_sig)
+            if platform.system() == "Windows":
+                self._windows_terminate_process(sig)
+            else:
+                super().stop(sig, exp_sig)
         except ProcessFinishedWithError:
             # Finished, leftovers ought to be cleaned afterwards anyway
             pass
+        except AttributeError as e:
+            # Fallback for edge cases where os.killpg doesn't exist
+            if "killpg" in str(e):
+                self._windows_terminate_process(sig)
+            else:
+                raise
         return self
 
     def __del__(self) -> None:
