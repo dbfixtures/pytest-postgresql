@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Set up Pipenv on python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.1.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.2.1
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -54,11 +54,11 @@ jobs:
         if: ${{ contains(inputs.python-versions, 'pypy') }}
         run: sudo apt install libpq5
       - name: Run test
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.2.1
         with:
           command: pytest -svv -p no:xdist --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --cov-report=xml
       - name: Run xdist test
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.2.1
         with:
           command: pytest -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --cov-report=xml:coverage-xdist.xml
       - uses: actions/upload-artifact@v6
