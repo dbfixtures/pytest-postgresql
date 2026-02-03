@@ -17,8 +17,12 @@ jobs:
       - name: Install Mermaid CLI
         run: npm install -g @mermaid-js/mermaid-cli
 
-      - name: Render Diagram
-        run: mmdc -p docs/puppeteer-config.json -i docs/architecture.mmd -o docs/images/architecture.svg -t neutral
+      - name: Render Diagrams
+        run: |
+          for file in docs/*.mmd; do
+            base="$(basename "${file}" .mmd)"
+            mmdc -p docs/puppeteer-config.json -i "${file}" -o "docs/images/${base}.svg" -t neutral
+          done
 
       - name: Commit and Push
         uses: stefanzweifel/git-auto-commit-action@v7
