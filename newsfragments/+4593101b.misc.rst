@@ -1,0 +1,1 @@
+Add coderabbitai configuration with instructions to keep an eye for newsfragments.
