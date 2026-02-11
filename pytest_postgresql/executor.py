@@ -243,7 +243,13 @@ class PostgreSQLExecutor(TCPExecutor):
             except subprocess.TimeoutExpired:
                 # If it doesn't terminate gracefully, force kill
                 self.process.kill()
-                self.process.wait()
+                try:
+                    self.process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    logger.warning(
+                        "Process %s could not be cleaned up after kill() and may be a zombie process",
+                        self.process.pid if self.process else "unknown",
+                    )
         except (OSError, AttributeError) as e:
             # Process might already be dead or other issues
             logger.debug(
