@@ -29,12 +29,12 @@ import time
 from typing import Any, Optional, TypeVar
 
 from mirakuru import TCPExecutor
-
-logger = logging.getLogger(__name__)
 from mirakuru.exceptions import ProcessFinishedWithError
 from packaging.version import parse
 
 from pytest_postgresql.exceptions import ExecutableMissingException, PostgreSQLUnsupported
+
+logger = logging.getLogger(__name__)
 
 _LOCALE = "C.UTF-8"
 
@@ -251,7 +251,6 @@ class PostgreSQLExecutor(TCPExecutor):
                 type(e).__name__,
                 e,
             )
-            pass
 
     def stop(self: T, sig: Optional[int] = None, exp_sig: Optional[int] = None) -> T:
         """Issue a stop request to executable."""

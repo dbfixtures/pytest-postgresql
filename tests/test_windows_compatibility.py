@@ -93,7 +93,9 @@ class TestWindowsCompatibility:
             result = executor.stop()
 
             # Should call pg_ctl stop and Windows terminate
-            mock_subprocess.assert_called_once()
+            mock_subprocess.assert_called_once_with(
+                ["/path/to/pg_ctl", "stop", "-D", "/tmp/data", "-m", "f"],
+            )
             mock_terminate.assert_called_once()
             assert result is executor
 
@@ -126,6 +128,8 @@ class TestWindowsCompatibility:
 
     def test_stop_method_fallback_on_killpg_error(self) -> None:
         """Test stop method falls back to Windows termination on killpg AttributeError."""
+        import pytest_postgresql.executor
+
         executor = PostgreSQLExecutor(
             executable="/path/to/pg_ctl",
             host="localhost",
@@ -147,7 +151,15 @@ class TestWindowsCompatibility:
             ),
             patch.object(executor, "_windows_terminate_process") as mock_terminate,
         ):
-            result = executor.stop()
+            # Temporarily remove os.killpg so hasattr(os, "killpg") returns False
+            real_killpg = getattr(pytest_postgresql.executor.os, "killpg", None)
+            try:
+                if real_killpg is not None:
+                    delattr(pytest_postgresql.executor.os, "killpg")
+                result = executor.stop()
+            finally:
+                if real_killpg is not None:
+                    pytest_postgresql.executor.os.killpg = real_killpg
 
             # Should call pg_ctl stop, fail on super().stop, then use Windows terminate
             mock_subprocess.assert_called_once()
