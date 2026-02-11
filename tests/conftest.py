@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 
 from pytest_postgresql import factories
-from pytest_postgresql.plugin import *  # noqa: F403,F401
+# Plugin is registered via entry point in pyproject.toml - no need to import here
+# from pytest_postgresql.plugin import *  # noqa: F403,F401
 
 pytest_plugins = ["pytester"]
 POSTGRESQL_VERSION = os.environ.get("POSTGRES", "13")

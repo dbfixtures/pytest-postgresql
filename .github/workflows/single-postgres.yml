@@ -43,7 +43,25 @@ jobs:
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
+      - name: Detect PostgreSQL path on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $pgPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl"
+          if (Test-Path $pgPath) {
+            echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+          } else {
+            $pgPath = (Get-Command pg_ctl -ErrorAction SilentlyContinue).Source
+            if ($pgPath) {
+              echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+            }
+          }
+      - name: Set PostgreSQL path for Unix/macOS
+        if: runner.os != 'Windows'
+        run: |
+          echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
       - name: Check installed locales
+        if: runner.os != 'Windows'
         run: |
           locale -a
       - name: update locale for tests
@@ -51,16 +69,16 @@ jobs:
         run: |
           sudo locale-gen de_DE.UTF-8
       - name: install libpq
-        if: ${{ contains(inputs.python-versions, 'pypy') }}
+        if: ${{ contains(inputs.python-versions, 'pypy') && runner.os == 'Linux' }}
         run: sudo apt install libpq5
       - name: Run test
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
-          command: pytest -svv -p no:xdist --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --cov-report=xml
+          command: pytest -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --cov-report=xml
       - name: Run xdist test
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
-          command: pytest -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --cov-report=xml:coverage-xdist.xml
+          command: pytest -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --cov-report=xml:coverage-xdist.xml
       - uses: actions/upload-artifact@v6
         if: failure()
         with:
