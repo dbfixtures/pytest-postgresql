@@ -59,7 +59,23 @@ jobs:
       - name: Set PostgreSQL path for Unix/macOS
         if: runner.os != 'Windows'
         run: |
-          echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+          # Try to find pg_ctl dynamically for cross-platform compatibility
+          if command -v pg_ctl >/dev/null 2>&1; then
+            PG_CTL_PATH=$(command -v pg_ctl)
+            echo "POSTGRESQL_EXEC=$PG_CTL_PATH" >> $GITHUB_ENV
+          elif [ -f "/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
+            # macOS Apple Silicon Homebrew path
+            echo "POSTGRESQL_EXEC=/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+          elif [ -f "/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
+            # macOS Intel Homebrew path
+            echo "POSTGRESQL_EXEC=/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+          elif [ -f "/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" ]; then
+            # Debian/Ubuntu path (fallback)
+            echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+          else
+            echo "Error: pg_ctl not found in expected locations"
+            exit 1
+          fi
       - name: Check installed locales
         if: runner.os != 'Windows'
         run: |
@@ -83,7 +99,7 @@ jobs:
         if: failure()
         with:
           name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
-          path: /tmp/pytest-of-runner/**
+          path: ${{ runner.temp }}/pytest-of-runner/**
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.2
         with:
