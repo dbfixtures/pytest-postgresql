@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 from pytest_postgresql import factories
+
 # Plugin is registered via entry point in pyproject.toml - no need to import here
 # from pytest_postgresql.plugin import *  # noqa: F403,F401
 
