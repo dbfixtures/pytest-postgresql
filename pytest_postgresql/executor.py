@@ -17,6 +17,7 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """PostgreSQL executor crafter around pg_ctl."""
 
+import logging
 import os
 import os.path
 import platform
@@ -28,6 +29,8 @@ import time
 from typing import Any, Optional, TypeVar
 
 from mirakuru import TCPExecutor
+
+logger = logging.getLogger(__name__)
 from mirakuru.exceptions import ProcessFinishedWithError
 from packaging.version import parse
 
@@ -241,8 +244,13 @@ class PostgreSQLExecutor(TCPExecutor):
                 # If it doesn't terminate gracefully, force kill
                 self.process.kill()
                 self.process.wait()
-        except (OSError, AttributeError):
+        except (OSError, AttributeError) as e:
             # Process might already be dead or other issues
+            logger.debug(
+                "Exception during Windows process termination: %s: %s",
+                type(e).__name__,
+                e,
+            )
             pass
 
     def stop(self: T, sig: Optional[int] = None, exp_sig: Optional[int] = None) -> T:
@@ -258,9 +266,9 @@ class PostgreSQLExecutor(TCPExecutor):
         except ProcessFinishedWithError:
             # Finished, leftovers ought to be cleaned afterwards anyway
             pass
-        except AttributeError as e:
-            # Fallback for edge cases where os.killpg doesn't exist
-            if "killpg" in str(e):
+        except AttributeError:
+            # Fallback for edge cases where os.killpg doesn't exist (e.g., Windows)
+            if not hasattr(os, "killpg"):
                 self._windows_terminate_process(sig)
             else:
                 raise

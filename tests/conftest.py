@@ -4,6 +4,10 @@ import os
 from pathlib import Path
 
 from pytest_postgresql import factories
+<<<<<<< HEAD
+=======
+# Plugin is registered via entry point in pyproject.toml - no need to import here
+>>>>>>> 4e3594b (Enhance PostgreSQL workflow and executor for improved cross-platform compatibility)
 
 pytest_plugins = ["pytester"]
 POSTGRESQL_VERSION = os.environ.get("POSTGRES", "13")

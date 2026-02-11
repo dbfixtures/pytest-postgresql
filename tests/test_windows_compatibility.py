@@ -86,7 +86,7 @@ class TestWindowsCompatibility:
 
         # Mock subprocess and process
         with (
-            patch("subprocess.check_output") as mock_subprocess,
+            patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
             patch("platform.system", return_value="Windows"),
             patch.object(executor, "_windows_terminate_process") as mock_terminate,
         ):
@@ -112,7 +112,7 @@ class TestWindowsCompatibility:
 
         # Mock subprocess and super().stop
         with (
-            patch("subprocess.check_output") as mock_subprocess,
+            patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
             patch("platform.system", return_value="Linux"),
             patch("pytest_postgresql.executor.TCPExecutor.stop") as mock_super_stop,
         ):
@@ -139,7 +139,7 @@ class TestWindowsCompatibility:
 
         # Mock subprocess and super().stop to raise AttributeError
         with (
-            patch("subprocess.check_output") as mock_subprocess,
+            patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
             patch("platform.system", return_value="Linux"),
             patch(
                 "pytest_postgresql.executor.TCPExecutor.stop",
