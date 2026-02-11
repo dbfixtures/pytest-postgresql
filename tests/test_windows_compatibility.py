@@ -96,7 +96,7 @@ class TestWindowsCompatibility:
             mock_subprocess.assert_called_once_with(
                 ["/path/to/pg_ctl", "stop", "-D", "/tmp/data", "-m", "f"],
             )
-            mock_terminate.assert_called_once()
+            mock_terminate.assert_called_once_with(None)
             assert result is executor
 
     def test_stop_method_unix(self) -> None:
