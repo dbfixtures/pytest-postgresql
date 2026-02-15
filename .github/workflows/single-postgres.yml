@@ -60,6 +60,12 @@ jobs:
               echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
             }
           }
+          
+          # Verify that PostgreSQL was found
+          if (-not $pgPath) {
+            Write-Error "Error: pg_ctl not found in expected locations. Checked hardcoded path and system PATH."
+            exit 1
+          }
       - name: Set PostgreSQL path for Unix/macOS
         if: runner.os != 'Windows'
         run: |
