@@ -52,14 +52,26 @@ class PostgreSQLExecutor(TCPExecutor):
     <http://www.postgresql.org/docs/current/static/app-pg-ctl.html>`_
     """
 
-    # Base PostgreSQL start command template - cross-platform compatible
-    # Use unified format without single quotes around values
-    # This format works on both Windows and Unix systems
-    BASE_PROC_START_COMMAND = (
+    # Unix command template - uses single quotes for PostgreSQL config value quoting
+    # which protects paths with spaces in unix_socket_directories.
+    # On Unix, mirakuru uses shlex.split() with shell=False, so single quotes
+    # inside double-quoted strings are preserved and passed to PostgreSQL's config parser.
+    UNIX_PROC_START_COMMAND = (
+        '{executable} start -D "{datadir}" '
+        "-o \"-F -p {port} -c log_destination='stderr' "
+        "-c logging_collector=off "
+        "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
+        '-l "{logfile}" {startparams}'
+    )
+
+    # Windows command template - no single quotes (cmd.exe treats them as literals,
+    # not delimiters) and unix_socket_directories is omitted entirely since PostgreSQL
+    # ignores it on Windows. On Windows, mirakuru forces shell=True so the command
+    # goes through cmd.exe.
+    WINDOWS_PROC_START_COMMAND = (
         '{executable} start -D "{datadir}" '
         '-o "-F -p {port} -c log_destination=stderr '
-        "-c logging_collector=off "
-        '-c unix_socket_directories={unixsocketdir} {postgres_options}" '
+        '-c logging_collector=off {postgres_options}" '
         '-l "{logfile}" {startparams}'
     )
 
@@ -115,7 +127,11 @@ class PostgreSQLExecutor(TCPExecutor):
         self.logfile = logfile
         self.startparams = startparams
         self.postgres_options = postgres_options
-        command = self.BASE_PROC_START_COMMAND.format(
+        if platform.system() == "Windows":
+            command_template = self.WINDOWS_PROC_START_COMMAND
+        else:
+            command_template = self.UNIX_PROC_START_COMMAND
+        command = command_template.format(
             executable=self.executable,
             datadir=self.datadir,
             port=port,
