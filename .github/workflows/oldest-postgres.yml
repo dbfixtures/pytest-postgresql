@@ -58,6 +58,10 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
           command: pip install -r oldest/requirements.txt
+      - name: Install package in editable mode
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
+        with:
+          command: pip install -e .
       - name: Run tests without xdist
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
