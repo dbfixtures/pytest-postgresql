@@ -54,6 +54,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
+      - name: Install package in editable mode
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.4
+        with:
+          command: pip install -e .
       - name: Run test noproc fixture on docker
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.4
         with:

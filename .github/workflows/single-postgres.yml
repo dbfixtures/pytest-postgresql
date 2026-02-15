@@ -40,6 +40,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
+      - name: Install package in editable mode
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
+        with:
+          command: pip install -e .
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
