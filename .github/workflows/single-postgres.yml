@@ -51,7 +51,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $pgPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl"
+          $pgPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl.exe"
           if (Test-Path $pgPath) {
             echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
           } else {
