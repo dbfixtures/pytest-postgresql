@@ -303,6 +303,7 @@ def test_actual_postgresql_start_windows(
         unixsocketdir=config.unixsocketdir,
         logfile=str(logfile_path),
         startparams=config.startparams,
+        password="testpass",
         dbname="test",
     )
 
@@ -341,6 +342,7 @@ def test_actual_postgresql_start_unix(
         unixsocketdir=config.unixsocketdir,
         logfile=str(logfile_path),
         startparams=config.startparams,
+        password="testpass",
         dbname="test",
     )
 
@@ -376,6 +378,7 @@ def test_actual_postgresql_start_darwin(
         unixsocketdir=config.unixsocketdir,
         logfile=str(logfile_path),
         startparams=config.startparams,
+        password="testpass",
         dbname="test",
     )
 
