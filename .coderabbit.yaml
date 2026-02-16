@@ -1,0 +1,28 @@
+language: en-GB
+reviews:
+  path_instructions:
+    - path: "newsfragments/*.rst"
+      instructions: |
+        Validate newsfragment files:
+        1. Read valid types from [tool.towncrier.fragment] in pyproject.toml
+        2. Filename must follow the pattern: [number].[type].rst OR +[hash].[type].rst where:
+           - [number] is an issue number or PR number
+           - [type] must be one of the types defined in towncrier configuration
+        3. Content must be a clear, concise description of the change
+        4. Content should be suitable for inclusion in CHANGES.rst
+        5. Verify the type matches the nature of the change based on towncrier type definitions
+        6. Some changes may require multiple types. Especially breaking changes
+        7. Flag any files with invalid types or malformed filenames
+        8. Check that the description is meaningful (not just "fix" or "update")
+
+  pre_merge_checks:
+    custom_checks:
+      - name: "Newsfragment Check"
+        mode: "warning"
+        instructions: |
+          Check if a newsfragment file has been added to the newsfragments/ directory.
+          Read the towncrier configuration from pyproject.toml to determine valid newsfragment types.
+          If no newsfragment is present, suggest which type should be added based on the PR changes.
+          Suggest the filename format: [issue_or_pr_number].[type].rst (or +[hash].[type].rst for orphan fragments)
+          Remind contributors to use: `pipenv run towncrier create [number].[type].rst` (or `pipenv run towncrier create +.[type]` for orphan fragments)
+          Skip the check if the PR only updates existing newsfragments or is a trivial change.

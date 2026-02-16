@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Set up Pipenv on python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.1.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.2.1
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true

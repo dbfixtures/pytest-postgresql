@@ -45,7 +45,7 @@ def _pg_exe(executable: str | None, config: PostgreSQLConfig) -> str:
         try:
             pg_bindir = subprocess.check_output(["pg_config", "--bindir"], universal_newlines=True).strip()
         except FileNotFoundError as ex:
-            raise ExecutableMissingException("Could not found pg_config executable. Is it in systenm $PATH?") from ex
+            raise ExecutableMissingException("Could not find pg_config executable. Is it in system $PATH?") from ex
         postgresql_ctl = os.path.join(pg_bindir, "pg_ctl")
     return postgresql_ctl
 

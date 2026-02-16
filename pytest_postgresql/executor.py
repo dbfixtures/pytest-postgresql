@@ -231,7 +231,7 @@ class PostgreSQLExecutor(TCPExecutor):
             version_string = subprocess.check_output([self.executable, "--version"]).decode("utf-8")
         except FileNotFoundError as ex:
             raise ExecutableMissingException(
-                f"Could not found {self.executable}. Is PostgreSQL server installed? "
+                f"Could not find {self.executable}. Is PostgreSQL server installed? "
                 f"Alternatively pg_config installed might be from different "
                 f"version that postgresql-server."
             ) from ex
