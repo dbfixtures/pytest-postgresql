@@ -196,13 +196,17 @@ def test_executor_with_special_chars_in_all_paths(
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / "my test dir"
     tmpdir.mkdir(exist_ok=True)
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    
+    # Create the socket directory for Unix systems
+    socket_dir = tmpdir / "socket dir"
+    socket_dir.mkdir(parents=True, exist_ok=True)
 
     executor = PostgreSQLExecutor(
         executable=pg_exe,
         host=config.host,
         port=port,
         datadir=str(datadir),
-        unixsocketdir=str(tmpdir / "socket dir"),
+        unixsocketdir=str(socket_dir),
         logfile=str(logfile_path),
         startparams=config.startparams,
         password="test pass",
