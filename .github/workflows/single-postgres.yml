@@ -109,7 +109,7 @@ jobs:
         if: failure()
         with:
           name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
-          path: ${{ runner.temp }}/pytest-of-*/**
+          path: ${{ runner.temp }}/pytest-*/**
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.2
         with:
