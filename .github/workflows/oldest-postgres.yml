@@ -41,6 +41,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: false
           allow-prereleases: true
+          editable: true
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
@@ -58,10 +59,6 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.4
         with:
           command: pip install -r oldest/requirements.txt
-      - name: Install package in editable mode
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
-        with:
-          command: pip install -e . --no-deps
       - name: Run tests without xdist
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.4
         with:
