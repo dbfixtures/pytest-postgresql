@@ -100,18 +100,16 @@ jobs:
       - name: Run test
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
-          command: pytest -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --cov-report=xml
+          command: pytest -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --cov-report=xml --basetemp="${{ runner.temp }}"
       - name: Run xdist test
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
-          command: pytest -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --cov-report=xml:coverage-xdist.xml
+          command: pytest -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --cov-report=xml:coverage-xdist.xml --basetemp="${{ runner.temp }}"
       - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
-          path: |
-            /tmp/pytest-of-runner/**
-            ${{ runner.temp }}/pytest-of-runner/**
+          path: ${{ runner.temp }}/pytest-of-*/**
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.2
         with:
