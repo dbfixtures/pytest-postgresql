@@ -50,14 +50,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Set up Pipenv on python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.2.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.4.0
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
-      - name: Install package in editable mode
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
-        with:
-          command: pip install -e .
+          editable: true
       - name: Run test noproc fixture on docker
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
         with:
