@@ -39,7 +39,11 @@ logger = logging.getLogger(__name__)
 _LOCALE = "C.UTF-8"
 
 if platform.system() == "Darwin":
+    # Darwin does not have C.UTF-8, but en_US.UTF-8 is always available
     _LOCALE = "en_US.UTF-8"
+elif platform.system() == "Windows":
+    # Windows doesn't support C.UTF-8 or en_US.UTF-8, use plain "C" locale
+    _LOCALE = "C"
 
 
 T = TypeVar("T", bound="PostgreSQLExecutor")
