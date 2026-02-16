@@ -53,7 +53,7 @@ jobs:
         run: |
           sudo locale-gen de_DE.UTF-8
       - name: install libpq
-        if: ${{ contains(inputs.python-versions, 'pypy') }}
+        if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
         run: sudo apt install libpq5
       - name: Install oldest supported versions
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.2.1

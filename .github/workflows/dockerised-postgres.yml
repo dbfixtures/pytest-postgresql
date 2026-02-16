@@ -56,7 +56,7 @@ jobs:
           allow-prereleases: true
           editable: true
       - name: Run test noproc fixture on docker
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.1.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.2.1
         with:
           command: pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --cov-report=xml:coverage-docker.xml
       - name: Upload coverage to Codecov
