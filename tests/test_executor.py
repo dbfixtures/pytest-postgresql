@@ -1,6 +1,8 @@
 """Test various executor behaviours."""
 
+import platform
 from typing import Any
+from unittest.mock import patch
 
 import psycopg
 import pytest
@@ -119,6 +121,108 @@ def test_executor_init_bad_tmp_path(
         password="some password",
         dbname="some database",
     )
+
+    # Verify the correct template was selected based on platform
+    current_platform = platform.system()
+    if current_platform == "Windows":
+        # Windows template should not have unix_socket_directories
+        assert "unix_socket_directories" not in executor.command
+        assert "log_destination=stderr" in executor.command
+    else:
+        # Unix/Darwin template should have unix_socket_directories with single quotes
+        assert "unix_socket_directories=" in executor.command
+        assert "log_destination='stderr'" in executor.command
+
+    assert_executor_start_stop(executor)
+
+
+@pytest.mark.parametrize(
+    "platform_name",
+    ["Windows", "Linux", "Darwin"],
+)
+def test_executor_platform_template_selection(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+    platform_name: str,
+) -> None:
+    """Test that correct template is selected for each platform.
+
+    This parametrized test verifies that the executor selects the appropriate
+    command template based on the platform.
+    """
+    config = get_config(request)
+    pg_exe = process._pg_exe(None, config)
+    port = process._pg_port(-1, config, [])
+    tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
+    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+
+    with patch("pytest_postgresql.executor.platform.system", return_value=platform_name):
+        executor = PostgreSQLExecutor(
+            executable=pg_exe,
+            host=config.host,
+            port=port,
+            datadir=str(datadir),
+            unixsocketdir=config.unixsocketdir,
+            logfile=str(logfile_path),
+            startparams=config.startparams,
+            dbname="test",
+        )
+
+        # Verify correct template was selected
+        if platform_name == "Windows":
+            # Windows template
+            assert "unix_socket_directories" not in executor.command
+            assert "log_destination=stderr" in executor.command
+        else:
+            # Unix/Darwin template
+            assert "unix_socket_directories=" in executor.command
+            assert "log_destination='stderr'" in executor.command
+
+
+def test_executor_with_special_chars_in_all_paths(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Test executor with special characters in multiple paths simultaneously.
+
+    This integration test verifies that the executor can handle special
+    characters (spaces, Unicode) in datadir, logfile, unixsocketdir, and
+    postgres_options all at the same time.
+    """
+    config = get_config(request)
+    pg_exe = process._pg_exe(None, config)
+    port = process._pg_port(-1, config, [])
+    # Create a tmpdir with spaces in the name
+    tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / "my test dir"
+    tmpdir.mkdir(exist_ok=True)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+
+    executor = PostgreSQLExecutor(
+        executable=pg_exe,
+        host=config.host,
+        port=port,
+        datadir=str(datadir),
+        unixsocketdir=str(tmpdir / "socket dir"),
+        logfile=str(logfile_path),
+        startparams=config.startparams,
+        password="test pass",
+        dbname="test db",
+        postgres_options="-N 50",
+    )
+
+    # Verify the command contains properly quoted paths
+    command = executor.command
+    assert str(datadir) in command or f'"{datadir}"' in command
+    assert str(logfile_path) in command or f'"{logfile_path}"' in command
+
+    # Verify correct template was selected based on actual platform
+    current_platform = platform.system()
+    if current_platform == "Windows":
+        assert "unix_socket_directories" not in executor.command
+    else:
+        assert "unix_socket_directories=" in executor.command
+
+    # Start and stop the executor to verify it works
     assert_executor_start_stop(executor)
 
 
@@ -173,3 +277,116 @@ def test_custom_isolation_level(postgres_isolation_level: Connection) -> None:
     cur = postgres_isolation_level.cursor()
     cur.execute("SELECT 1")
     assert cur.fetchone() == (1,)
+
+
+@pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
+def test_actual_postgresql_start_windows(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Test that PostgreSQL actually starts on Windows with the new template.
+
+    This integration test verifies that the Windows-specific command template
+    correctly starts PostgreSQL on actual Windows systems.
+    """
+    config = get_config(request)
+    pg_exe = process._pg_exe(None, config)
+    port = process._pg_port(-1, config, [])
+    tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
+    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+
+    executor = PostgreSQLExecutor(
+        executable=pg_exe,
+        host=config.host,
+        port=port,
+        datadir=str(datadir),
+        unixsocketdir=config.unixsocketdir,
+        logfile=str(logfile_path),
+        startparams=config.startparams,
+        dbname="test",
+    )
+
+    # Verify Windows template is used
+    assert "unix_socket_directories" not in executor.command
+    assert "log_destination=stderr" in executor.command
+
+    # Start and stop PostgreSQL to verify it works
+    assert_executor_start_stop(executor)
+
+
+@pytest.mark.skipif(
+    platform.system() not in ("Linux", "FreeBSD"),
+    reason="Unix/Linux-specific test",
+)
+def test_actual_postgresql_start_unix(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Test that PostgreSQL actually starts on Unix/Linux with the new template.
+
+    This integration test verifies that the Unix-specific command template
+    correctly starts PostgreSQL on actual Unix/Linux systems.
+    """
+    config = get_config(request)
+    pg_exe = process._pg_exe(None, config)
+    port = process._pg_port(-1, config, [])
+    tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
+    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+
+    executor = PostgreSQLExecutor(
+        executable=pg_exe,
+        host=config.host,
+        port=port,
+        datadir=str(datadir),
+        unixsocketdir=config.unixsocketdir,
+        logfile=str(logfile_path),
+        startparams=config.startparams,
+        dbname="test",
+    )
+
+    # Verify Unix template is used
+    assert "unix_socket_directories=" in executor.command
+    assert "log_destination='stderr'" in executor.command
+
+    # Start and stop PostgreSQL to verify it works
+    assert_executor_start_stop(executor)
+
+
+@pytest.mark.skipif(platform.system() != "Darwin", reason="Darwin/macOS-specific test")
+def test_actual_postgresql_start_darwin(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Test that PostgreSQL actually starts on Darwin/macOS with the new template.
+
+    This integration test verifies that the Unix template correctly starts
+    PostgreSQL on actual Darwin/macOS systems and uses the correct locale.
+    """
+    config = get_config(request)
+    pg_exe = process._pg_exe(None, config)
+    port = process._pg_port(-1, config, [])
+    tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
+    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+
+    executor = PostgreSQLExecutor(
+        executable=pg_exe,
+        host=config.host,
+        port=port,
+        datadir=str(datadir),
+        unixsocketdir=config.unixsocketdir,
+        logfile=str(logfile_path),
+        startparams=config.startparams,
+        dbname="test",
+    )
+
+    # Verify Unix template is used
+    assert "unix_socket_directories=" in executor.command
+    assert "log_destination='stderr'" in executor.command
+
+    # Verify Darwin-specific locale is set
+    assert executor.envvars["LC_ALL"] == "en_US.UTF-8"
+    assert executor.envvars["LC_CTYPE"] == "en_US.UTF-8"
+    assert executor.envvars["LANG"] == "en_US.UTF-8"
+
+    # Start and stop PostgreSQL to verify it works
+    assert_executor_start_stop(executor)
