@@ -59,6 +59,27 @@ jobs:
       postgresql: 16
       os: macos-latest
       python-versions: '["3.13", "3.14"]'
+  windows_postgres_18:
+    needs: [postgresql_18]
+    uses: ./.github/workflows/single-postgres.yml
+    with:
+      postgresql: 18
+      os: windows-latest
+      python-versions: '["3.12", "3.13", "3.14"]'
+  windows_postgres_17:
+    needs: [postgresql_17, windows_postgres_18]
+    uses: ./.github/workflows/single-postgres.yml
+    with:
+      postgresql: 17
+      os: windows-latest
+      python-versions: '["3.12", "3.13", "3.14"]'
+  windows_postgres_16:
+    needs: [postgresql_16, windows_postgres_17]
+    uses: ./.github/workflows/single-postgres.yml
+    with:
+      postgresql: 16
+      os: windows-latest
+      python-versions: '["3.13", "3.14"]'
   docker_postgresql_18:
     needs: [postgresql_18]
     uses: ./.github/workflows/dockerised-postgres.yml
