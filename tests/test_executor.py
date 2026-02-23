@@ -130,7 +130,7 @@ def test_executor_init_bad_tmp_path(
         assert "log_destination=stderr" in executor.command
     else:
         # Unix/Darwin template should have unix_socket_directories with single quotes
-        assert "unix_socket_directories=" in executor.command
+        assert "unix_socket_directories='" in executor.command
         assert "log_destination='stderr'" in executor.command
 
     assert_executor_start_stop(executor)
@@ -175,7 +175,7 @@ def test_executor_platform_template_selection(
             assert "log_destination=stderr" in executor.command
         else:
             # Unix/Darwin template
-            assert "unix_socket_directories=" in executor.command
+            assert "unix_socket_directories='" in executor.command
             assert "log_destination='stderr'" in executor.command
 
 
@@ -226,7 +226,7 @@ def test_executor_with_special_chars_in_all_paths(
     if current_platform == "Windows":
         assert "unix_socket_directories" not in executor.command
     else:
-        assert "unix_socket_directories=" in executor.command
+        assert "unix_socket_directories='" in executor.command
 
     # Start and stop the executor to verify it works
     assert_executor_start_stop(executor)

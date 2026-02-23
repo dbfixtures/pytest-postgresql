@@ -64,7 +64,7 @@ class PostgreSQLExecutor(TCPExecutor):
         '{executable} start -D "{datadir}" '
         "-o \"-F -p {port} -c log_destination='stderr' "
         "-c logging_collector=off "
-        "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
+        "-c unix_socket_directories='{unixsocketdir}'{postgres_options}\" "
         '-l "{logfile}" {startparams}'
     )
 
@@ -75,7 +75,7 @@ class PostgreSQLExecutor(TCPExecutor):
     WINDOWS_PROC_START_COMMAND = (
         '{executable} start -D "{datadir}" '
         '-o "-F -p {port} -c log_destination=stderr '
-        '-c logging_collector=off {postgres_options}" '
+        '-c logging_collector=off{postgres_options}" '
         '-l "{logfile}" {startparams}'
     )
 
@@ -142,7 +142,7 @@ class PostgreSQLExecutor(TCPExecutor):
             unixsocketdir=self.unixsocketdir,
             logfile=self.logfile,
             startparams=self.startparams,
-            postgres_options=self.postgres_options,
+            postgres_options=f" {self.postgres_options}" if self.postgres_options else "",
         )
         super().__init__(
             command,

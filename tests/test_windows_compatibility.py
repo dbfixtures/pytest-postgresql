@@ -282,7 +282,7 @@ class TestCommandTemplates:
         # Should not have trailing space before closing quote in -o parameter
         expected_opts = (
             '-o "-F -p 5432 -c log_destination=\'stderr\' '
-            '-c logging_collector=off -c unix_socket_directories=\'/tmp/socket\' "'
+            '-c logging_collector=off -c unix_socket_directories=\'/tmp/socket\'"'
         )
         assert expected_opts in command
 
@@ -526,7 +526,7 @@ class TestWindowsCompatibility:
         # Mock subprocess and process
         with (
             patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
-            patch("platform.system", return_value="Windows"),
+            patch("pytest_postgresql.executor.platform.system", return_value="Windows"),
             patch.object(executor, "_windows_terminate_process") as mock_terminate,
         ):
             result = executor.stop()
@@ -554,7 +554,7 @@ class TestWindowsCompatibility:
         # Mock subprocess and super().stop
         with (
             patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
-            patch("platform.system", return_value="Linux"),
+            patch("pytest_postgresql.executor.platform.system", return_value="Linux"),
             patch("pytest_postgresql.executor.TCPExecutor.stop") as mock_super_stop,
         ):
             mock_super_stop.return_value = executor
@@ -581,7 +581,7 @@ class TestWindowsCompatibility:
         # Mock subprocess and super().stop to raise AttributeError
         with (
             patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
-            patch("platform.system", return_value="Linux"),
+            patch("pytest_postgresql.executor.platform.system", return_value="Linux"),
             patch(
                 "pytest_postgresql.executor.TCPExecutor.stop",
                 side_effect=AttributeError("module 'os' has no attribute 'killpg'"),
