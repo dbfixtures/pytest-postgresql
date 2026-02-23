@@ -138,7 +138,7 @@ def test_executor_init_bad_tmp_path(
 
 @pytest.mark.parametrize(
     "platform_name",
-    ["Windows", "Linux", "Darwin"],
+    ["Windows", "Linux", "Darwin", "FreeBSD"],
 )
 def test_executor_platform_template_selection(
     request: FixtureRequest,
