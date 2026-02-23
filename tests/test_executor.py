@@ -197,9 +197,11 @@ def test_executor_with_special_chars_in_all_paths(
     tmpdir.mkdir(exist_ok=True)
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
     
-    # Create the socket directory for Unix systems
-    socket_dir = tmpdir / "socket dir"
-    socket_dir.mkdir(parents=True, exist_ok=True)
+    # Create the socket directory for Unix systems.
+    # Use basetemp to keep the path short: Unix domain sockets have a 108-char
+    # OS-level path limit, and the nested test temp path easily exceeds it.
+    socket_dir = tmp_path_factory.getbasetemp() / "sock dir"
+    socket_dir.mkdir(exist_ok=True)
 
     executor = PostgreSQLExecutor(
         executable=pg_exe,
