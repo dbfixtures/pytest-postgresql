@@ -353,7 +353,7 @@ def test_actual_postgresql_start_unix(
     )
 
     # Verify Unix template is used
-    assert "unix_socket_directories=" in executor.command
+    assert "unix_socket_directories='" in executor.command
     assert "log_destination='stderr'" in executor.command
 
     # Start and stop PostgreSQL to verify it works
@@ -389,7 +389,7 @@ def test_actual_postgresql_start_darwin(
     )
 
     # Verify Unix template is used
-    assert "unix_socket_directories=" in executor.command
+    assert "unix_socket_directories='" in executor.command
     assert "log_destination='stderr'" in executor.command
 
     # Verify Darwin-specific locale is set
