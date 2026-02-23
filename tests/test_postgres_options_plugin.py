@@ -19,7 +19,6 @@ def pointed_pytester(pytester: Pytester) -> Pytester:
     pytest_postgresql_path = Path(pytest_postgresql.__file__)
     root_path = pytest_postgresql_path.parent.parent
     pytester.syspathinsert(root_path)
-    pytester.makeconftest('pytest_plugins = ["pytest_postgresql.plugin"]\n')
     return pytester
 
 
