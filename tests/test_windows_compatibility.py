@@ -281,8 +281,8 @@ class TestCommandTemplates:
         assert "unix_socket_directories='/tmp/socket'" in command
         # Should not have trailing space before closing quote in -o parameter
         expected_opts = (
-            '-o "-F -p 5432 -c log_destination=\'stderr\' '
-            '-c logging_collector=off -c unix_socket_directories=\'/tmp/socket\'"'
+            "-o \"-F -p 5432 -c log_destination='stderr' "
+            "-c logging_collector=off -c unix_socket_directories='/tmp/socket'\""
         )
         assert expected_opts in command
 
@@ -723,6 +723,6 @@ class TestWindowsCompatibility:
 
         command = executor.command
         # Paths with backslashes should be properly quoted
-        assert 'C:\\Program Files\\PostgreSQL\\bin\\pg_ctl.exe start' in command
+        assert "C:\\Program Files\\PostgreSQL\\bin\\pg_ctl.exe start" in command
         assert '-D "C:\\temp\\data"' in command
         assert '-l "C:\\temp\\log.txt"' in command
