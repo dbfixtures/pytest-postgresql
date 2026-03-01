@@ -196,7 +196,7 @@ def test_executor_with_special_chars_in_all_paths(
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / "my test dir"
     tmpdir.mkdir(exist_ok=True)
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
-    
+
     # Create the socket directory for Unix systems.
     # Use basetemp to keep the path short: Unix domain sockets have a 108-char
     # OS-level path limit, and the nested test temp path easily exceeds it.
