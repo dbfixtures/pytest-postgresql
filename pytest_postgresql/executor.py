@@ -17,6 +17,8 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """PostgreSQL executor crafter around pg_ctl."""
 
+import logging
+import os
 import os.path
 import platform
 import re
@@ -32,10 +34,16 @@ from packaging.version import parse
 
 from pytest_postgresql.exceptions import ExecutableMissingException, PostgreSQLUnsupported
 
+logger = logging.getLogger(__name__)
+
 _LOCALE = "C.UTF-8"
 
 if platform.system() == "Darwin":
+    # Darwin does not have C.UTF-8, but en_US.UTF-8 is always available
     _LOCALE = "en_US.UTF-8"
+elif platform.system() == "Windows":
+    # Windows doesn't support C.UTF-8 or en_US.UTF-8, use plain "C" locale
+    _LOCALE = "C"
 
 
 T = TypeVar("T", bound="PostgreSQLExecutor")
@@ -48,11 +56,26 @@ class PostgreSQLExecutor(TCPExecutor):
     <http://www.postgresql.org/docs/current/static/app-pg-ctl.html>`_
     """
 
-    BASE_PROC_START_COMMAND = (
+    # Unix command template - uses single quotes for PostgreSQL config value quoting
+    # which protects paths with spaces in unix_socket_directories.
+    # On Unix, mirakuru uses shlex.split() with shell=False, so single quotes
+    # inside double-quoted strings are preserved and passed to PostgreSQL's config parser.
+    UNIX_PROC_START_COMMAND = (
         '{executable} start -D "{datadir}" '
         "-o \"-F -p {port} -c log_destination='stderr' "
         "-c logging_collector=off "
-        "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
+        "-c unix_socket_directories='{unixsocketdir}'{postgres_options}\" "
+        '-l "{logfile}" {startparams}'
+    )
+
+    # Windows command template - no single quotes (cmd.exe treats them as literals,
+    # not delimiters) and unix_socket_directories is omitted entirely since PostgreSQL
+    # ignores it on Windows. On Windows, mirakuru forces shell=True so the command
+    # goes through cmd.exe.
+    WINDOWS_PROC_START_COMMAND = (
+        '{executable} start -D "{datadir}" '
+        '-o "-F -p {port} -c log_destination=stderr '
+        '-c logging_collector=off{postgres_options}" '
         '-l "{logfile}" {startparams}'
     )
 
@@ -108,14 +131,18 @@ class PostgreSQLExecutor(TCPExecutor):
         self.logfile = logfile
         self.startparams = startparams
         self.postgres_options = postgres_options
-        command = self.BASE_PROC_START_COMMAND.format(
+        if platform.system() == "Windows":
+            command_template = self.WINDOWS_PROC_START_COMMAND
+        else:
+            command_template = self.UNIX_PROC_START_COMMAND
+        command = command_template.format(
             executable=self.executable,
             datadir=self.datadir,
             port=port,
             unixsocketdir=self.unixsocketdir,
             logfile=self.logfile,
             startparams=self.startparams,
-            postgres_options=self.postgres_options,
+            postgres_options=f" {self.postgres_options}" if self.postgres_options else "",
         )
         super().__init__(
             command,
@@ -219,17 +246,57 @@ class PostgreSQLExecutor(TCPExecutor):
         status_code = subprocess.getstatusoutput(f'{self.executable} status -D "{self.datadir}"')[0]
         return status_code == 0
 
+    def _windows_terminate_process(self, _sig: Optional[int] = None) -> None:
+        """Terminate process on Windows.
+
+        :param _sig: Signal parameter (unused on Windows but included for consistency)
+        """
+        if self.process is None:
+            return
+
+        try:
+            # On Windows, try to terminate gracefully first
+            self.process.terminate()
+            # Give it a chance to terminate gracefully
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                # If it doesn't terminate gracefully, force kill
+                self.process.kill()
+                try:
+                    self.process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    logger.warning(
+                        "Process %s could not be cleaned up after kill() and may be a zombie process",
+                        self.process.pid if self.process else "unknown",
+                    )
+        except (OSError, AttributeError) as e:
+            # Process might already be dead or other issues
+            logger.debug(
+                "Exception during Windows process termination: %s: %s",
+                type(e).__name__,
+                e,
+            )
+
     def stop(self: T, sig: Optional[int] = None, exp_sig: Optional[int] = None) -> T:
         """Issue a stop request to executable."""
         subprocess.check_output(
-            f'{self.executable} stop -D "{self.datadir}" -m f',
-            shell=True,
+            [self.executable, "stop", "-D", self.datadir, "-m", "f"],
         )
         try:
-            super().stop(sig, exp_sig)
+            if platform.system() == "Windows":
+                self._windows_terminate_process(sig)
+            else:
+                super().stop(sig, exp_sig)
         except ProcessFinishedWithError:
             # Finished, leftovers ought to be cleaned afterwards anyway
             pass
+        except AttributeError:
+            # Fallback for edge cases where os.killpg doesn't exist (e.g., Windows)
+            if not hasattr(os, "killpg"):
+                self._windows_terminate_process(sig)
+            else:
+                raise
         return self
 
     def __del__(self) -> None:

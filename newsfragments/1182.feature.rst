@@ -1,0 +1,1 @@
+Add Windows compatibility for ``PostgreSQLExecutor`` with platform-specific command templates (``UNIX_PROC_START_COMMAND`` / ``WINDOWS_PROC_START_COMMAND``) and a dedicated ``_windows_terminate_process`` method for graceful process termination on Windows.

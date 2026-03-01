@@ -36,11 +36,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Set up Pipenv on python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.2.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.4.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: false
           allow-prereleases: true
+          editable: true
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
@@ -52,7 +53,7 @@ jobs:
         run: |
           sudo locale-gen de_DE.UTF-8
       - name: install libpq
-        if: ${{ contains(inputs.python-versions, 'pypy') }}
+        if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
         run: sudo apt install libpq5
       - name: Install oldest supported versions
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.2.1
