@@ -8,11 +8,11 @@ pytest = "==9.0.2"
 port-for = "==1.0.0"
 mirakuru = "==3.0.2"
 packaging = "==26.0"
-psycopg = "==3.3.2"
+psycopg = "==3.3.3"
 
 [dev-packages]
 towncrier = "==25.8.0"
-psycopg-binary = {version = "==3.3.2", markers="implementation_name == 'cpython'"}
+psycopg-binary = {version = "==3.3.3", markers="implementation_name == 'cpython'"}
 pytest-cov = "==7.0.0"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"

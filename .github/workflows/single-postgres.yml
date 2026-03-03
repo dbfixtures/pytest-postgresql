@@ -102,7 +102,7 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.2.1
         with:
           command: pytest -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --cov-report=xml:coverage-xdist.xml --basetemp="${{ runner.temp }}/pytest-basetemp"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
