@@ -682,9 +682,9 @@ class TestWindowsCompatibility:
         assert '-l "C:/Program Files/PostgreSQL/logs/my log file.log"' in command
 
     def test_windows_unc_paths(self) -> None:
-        """Test Windows UNC (Universal Naming Convention) paths.
+        r"""Test Windows UNC (Universal Naming Convention) paths.
 
-        UNC paths like \\\\server\\share should be properly handled on Windows.
+        UNC paths like \\server\share should be properly handled on Windows.
         """
         with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
