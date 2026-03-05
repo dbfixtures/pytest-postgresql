@@ -1,2 +1,4 @@
 [run]
-source = pytest_postgresql
+include =
+    */pytest_postgresql/*
+    */tests/*
