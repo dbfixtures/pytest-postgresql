@@ -1,5 +1,8 @@
 """Unit tests for retry and retry_async."""
 
+import datetime
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from pytest_postgresql.retry import retry_async
@@ -27,9 +30,13 @@ async def test_retry_async_succeeds_after_failures() -> None:
             raise ConnectionError("transient")
         return "ok"
 
-    result = await retry_async(flaky, timeout=10, possible_exception=ConnectionError)
+    sleep_mock = AsyncMock()
+    with patch("pytest_postgresql.retry.asyncio.sleep", sleep_mock):
+        result = await retry_async(flaky, timeout=10, possible_exception=ConnectionError)
+
     assert result == "ok"
     assert attempts == 3
+    assert sleep_mock.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -39,8 +46,22 @@ async def test_retry_async_timeout() -> None:
     async def always_fail() -> None:
         raise ValueError("boom")
 
-    with pytest.raises(TimeoutError, match="Failed after"):
-        await retry_async(always_fail, timeout=1, possible_exception=ValueError)
+    sleep_mock = AsyncMock()
+    base = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    call_count = 0
+
+    def advancing_clock() -> datetime.datetime:
+        nonlocal call_count
+        call_count += 1
+        # First call captures starting time; all subsequent calls report past the timeout.
+        return base if call_count == 1 else base + datetime.timedelta(seconds=10)
+
+    with (
+        patch("pytest_postgresql.retry.asyncio.sleep", sleep_mock),
+        patch("pytest_postgresql.retry.get_current_datetime", advancing_clock),
+    ):
+        with pytest.raises(TimeoutError, match="Failed after"):
+            await retry_async(always_fail, timeout=1, possible_exception=ValueError)
 
 
 @pytest.mark.asyncio

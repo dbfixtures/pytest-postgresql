@@ -116,7 +116,7 @@ def postgresql_async(
             "Install it with: pip install pytest-postgresql[async]"
         )
 
-    @pytest_asyncio.fixture(scope=scope)
+    @pytest_asyncio.fixture(scope=scope, loop_scope=scope)
     async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
         """Async connection fixture factory for PostgreSQL.
 
