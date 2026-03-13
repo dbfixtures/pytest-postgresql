@@ -62,13 +62,12 @@ include = ["pytest_postgresql*"]
 exclude = ["tests*"]
 namespaces = false
 
-[tool.pytest.ini_options]
+[tool.pytest]
 strict_xfail=true
-addopts = ["--showlocals", "--verbose"]
+addopts = ["--showlocals", "--verbose", "--cov"]
 testpaths = ["tests"]
 pytester_example_dir = "tests/examples"
 norecursedirs = ["examples"]
-asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 120

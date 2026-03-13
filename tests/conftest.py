@@ -4,12 +4,7 @@ import os
 from pathlib import Path
 
 from pytest_postgresql import factories
-from pytest_postgresql.plugin import postgresql, postgresql_noproc, postgresql_proc
-
-try:
-    from pytest_postgresql.plugin import postgresql_async  # noqa: F401
-except ImportError:
-    pass
+from pytest_postgresql.plugin import *  # noqa: F403,F401
 
 pytest_plugins = ["pytester"]
 POSTGRESQL_VERSION = os.environ.get("POSTGRES", "13")

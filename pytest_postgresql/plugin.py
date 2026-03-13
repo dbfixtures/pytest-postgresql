@@ -135,8 +135,3 @@ def pytest_addoption(parser: Parser) -> None:
 postgresql_proc = factories.postgresql_proc()
 postgresql_noproc = factories.postgresql_noproc()
 postgresql = factories.postgresql("postgresql_proc")
-
-try:
-    postgresql_async = factories.postgresql_async("postgresql_proc")
-except ImportError:
-    pass
