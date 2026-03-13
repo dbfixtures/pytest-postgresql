@@ -294,8 +294,8 @@ class AsyncDatabaseJanitor:
 
         conn = await retry_async(connect, timeout=self._connection_timeout, possible_exception=psycopg.OperationalError)
         try:
-            await conn.set_isolation_level(self.isolation_level)
-            await conn.set_autocommit(True)
+            conn.isolation_level = self.isolation_level
+            conn.autocommit = True
             # We must not run a transaction since we create a database.
             async with conn.cursor() as cur:
                 yield cur

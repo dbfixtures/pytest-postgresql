@@ -283,8 +283,6 @@ async def test_async_janitor_dont_datallowconn_sql() -> None:
 def _make_async_conn_mock() -> MagicMock:
     """Create a MagicMock that behaves like a psycopg3 AsyncConnection."""
     conn = MagicMock()
-    conn.set_isolation_level = AsyncMock()
-    conn.set_autocommit = AsyncMock()
     conn.close = AsyncMock()
     cursor_mock = MagicMock()
     cursor_mock.__aenter__ = AsyncMock(return_value=MagicMock())
