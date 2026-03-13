@@ -104,7 +104,7 @@ class DatabaseJanitor:
     @staticmethod
     def _terminate_connection(cur: Cursor, dbname: str) -> None:
         cur.execute(
-            "SELECT pg_terminate_backend(pg_stat_activity.pid)"
+            "SELECT pg_terminate_backend(pg_stat_activity.pid) "
             "FROM pg_stat_activity "
             "WHERE pg_stat_activity.datname = %s;",
             (dbname,),
@@ -252,7 +252,7 @@ class AsyncDatabaseJanitor:
     @staticmethod
     async def _terminate_connection(cur: AsyncCursor, dbname: str) -> None:  # type: ignore[type-arg]
         await cur.execute(
-            "SELECT pg_terminate_backend(pg_stat_activity.pid)"
+            "SELECT pg_terminate_backend(pg_stat_activity.pid) "
             "FROM pg_stat_activity "
             "WHERE pg_stat_activity.datname = %s;",
             (dbname,),
