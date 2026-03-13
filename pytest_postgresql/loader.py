@@ -60,8 +60,7 @@ async def sql_async(sql_filename: Path, **kwargs: Any) -> None:
     """
     if aiofiles is None:
         raise ImportError(
-            "aiofiles is required for async SQL loading. "
-            "Install it with: pip install pytest-postgresql[async]"
+            "aiofiles is required for async SQL loading. Install it with: pip install pytest-postgresql[async]"
         )
 
     async with await psycopg.AsyncConnection.connect(**kwargs) as db_connection:
