@@ -41,7 +41,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: false
           allow-prereleases: true
-          editable: true
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
