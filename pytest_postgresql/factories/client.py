@@ -24,6 +24,11 @@ import pytest
 from psycopg import AsyncConnection, Connection
 from pytest import FixtureRequest
 
+try:
+    import pytest_asyncio
+except ImportError:
+    pytest_asyncio = None  # type: ignore[assignment]
+
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
@@ -105,13 +110,11 @@ def postgresql_async(
     :param scope: fixture scope; by default "function" which is recommended.
     :returns: function which makes an async connection to postgresql
     """
-    try:
-        import pytest_asyncio
-    except ImportError as exc:
+    if pytest_asyncio is None:
         raise ImportError(
             "pytest-asyncio is required for async fixtures. "
             "Install it with: pip install pytest-postgresql[async]"
-        ) from exc
+        )
 
     @pytest_asyncio.fixture(scope=scope)
     async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:

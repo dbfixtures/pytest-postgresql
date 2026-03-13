@@ -8,6 +8,11 @@ from typing import Any, Callable
 
 import psycopg
 
+try:
+    import aiofiles
+except ImportError:
+    aiofiles = None  # type: ignore[assignment]
+
 
 def build_loader(load: Callable | str | Path) -> Callable:
     """Build a loader callable."""
@@ -53,13 +58,11 @@ async def sql_async(sql_filename: Path, **kwargs: Any) -> None:
 
     Requires the optional ``async`` extra: ``pip install pytest-postgresql[async]``.
     """
-    try:
-        import aiofiles
-    except ImportError as exc:
+    if aiofiles is None:
         raise ImportError(
             "aiofiles is required for async SQL loading. "
             "Install it with: pip install pytest-postgresql[async]"
-        ) from exc
+        )
 
     async with await psycopg.AsyncConnection.connect(**kwargs) as db_connection:
         async with db_connection.cursor() as cur:

@@ -58,13 +58,6 @@ async def test_loader_sql_async() -> None:
 @pytest.mark.asyncio
 async def test_sql_async_raises_without_aiofiles() -> None:
     """sql_async raises ImportError with a helpful message when aiofiles is not installed."""
-    real_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__  # type: ignore[union-attr]
-
-    def _block_aiofiles(name: str, *args: object, **kwargs: object) -> object:
-        if name == "aiofiles":
-            raise ImportError("No module named 'aiofiles'")
-        return real_import(name, *args, **kwargs)  # type: ignore[arg-type]
-
-    with patch("builtins.__import__", side_effect=_block_aiofiles):
+    with patch("pytest_postgresql.loader.aiofiles", None):
         with pytest.raises(ImportError, match="aiofiles"):
             await sql_async(Path("dummy.sql"), host="h", port=5432, user="u", dbname="d")
