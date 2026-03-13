@@ -194,9 +194,7 @@ async def test_async_janitor_init_with_template() -> None:
 async def test_async_janitor_init_as_template() -> None:
     """init() appends IS_TEMPLATE = true when as_template is True."""
     cur = _make_cursor_mock()
-    janitor = AsyncDatabaseJanitor(
-        user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10
-    )
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10)
     with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
         await janitor.init()
 
@@ -220,9 +218,7 @@ async def test_async_janitor_drop_drops_database() -> None:
 async def test_async_janitor_drop_as_template() -> None:
     """drop() resets is_template before dropping when as_template is True."""
     cur = _make_cursor_mock()
-    janitor = AsyncDatabaseJanitor(
-        user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10
-    )
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10)
     with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
         await janitor.drop()
 
@@ -243,9 +239,7 @@ def test_async_janitor_is_template_false() -> None:
 
 def test_async_janitor_is_template_true() -> None:
     """is_template() returns True when as_template=True."""
-    janitor = AsyncDatabaseJanitor(
-        user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10
-    )
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10)
     assert janitor.is_template() is True
 
 
