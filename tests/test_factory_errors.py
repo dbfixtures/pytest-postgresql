@@ -1,6 +1,5 @@
 """Tests for factory error paths (missing optional dependencies)."""
 
-import asyncio
 from unittest.mock import patch
 
 import pytest
@@ -20,15 +19,15 @@ def test_postgresql_async_factory_creation_succeeds_without_pytest_asyncio() -> 
 
 
 def test_postgresql_async_raises_on_use_without_pytest_asyncio() -> None:
-    """The fixture body raises ImportError with a helpful message when pytest-asyncio is absent."""
+    """When pytest-asyncio is absent, the registered stub is synchronous and raises ImportError.
 
-    async def _invoke() -> None:
-        with patch("pytest_postgresql.factories.client.pytest_asyncio", None):
-            fixture_func = postgresql_async("some_proc_fixture")
-            # pytest 8+ wraps fixtures to prevent direct calls; unwrap first.
-            raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
-            async for _ in raw_func(None):  # type: ignore[arg-type]
-                break  # pragma: no cover
-
-    with pytest.raises(ImportError, match="pytest-asyncio"):
-        asyncio.run(_invoke())
+    A synchronous stub avoids the "coroutine was never awaited" warning that would
+    result from registering an async def with plain pytest.fixture.
+    """
+    with patch("pytest_postgresql.factories.client.pytest_asyncio", None):
+        fixture_func = postgresql_async("some_proc_fixture")
+        # pytest 8+ wraps fixtures to prevent direct calls; unwrap first.
+        raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+        assert not hasattr(raw_func, "__await__"), "stub must be a sync function, not a coroutine"
+        with pytest.raises(ImportError, match="pytest-asyncio"):
+            raw_func(None)  # type: ignore[arg-type]
