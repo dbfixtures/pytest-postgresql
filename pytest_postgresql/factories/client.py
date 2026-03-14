@@ -111,12 +111,12 @@ def postgresql_async(
     :returns: function which makes an async connection to postgresql
     """
     if pytest_asyncio is None:
+
         @pytest.fixture(scope=scope)
         def postgresql_async_factory(request: FixtureRequest) -> None:
             """Sync stub that raises ImportError when pytest-asyncio is absent."""
             raise ImportError(
-                "pytest-asyncio is required for async fixtures. "
-                "Install it with: pip install pytest-postgresql[async]"
+                "pytest-asyncio is required for async fixtures. Install it with: pip install pytest-postgresql[async]"
             )
 
         return postgresql_async_factory  # type: ignore[return-value]
