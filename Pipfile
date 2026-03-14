@@ -9,6 +9,7 @@ port-for = "==1.0.0"
 mirakuru = "==3.0.2"
 packaging = "==26.0"
 psycopg = "==3.3.3"
+pytest-postgresql = {path = ".", editable = true}
 
 [dev-packages]
 towncrier = "==25.8.0"
