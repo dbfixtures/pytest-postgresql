@@ -50,9 +50,9 @@ class PostgreSQLExecutor(TCPExecutor):
 
     BASE_PROC_START_COMMAND = (
         '{executable} start -D "{datadir}" '
-        "-o \"-F -p {port} -c log_destination=stderr "
+        '-o "-F -p {port} -c log_destination=stderr '
         "-c logging_collector=off "
-        "{unix_socket_opt}{postgres_options}\" "
+        '{unix_socket_opt}{postgres_options}" '
         '-l "{logfile}" {startparams}'
     )
 
@@ -109,11 +109,7 @@ class PostgreSQLExecutor(TCPExecutor):
         self.startparams = startparams
         self.postgres_options = postgres_options
         # On Windows, Unix sockets are not supported; omit the parameter entirely.
-        unix_socket_opt = (
-            f"-c unix_socket_directories={self.unixsocketdir} "
-            if platform.system() != "Windows"
-            else ""
-        )
+        unix_socket_opt = f"-c unix_socket_directories={self.unixsocketdir} " if platform.system() != "Windows" else ""
         command = self.BASE_PROC_START_COMMAND.format(
             executable=self.executable,
             datadir=self.datadir,

@@ -7,6 +7,7 @@ import warnings
 from pathlib import Path
 
 import pytest
+
 from pytest_postgresql import factories
 from pytest_postgresql.plugin import *  # noqa: F403,F401
 
@@ -21,6 +22,8 @@ def event_loop_policy():  # type: ignore[override]
         if sys.platform == "win32":
             return asyncio.WindowsSelectorEventLoopPolicy()
         return asyncio.DefaultEventLoopPolicy()
+
+
 POSTGRESQL_VERSION = os.environ.get("POSTGRES", "13")
 
 
