@@ -124,8 +124,7 @@ def postgresql_async(
         """
         if pytest_asyncio is None:
             raise ImportError(
-                "pytest-asyncio is required for async fixtures. "
-                "Install it with: pip install pytest-postgresql[async]"
+                "pytest-asyncio is required for async fixtures. Install it with: pip install pytest-postgresql[async]"
             )
         proc_fixture: PostgreSQLExecutor | NoopExecutor = request.getfixturevalue(process_fixture_name)
         config = get_config(request)
