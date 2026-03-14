@@ -7,6 +7,7 @@ from types import TracebackType
 from typing import AsyncIterator, Callable, Iterator, Type, TypeVar
 
 import psycopg
+import psycopg.sql as sql
 from packaging.version import parse
 from psycopg import AsyncCursor, Connection, Cursor
 
@@ -69,18 +70,17 @@ class DatabaseJanitor:
     def init(self) -> None:
         """Create database in postgresql."""
         with self.cursor() as cur:
+            query = sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.dbname))
             if self.template_dbname:
                 # And make sure no-one is left connected to the template database.
                 # Otherwise, Creating database from template will fail
                 self._terminate_connection(cur, self.template_dbname)
-                query = f'CREATE DATABASE "{self.dbname}" TEMPLATE "{self.template_dbname}"'
-            else:
-                query = f'CREATE DATABASE "{self.dbname}"'
+                query = query + sql.SQL(" TEMPLATE {}").format(sql.Identifier(self.template_dbname))
 
             if self.as_template:
-                query += " IS_TEMPLATE = true"
+                query = query + sql.SQL(" IS_TEMPLATE = true")
 
-            cur.execute(f"{query};")
+            cur.execute(query)
 
     def is_template(self) -> bool:
         """Determine whether the DatabaseJanitor maintains template or database."""
@@ -94,12 +94,14 @@ class DatabaseJanitor:
             self._dont_datallowconn(cur, self.dbname)
             self._terminate_connection(cur, self.dbname)
             if self.as_template:
-                cur.execute(f'ALTER DATABASE "{self.dbname}" with is_template false;')
-            cur.execute(f'DROP DATABASE IF EXISTS "{self.dbname}";')
+                cur.execute(
+                    sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname))
+                )
+            cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(self.dbname)))
 
     @staticmethod
     def _dont_datallowconn(cur: Cursor, dbname: str) -> None:
-        cur.execute(f'ALTER DATABASE "{dbname}" with allow_connections false;')
+        cur.execute(sql.SQL("ALTER DATABASE {} WITH allow_connections false").format(sql.Identifier(dbname)))
 
     @staticmethod
     def _terminate_connection(cur: Cursor, dbname: str) -> None:
@@ -217,18 +219,17 @@ class AsyncDatabaseJanitor:
     async def init(self) -> None:
         """Create database in postgresql."""
         async with self.cursor() as cur:
+            query = sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.dbname))
             if self.template_dbname:
                 # And make sure no-one is left connected to the template database.
                 # Otherwise, Creating database from template will fail
                 await self._terminate_connection(cur, self.template_dbname)
-                query = f'CREATE DATABASE "{self.dbname}" TEMPLATE "{self.template_dbname}"'
-            else:
-                query = f'CREATE DATABASE "{self.dbname}"'
+                query = query + sql.SQL(" TEMPLATE {}").format(sql.Identifier(self.template_dbname))
 
             if self.as_template:
-                query += " IS_TEMPLATE = true"
+                query = query + sql.SQL(" IS_TEMPLATE = true")
 
-            await cur.execute(f"{query};")
+            await cur.execute(query)
 
     def is_template(self) -> bool:
         """Determine whether the AsyncDatabaseJanitor maintains template or database."""
@@ -242,12 +243,14 @@ class AsyncDatabaseJanitor:
             await self._dont_datallowconn(cur, self.dbname)
             await self._terminate_connection(cur, self.dbname)
             if self.as_template:
-                await cur.execute(f'ALTER DATABASE "{self.dbname}" with is_template false;')
-            await cur.execute(f'DROP DATABASE IF EXISTS "{self.dbname}";')
+                await cur.execute(
+                    sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname))
+                )
+            await cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(self.dbname)))
 
     @staticmethod
     async def _dont_datallowconn(cur: AsyncCursor, dbname: str) -> None:  # type: ignore[type-arg]
-        await cur.execute(f'ALTER DATABASE "{dbname}" with allow_connections false;')
+        await cur.execute(sql.SQL("ALTER DATABASE {} WITH allow_connections false").format(sql.Identifier(dbname)))
 
     @staticmethod
     async def _terminate_connection(cur: AsyncCursor, dbname: str) -> None:  # type: ignore[type-arg]

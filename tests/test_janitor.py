@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import psycopg.sql as pgsql
 import pytest
 from packaging.version import parse
 from psycopg import AsyncCursor
@@ -148,6 +149,18 @@ async def test_janitor_populate_async(connect_mock: MagicMock, load_database: st
 # ---------------------------------------------------------------------------
 
 
+def _render_sql(obj: object) -> str:
+    """Render a psycopg.sql Composable to its SQL text form for test assertions."""
+    if isinstance(obj, pgsql.Composed):
+        return "".join(_render_sql(part) for part in obj)
+    if isinstance(obj, pgsql.SQL):
+        return obj._obj  # type: ignore[attr-defined]
+    if isinstance(obj, pgsql.Identifier):
+        parts: tuple[str, ...] = obj._obj  # type: ignore[attr-defined]
+        return ".".join('"' + s.replace('"', '""') + '"' for s in parts)
+    return str(obj)
+
+
 def _make_cursor_mock() -> MagicMock:
     """Create a mock async cursor that records execute() calls."""
     cur = AsyncMock(spec=AsyncCursor)
@@ -172,7 +185,7 @@ async def test_async_janitor_init_creates_database() -> None:
     with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
         await janitor.init()
 
-    executed_sql = " ".join(str(c.args[0]) for c in cur.execute.call_args_list)
+    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
     assert 'CREATE DATABASE "mydb"' in executed_sql
 
 
@@ -186,7 +199,7 @@ async def test_async_janitor_init_with_template() -> None:
     with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
         await janitor.init()
 
-    executed_sql = " ".join(str(c.args[0]) for c in cur.execute.call_args_list)
+    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
     assert 'CREATE DATABASE "mydb" TEMPLATE "tmpl"' in executed_sql
 
 
@@ -198,7 +211,7 @@ async def test_async_janitor_init_as_template() -> None:
     with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
         await janitor.init()
 
-    executed_sql = " ".join(str(c.args[0]) for c in cur.execute.call_args_list)
+    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
     assert "IS_TEMPLATE = true" in executed_sql
 
 
@@ -210,7 +223,7 @@ async def test_async_janitor_drop_drops_database() -> None:
     with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
         await janitor.drop()
 
-    executed_sql = " ".join(str(c.args[0]) for c in cur.execute.call_args_list)
+    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
     assert 'DROP DATABASE IF EXISTS "mydb"' in executed_sql
 
 
@@ -222,7 +235,7 @@ async def test_async_janitor_drop_as_template() -> None:
     with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
         await janitor.drop()
 
-    executed_sql = [str(c.args[0]) for c in cur.execute.call_args_list]
+    executed_sql = [_render_sql(c.args[0]) for c in cur.execute.call_args_list]
     assert any("is_template false" in s for s in executed_sql)
     assert any('DROP DATABASE IF EXISTS "mydb"' in s for s in executed_sql)
     # is_template false must come before DROP
@@ -275,7 +288,7 @@ async def test_async_janitor_dont_datallowconn_sql() -> None:
     await AsyncDatabaseJanitor._dont_datallowconn(cur, "target_db")
 
     cur.execute.assert_called_once()
-    sql_str = cur.execute.call_args.args[0]
+    sql_str = _render_sql(cur.execute.call_args.args[0])
     assert "allow_connections false" in sql_str
     assert '"target_db"' in sql_str
 
