@@ -50,9 +50,9 @@ class PostgreSQLExecutor(TCPExecutor):
 
     BASE_PROC_START_COMMAND = (
         '{executable} start -D "{datadir}" '
-        "-o \"-F -p {port} -c log_destination=stderr "
+        "-o \"-F -p {port} -c log_destination='stderr' "
         "-c logging_collector=off "
-        "{unix_socket_opt}{postgres_options}\" "
+        "-c unix_socket_directories='{unixsocketdir}' {postgres_options}\" "
         '-l "{logfile}" {startparams}'
     )
 
@@ -108,17 +108,11 @@ class PostgreSQLExecutor(TCPExecutor):
         self.logfile = logfile
         self.startparams = startparams
         self.postgres_options = postgres_options
-        # On Windows, Unix sockets are not supported; omit the parameter entirely.
-        unix_socket_opt = (
-            f"-c unix_socket_directories={self.unixsocketdir} "
-            if platform.system() != "Windows"
-            else ""
-        )
         command = self.BASE_PROC_START_COMMAND.format(
             executable=self.executable,
             datadir=self.datadir,
             port=port,
-            unix_socket_opt=unix_socket_opt,
+            unixsocketdir=self.unixsocketdir,
             logfile=self.logfile,
             startparams=self.startparams,
             postgres_options=self.postgres_options,
@@ -235,10 +229,6 @@ class PostgreSQLExecutor(TCPExecutor):
             super().stop(sig, exp_sig)
         except ProcessFinishedWithError:
             # Finished, leftovers ought to be cleaned afterwards anyway
-            pass
-        except AttributeError:
-            # os.killpg is not available on Windows; the pg_ctl stop above
-            # already terminated the process, so this is safe to ignore.
             pass
         return self
 
