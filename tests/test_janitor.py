@@ -284,6 +284,8 @@ def _make_async_conn_mock() -> MagicMock:
     """Create a MagicMock that behaves like a psycopg3 AsyncConnection."""
     conn = MagicMock()
     conn.close = AsyncMock()
+    conn.set_isolation_level = AsyncMock()
+    conn.set_autocommit = AsyncMock()
     cursor_mock = MagicMock()
     cursor_mock.__aenter__ = AsyncMock(return_value=MagicMock())
     cursor_mock.__aexit__ = AsyncMock(return_value=False)

@@ -1,12 +1,26 @@
 """Tests main conftest file."""
 
+import asyncio
 import os
+import sys
+import warnings
 from pathlib import Path
 
+import pytest
 from pytest_postgresql import factories
 from pytest_postgresql.plugin import *  # noqa: F403,F401
 
 pytest_plugins = ["pytester"]
+
+
+@pytest.fixture(scope="session")
+def event_loop_policy():  # type: ignore[override]
+    """Use SelectorEventLoop on Windows; psycopg3 async requires it."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        if sys.platform == "win32":
+            return asyncio.WindowsSelectorEventLoopPolicy()
+        return asyncio.DefaultEventLoopPolicy()
 POSTGRESQL_VERSION = os.environ.get("POSTGRES", "13")
 
 
