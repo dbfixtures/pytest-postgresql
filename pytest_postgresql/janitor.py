@@ -94,9 +94,7 @@ class DatabaseJanitor:
             self._dont_datallowconn(cur, self.dbname)
             self._terminate_connection(cur, self.dbname)
             if self.as_template:
-                cur.execute(
-                    sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname))
-                )
+                cur.execute(sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname)))
             cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(self.dbname)))
 
     @staticmethod
