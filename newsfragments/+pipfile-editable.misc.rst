@@ -1,0 +1,1 @@
+Add ``pytest-postgresql`` as an editable self-install in the Pipfile; remove the manual ``from pytest_postgresql.plugin import *`` import from ``tests/conftest.py`` and the ``makeconftest`` call in ``tests/test_postgres_options_plugin.py`` that re-registered the plugin and caused duplicate-plugin errors under editable install.
