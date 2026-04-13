@@ -50,16 +50,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Set up Pipenv on python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.4.0
+        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.4.4
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Run test noproc fixture on docker
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.2.1
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.4
         with:
           command: pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --cov-report=xml:coverage-docker.xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.5.2
+        uses: codecov/codecov-action@v6.0.0
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
