@@ -821,6 +821,4 @@ class TestRunningMethodQuoting:
             executor.running()
 
             called_cmd = mock_getstatusoutput.call_args[0][0]
-            assert '-D "/tmp/my data dir"' in called_cmd, (
-                f"Datadir not quoted in status command: {called_cmd!r}"
-            )
+            assert '-D "/tmp/my data dir"' in called_cmd, f"Datadir not quoted in status command: {called_cmd!r}"
