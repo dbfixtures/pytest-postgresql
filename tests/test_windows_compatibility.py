@@ -885,6 +885,4 @@ class TestRunningMethod:
             executor.running()
 
             args = mock_run.call_args[0][0]
-            assert args[3] == "/tmp/my data dir", (
-                f"Datadir not passed as argv element: {args!r}"
-            )
+            assert args[3] == "/tmp/my data dir", f"Datadir not passed as argv element: {args!r}"
