@@ -135,11 +135,15 @@ class PostgreSQLExecutor(TCPExecutor):
             command_template = self.WINDOWS_PROC_START_COMMAND
         else:
             command_template = self.UNIX_PROC_START_COMMAND
+        # PostgreSQL GUC single-quoted strings double single-quotes to escape them
+        # (e.g. /tmp/o'hare → /tmp/o''hare).  Apply this before interpolation so
+        # the generated unix_socket_directories value is always syntactically valid.
+        escaped_unixsocketdir = self.unixsocketdir.replace("'", "''")
         command = command_template.format(
             executable=self.executable,
             datadir=self.datadir,
             port=port,
-            unixsocketdir=self.unixsocketdir,
+            unixsocketdir=escaped_unixsocketdir,
             logfile=self.logfile,
             startparams=self.startparams,
             postgres_options=f" {self.postgres_options}" if self.postgres_options else "",
@@ -243,8 +247,11 @@ class PostgreSQLExecutor(TCPExecutor):
         """Check if server is running."""
         if not os.path.exists(self.datadir):
             return False
-        status_code = subprocess.getstatusoutput(f'"{self.executable}" status -D "{self.datadir}"')[0]
-        return status_code == 0
+        result = subprocess.run(
+            [self.executable, "status", "-D", self.datadir],
+            check=False,
+        )
+        return result.returncode == 0
 
     def _windows_terminate_process(self, _sig: Optional[int] = None) -> None:
         """Terminate process on Windows.

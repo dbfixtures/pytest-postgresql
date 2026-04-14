@@ -436,6 +436,50 @@ class TestCommandTemplates:
         assert "unix_socket_directories='/tmp/sóckét_dïr_日本語'" in command
         assert '-l "/tmp/lög_文件.log"' in command
 
+    def test_unixsocketdir_with_apostrophe_is_escaped(self) -> None:
+        """Regression test: apostrophes in unixsocketdir are escaped for the GUC parser.
+
+        PostgreSQL single-quoted GUC strings use doubled single-quotes as the
+        escape sequence (SQL-style), so /tmp/o'hare must become
+        unix_socket_directories='/tmp/o''hare'.  An unescaped apostrophe would
+        prematurely close the GUC string, making PostgreSQL reject the option or
+        silently misparse it.
+        """
+        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+            executor = PostgreSQLExecutor(
+                executable="/usr/lib/postgresql/16/bin/pg_ctl",
+                host="localhost",
+                port=5432,
+                datadir="/tmp/data",
+                unixsocketdir="/tmp/o'hare",
+                logfile="/tmp/log",
+                startparams="-w",
+                dbname="test",
+            )
+
+        command = executor.command
+        # Apostrophe must be doubled so the GUC parser sees a valid string
+        assert "unix_socket_directories='/tmp/o''hare'" in command
+        # Raw un-escaped form must NOT appear
+        assert "unix_socket_directories='/tmp/o'hare'" not in command
+
+    def test_unixsocketdir_with_multiple_apostrophes_are_escaped(self) -> None:
+        """Regression test: multiple apostrophes in unixsocketdir are all escaped."""
+        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+            executor = PostgreSQLExecutor(
+                executable="/usr/lib/postgresql/16/bin/pg_ctl",
+                host="localhost",
+                port=5432,
+                datadir="/tmp/data",
+                unixsocketdir="/tmp/it's o'hare",
+                logfile="/tmp/log",
+                startparams="-w",
+                dbname="test",
+            )
+
+        command = executor.command
+        assert "unix_socket_directories='/tmp/it''s o''hare'" in command
+
     def test_command_with_all_special_characters_combined(self) -> None:
         """Test command with multiple types of special characters.
 
@@ -736,16 +780,15 @@ class TestWindowsCompatibility:
         assert '-l "C:\\temp\\log.txt"' in command
 
 
-class TestRunningMethodQuoting:
-    """Test that the running() method properly quotes the executable path."""
+class TestRunningMethod:
+    """Test that running() uses safe list-form subprocess invocation."""
 
-    def test_running_quotes_executable_with_spaces(self) -> None:
-        """Test that running() quotes the executable in the status command.
+    def test_running_passes_executable_as_argv_element(self) -> None:
+        """Test that running() passes the executable as an argv element, not a shell string.
 
-        subprocess.getstatusoutput() uses shell=True internally. On Windows,
-        cmd.exe parses the command string and an unquoted path like
-        C:\\Program Files\\...\\pg_ctl.exe would be split at the space,
-        causing the status check to fail silently or error.
+        Using subprocess.run with a list means paths with spaces (e.g.
+        C:\\Program Files\\...\\pg_ctl.exe) are passed as a single token to the
+        OS without any shell parsing, so no quoting is required or desired.
         """
         executor = PostgreSQLExecutor(
             executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
@@ -760,22 +803,22 @@ class TestRunningMethodQuoting:
 
         with (
             patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.getstatusoutput") as mock_getstatusoutput,
+            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
         ):
-            mock_getstatusoutput.return_value = (0, "")
+            mock_run.return_value = MagicMock(returncode=0)
             executor.running()
 
-            # The executable must be double-quoted in the shell command string
-            called_cmd = mock_getstatusoutput.call_args[0][0]
-            assert called_cmd.startswith('"C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe"'), (
-                f"Executable not quoted in status command: {called_cmd!r}"
-            )
+            args = mock_run.call_args[0][0]
+            assert args[0] == "C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe"
+            assert args[1] == "status"
+            assert args[2] == "-D"
+            assert args[3] == "C:/temp/data"
 
-    def test_running_quotes_executable_without_spaces(self) -> None:
-        """Test that running() still quotes executables without spaces.
+    def test_running_no_shell_true(self) -> None:
+        """Test that running() does not use shell=True.
 
-        Even when the executable path has no spaces, it should still be
-        double-quoted for consistency and correctness.
+        Passing shell=True with a list is both redundant and risky; the list
+        form with shell=False (the default) is the correct approach.
         """
         executor = PostgreSQLExecutor(
             executable="/usr/lib/postgresql/17/bin/pg_ctl",
@@ -790,18 +833,39 @@ class TestRunningMethodQuoting:
 
         with (
             patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.getstatusoutput") as mock_getstatusoutput,
+            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
         ):
-            mock_getstatusoutput.return_value = (0, "")
+            mock_run.return_value = MagicMock(returncode=0)
             executor.running()
 
-            called_cmd = mock_getstatusoutput.call_args[0][0]
-            assert called_cmd.startswith('"/usr/lib/postgresql/17/bin/pg_ctl"'), (
-                f"Executable not quoted in status command: {called_cmd!r}"
-            )
+            kwargs = mock_run.call_args[1]
+            assert kwargs.get("shell", False) is False, "running() must not use shell=True"
 
-    def test_running_quotes_datadir_with_spaces(self) -> None:
-        """Test that running() quotes the datadir in the status command."""
+    def test_running_returns_true_on_zero_returncode(self) -> None:
+        """Test that running() returns True when pg_ctl status exits 0."""
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+        ):
+            mock_run.return_value = MagicMock(returncode=0)
+            assert executor.running() is True
+
+            mock_run.return_value = MagicMock(returncode=3)
+            assert executor.running() is False
+
+    def test_running_datadir_with_spaces_passed_as_argv_element(self) -> None:
+        """Test that a datadir with spaces is passed verbatim as an argv element."""
         executor = PostgreSQLExecutor(
             executable="/usr/lib/postgresql/17/bin/pg_ctl",
             host="localhost",
@@ -815,10 +879,12 @@ class TestRunningMethodQuoting:
 
         with (
             patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.getstatusoutput") as mock_getstatusoutput,
+            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
         ):
-            mock_getstatusoutput.return_value = (0, "")
+            mock_run.return_value = MagicMock(returncode=0)
             executor.running()
 
-            called_cmd = mock_getstatusoutput.call_args[0][0]
-            assert '-D "/tmp/my data dir"' in called_cmd, f"Datadir not quoted in status command: {called_cmd!r}"
+            args = mock_run.call_args[0][0]
+            assert args[3] == "/tmp/my data dir", (
+                f"Datadir not passed as argv element: {args!r}"
+            )
