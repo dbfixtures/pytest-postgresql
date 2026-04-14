@@ -209,11 +209,14 @@ class TestCommandTemplates:
         # postgres_options should be included with single quotes preserved
         assert "-c shared_buffers='128MB' -c work_mem='64MB'" in command
 
-    def test_postgres_options_with_double_quotes(self) -> None:
-        """Test postgres_options containing double quotes.
+    def test_postgres_options_with_single_quoted_search_path(self) -> None:
+        """Test postgres_options with a single-quoted search_path value.
 
-        Double quotes in postgres_options need careful handling as they interact
-        with the shell's quote parsing.
+        PostgreSQL GUC values are quoted with single quotes in the config syntax.
+        The Unix template wraps the whole -o argument in double quotes, so
+        inner double quotes would prematurely terminate that token and produce an
+        invalid shell command. Single-quoted values are the correct form and must
+        be preserved verbatim inside the -o argument.
         """
         with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
@@ -225,12 +228,17 @@ class TestCommandTemplates:
                 logfile="/tmp/log",
                 startparams="-w",
                 dbname="test",
-                postgres_options='-c search_path="public,other"',
+                postgres_options="-c search_path='public,other'",
             )
 
         command = executor.command
-        # postgres_options with double quotes should be preserved
-        assert '-c search_path="public,other"' in command
+        # The single-quoted search_path value must appear verbatim inside the -o argument
+        assert "-c search_path='public,other'" in command
+        # Verify it is embedded inside the -o "..." token (no premature " termination)
+        o_start = command.index('-o "')
+        o_end = command.index('"', o_start + 4)
+        o_argument = command[o_start : o_end + 1]
+        assert "-c search_path='public,other'" in o_argument
 
     def test_postgres_options_with_paths_containing_spaces(self) -> None:
         """Test postgres_options with file paths containing spaces.
@@ -276,7 +284,7 @@ class TestCommandTemplates:
 
         command = executor.command
         # Command should still be valid with empty postgres_options
-        assert "/usr/lib/postgresql/16/bin/pg_ctl start" in command
+        assert '"/usr/lib/postgresql/16/bin/pg_ctl" start' in command
         assert '-D "/tmp/data"' in command
         assert "unix_socket_directories='/tmp/socket'" in command
         # Should not have trailing space before closing quote in -o parameter
@@ -306,7 +314,7 @@ class TestCommandTemplates:
 
         command = executor.command
         # Command should be valid with empty startparams
-        assert "/usr/lib/postgresql/16/bin/pg_ctl start" in command
+        assert '"/usr/lib/postgresql/16/bin/pg_ctl" start' in command
         assert '-l "/tmp/log"' in command
         # Command should not have trailing spaces at the end
         assert not command.endswith("  ")
@@ -332,7 +340,7 @@ class TestCommandTemplates:
 
         command = executor.command
         # Command should be valid with both empty
-        assert "C:/Program Files/PostgreSQL/bin/pg_ctl.exe start" in command
+        assert '"C:/Program Files/PostgreSQL/bin/pg_ctl.exe" start' in command
         assert '-D "C:/temp/data"' in command
         assert '-l "C:/temp/log"' in command
         # Windows template should not have unix_socket_directories
@@ -621,7 +629,7 @@ class TestWindowsCompatibility:
         # The command should be properly formatted without single quotes
         # and without unix_socket_directories (irrelevant on Windows)
         expected_parts = [
-            "C:/Program Files/PostgreSQL/bin/pg_ctl.exe start",
+            '"C:/Program Files/PostgreSQL/bin/pg_ctl.exe" start',
             '-D "C:/temp/data"',
             '-o "-F -p 5555 -c log_destination=stderr',
             "-c logging_collector=off",
@@ -723,6 +731,96 @@ class TestWindowsCompatibility:
 
         command = executor.command
         # Paths with backslashes should be properly quoted
-        assert "C:\\Program Files\\PostgreSQL\\bin\\pg_ctl.exe start" in command
+        assert '"C:\\Program Files\\PostgreSQL\\bin\\pg_ctl.exe" start' in command
         assert '-D "C:\\temp\\data"' in command
         assert '-l "C:\\temp\\log.txt"' in command
+
+
+class TestRunningMethodQuoting:
+    """Test that the running() method properly quotes the executable path."""
+
+    def test_running_quotes_executable_with_spaces(self) -> None:
+        """Test that running() quotes the executable in the status command.
+
+        subprocess.getstatusoutput() uses shell=True internally. On Windows,
+        cmd.exe parses the command string and an unquoted path like
+        C:\\Program Files\\...\\pg_ctl.exe would be split at the space,
+        causing the status check to fail silently or error.
+        """
+        executor = PostgreSQLExecutor(
+            executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
+            host="localhost",
+            port=5432,
+            datadir="C:/temp/data",
+            unixsocketdir="C:/temp/socket",
+            logfile="C:/temp/log",
+            startparams="-w",
+            dbname="test",
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executor.subprocess.getstatusoutput") as mock_getstatusoutput,
+        ):
+            mock_getstatusoutput.return_value = (0, "")
+            executor.running()
+
+            # The executable must be double-quoted in the shell command string
+            called_cmd = mock_getstatusoutput.call_args[0][0]
+            assert called_cmd.startswith('"C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe"'), (
+                f"Executable not quoted in status command: {called_cmd!r}"
+            )
+
+    def test_running_quotes_executable_without_spaces(self) -> None:
+        """Test that running() still quotes executables without spaces.
+
+        Even when the executable path has no spaces, it should still be
+        double-quoted for consistency and correctness.
+        """
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executor.subprocess.getstatusoutput") as mock_getstatusoutput,
+        ):
+            mock_getstatusoutput.return_value = (0, "")
+            executor.running()
+
+            called_cmd = mock_getstatusoutput.call_args[0][0]
+            assert called_cmd.startswith('"/usr/lib/postgresql/17/bin/pg_ctl"'), (
+                f"Executable not quoted in status command: {called_cmd!r}"
+            )
+
+    def test_running_quotes_datadir_with_spaces(self) -> None:
+        """Test that running() quotes the datadir in the status command."""
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/my data dir",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executor.subprocess.getstatusoutput") as mock_getstatusoutput,
+        ):
+            mock_getstatusoutput.return_value = (0, "")
+            executor.running()
+
+            called_cmd = mock_getstatusoutput.call_args[0][0]
+            assert '-D "/tmp/my data dir"' in called_cmd, (
+                f"Datadir not quoted in status command: {called_cmd!r}"
+            )

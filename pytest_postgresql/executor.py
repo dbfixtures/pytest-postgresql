@@ -61,7 +61,7 @@ class PostgreSQLExecutor(TCPExecutor):
     # On Unix, mirakuru uses shlex.split() with shell=False, so single quotes
     # inside double-quoted strings are preserved and passed to PostgreSQL's config parser.
     UNIX_PROC_START_COMMAND = (
-        '{executable} start -D "{datadir}" '
+        '"{executable}" start -D "{datadir}" '
         "-o \"-F -p {port} -c log_destination='stderr' "
         "-c logging_collector=off "
         "-c unix_socket_directories='{unixsocketdir}'{postgres_options}\" "
@@ -73,7 +73,7 @@ class PostgreSQLExecutor(TCPExecutor):
     # ignores it on Windows. On Windows, mirakuru forces shell=True so the command
     # goes through cmd.exe.
     WINDOWS_PROC_START_COMMAND = (
-        '{executable} start -D "{datadir}" '
+        '"{executable}" start -D "{datadir}" '
         '-o "-F -p {port} -c log_destination=stderr '
         '-c logging_collector=off{postgres_options}" '
         '-l "{logfile}" {startparams}'
@@ -243,7 +243,7 @@ class PostgreSQLExecutor(TCPExecutor):
         """Check if server is running."""
         if not os.path.exists(self.datadir):
             return False
-        status_code = subprocess.getstatusoutput(f'{self.executable} status -D "{self.datadir}"')[0]
+        status_code = subprocess.getstatusoutput(f'"{self.executable}" status -D "{self.datadir}"')[0]
         return status_code == 0
 
     def _windows_terminate_process(self, _sig: Optional[int] = None) -> None:
