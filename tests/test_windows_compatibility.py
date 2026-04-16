@@ -784,10 +784,10 @@ class TestRunningMethod:
     """Test that running() uses safe list-form subprocess invocation."""
 
     def test_running_passes_executable_as_argv_element(self) -> None:
-        """Test that running() passes the executable as an argv element, not a shell string.
+        r"""Test that running() passes the executable as an argv element, not a shell string.
 
         Using subprocess.run with a list means paths with spaces (e.g.
-        C:\\Program Files\\...\\pg_ctl.exe) are passed as a single token to the
+        C:\Program Files\...\pg_ctl.exe) are passed as a single token to the
         OS without any shell parsing, so no quoting is required or desired.
         """
         executor = PostgreSQLExecutor(
