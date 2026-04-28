@@ -1,8 +1,11 @@
 """Tests for the `build_loader` function."""
 
 from pathlib import Path
+from unittest.mock import patch
 
-from pytest_postgresql.loader import build_loader, sql
+import pytest
+
+from pytest_postgresql.loader import build_loader, build_loader_async, sql, sql_async
 from tests.loader import load_database
 
 
@@ -12,9 +15,49 @@ def test_loader_callables() -> None:
     assert load_database == build_loader("tests.loader:load_database")
 
 
+def test_loader_callables_dot_separator() -> None:
+    """Test dot-separated import path resolves the same callable as colon-separated."""
+    assert build_loader("tests.loader.load_database") == load_database
+
+
+@pytest.mark.asyncio
+async def test_loader_callables_async() -> None:
+    """Async test handling callables in build_loader_async."""
+    assert load_database == build_loader_async(load_database)
+    assert load_database == build_loader_async("tests.loader:load_database")
+
+    async def afun(*_args: object, **_kwargs: object) -> int:
+        return 0
+
+    assert afun == build_loader_async(afun)
+
+
+@pytest.mark.asyncio
+async def test_loader_callables_async_dot_separator() -> None:
+    """Dot-separated import path is resolved identically by build_loader_async."""
+    assert build_loader_async("tests.loader.load_database") == load_database
+
+
 def test_loader_sql() -> None:
     """Test returning partial running sql for the sql file path."""
     sql_path = Path("test_sql/eidastats.sql")
     loader_func = build_loader(sql_path)
     assert loader_func.args == (sql_path,)  # type: ignore
     assert loader_func.func == sql  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_loader_sql_async() -> None:
+    """Async test returning partial running sql_async for the sql file path."""
+    sql_path = Path("test_sql/eidastats.sql")
+    loader_func = build_loader_async(sql_path)
+    assert loader_func.args == (sql_path,)  # type: ignore
+    assert loader_func.func == sql_async  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_sql_async_raises_without_aiofiles() -> None:
+    """sql_async raises ImportError with a helpful message when aiofiles is not installed."""
+    with patch("pytest_postgresql.loader.aiofiles", None):
+        with pytest.raises(ImportError, match="aiofiles"):
+            await sql_async(Path("dummy.sql"), host="h", port=5432, user="u", dbname="d")
