@@ -23,12 +23,19 @@ def assert_executor_start_stop(executor: PostgreSQLExecutor) -> None:
     """Check that the executor is working."""
     with executor:
         assert executor.running()
-        psycopg.connect(
-            dbname=executor.user,
-            user=executor.user,
-            password=executor.password,
-            host=executor.host,
-            port=executor.port,
+        # Retry the connection: under parallel xdist runs the TCP port
+        # becomes accessible before PostgreSQL finishes database recovery,
+        # so an immediate connect may raise OperationalError with
+        # "the database system is starting up".
+        retry(
+            lambda: psycopg.connect(
+                dbname=executor.user,
+                user=executor.user,
+                password=executor.password,
+                host=executor.host,
+                port=executor.port,
+            ),
+            possible_exception=psycopg.OperationalError,
         )
         with pytest.raises(psycopg.OperationalError):
             psycopg.connect(

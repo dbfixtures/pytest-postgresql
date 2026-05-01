@@ -253,6 +253,18 @@ class PostgreSQLExecutor(TCPExecutor):
         )
         return result.returncode == 0
 
+    def check_subprocess(self) -> bool:
+        """Check if PostgreSQL server is running via pg_ctl status.
+
+        Overrides mirakuru's default check which requires the launcher
+        subprocess (pg_ctl start -w) to still be alive.  On all platforms
+        pg_ctl start -w exits as soon as the server is ready, so the
+        subprocess is always dead by the time mirakuru polls.  Using
+        pg_ctl status instead makes start() and stopped() reliable on
+        Windows where the subprocess exit races the polling interval.
+        """
+        return self.running()
+
     def _windows_terminate_process(self, _sig: Optional[int] = None) -> None:
         """Terminate process on Windows.
 
