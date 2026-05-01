@@ -73,11 +73,7 @@ class PostgreSQLExecutor(TCPExecutor):
     # not delimiters) and unix_socket_directories is omitted entirely since PostgreSQL
     # ignores it on Windows. The -o payload is produced by _windows_pg_options() so
     # both __init__ and start() always use identical arguments.
-    WINDOWS_PROC_START_COMMAND = (
-        '"{executable}" start -D "{datadir}" '
-        '-o "{pg_options}" '
-        '-l "{logfile}" {startparams}'
-    )
+    WINDOWS_PROC_START_COMMAND = '"{executable}" start -D "{datadir}" -o "{pg_options}" -l "{logfile}" {startparams}'
 
     VERSION_RE = re.compile(r".* (?P<version>\d+(?:\.\d+)?)")
     MIN_SUPPORTED_VERSION = parse("14")
