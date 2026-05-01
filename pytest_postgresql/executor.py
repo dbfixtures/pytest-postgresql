@@ -197,10 +197,12 @@ class PostgreSQLExecutor(TCPExecutor):
                 pg_options,
                 "-l",
                 self.logfile,
-                *shlex.split(self.startparams),
+                *shlex.split(self.startparams, posix=False),
             ]
+            merged_env = os.environ.copy()
+            merged_env.update(self.envvars)
             try:
-                result = subprocess.run(args, check=False, env=self.envvars, timeout=self._timeout)
+                result = subprocess.run(args, check=False, env=merged_env, timeout=self._timeout)
             except subprocess.TimeoutExpired as exc:
                 # subprocess.run already killed the stuck pg_ctl process before
                 # re-raising, so no additional cleanup is required here.
@@ -282,6 +284,7 @@ class PostgreSQLExecutor(TCPExecutor):
         result = subprocess.run(
             [self.executable, "status", "-D", self.datadir],
             check=False,
+            capture_output=True,
         )
         return result.returncode == 0
 
