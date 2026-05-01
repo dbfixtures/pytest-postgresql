@@ -187,16 +187,16 @@ class PostgreSQLExecutor(TCPExecutor):
             # Run pg_ctl synchronously as an argv list (no shell) so quoting
             # is handled safely by subprocess, mirroring the stop() approach.
             postgres_options_str = f" {self.postgres_options}" if self.postgres_options else ""
-            pg_options = (
-                f"-F -p {self.port} -c log_destination=stderr "
-                f"-c logging_collector=off{postgres_options_str}"
-            )
+            pg_options = f"-F -p {self.port} -c log_destination=stderr -c logging_collector=off{postgres_options_str}"
             args = [
                 self.executable,
                 "start",
-                "-D", self.datadir,
-                "-o", pg_options,
-                "-l", self.logfile,
+                "-D",
+                self.datadir,
+                "-o",
+                pg_options,
+                "-l",
+                self.logfile,
                 *shlex.split(self.startparams),
             ]
             result = subprocess.run(args, check=False, env=self.envvars)
