@@ -225,8 +225,8 @@ def test_executor_with_special_chars_in_all_paths(
 
     # Verify the command contains properly quoted paths
     command = executor.command
-    assert str(datadir) in command or f'"{datadir}"' in command
-    assert str(logfile_path) in command or f'"{logfile_path}"' in command
+    assert f'"{datadir}"' in command
+    assert f'"{logfile_path}"' in command
 
     # Verify correct template was selected based on actual platform
     current_platform = platform.system()
