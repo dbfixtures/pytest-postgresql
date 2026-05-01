@@ -67,7 +67,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
+          name: postgresql-windows-${{ matrix.python-version }}-${{ inputs.postgresql }}
           path: ${{ runner.temp }}/pytest-basetemp/**
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6.0.0

@@ -206,7 +206,7 @@ class PostgreSQLExecutor(TCPExecutor):
                 pg_options,
                 "-l",
                 self.logfile,
-                *shlex.split(self.startparams, posix=True),
+                *shlex.split(self.startparams, posix=False),
             ]
             merged_env = os.environ.copy()
             merged_env.update(self.envvars)
