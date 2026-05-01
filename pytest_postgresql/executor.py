@@ -210,7 +210,7 @@ class PostgreSQLExecutor(TCPExecutor):
                 pg_options,
                 "-l",
                 self.logfile,
-                *shlex.split(self.startparams, posix=False),
+                *shlex.split(self.startparams, posix=True),
             ]
             merged_env = os.environ.copy()
             merged_env.update(self.envvars)
@@ -371,6 +371,7 @@ class PostgreSQLExecutor(TCPExecutor):
             # Fallback for edge cases where os.killpg doesn't exist (e.g., Windows)
             if not hasattr(os, "killpg"):
                 self._windows_terminate_process(sig)
+                self._process = None
             else:
                 raise
         return self
