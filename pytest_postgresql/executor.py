@@ -22,6 +22,7 @@ import os
 import os.path
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -183,10 +184,22 @@ class PostgreSQLExecutor(TCPExecutor):
             # while waiting for the launcher subprocess to indicate readiness,
             # but by the time polling begins the launcher has already exited
             # so the loop never sees a live process and times out.
-            # Running the command synchronously via the shell lets cmd.exe
-            # handle quoting and lets pg_ctl itself act as the readiness
-            # barrier, which is more reliable than mirakuru's approach here.
-            result = subprocess.run(self.command, shell=True, check=False)
+            # Run pg_ctl synchronously as an argv list (no shell) so quoting
+            # is handled safely by subprocess, mirroring the stop() approach.
+            postgres_options_str = f" {self.postgres_options}" if self.postgres_options else ""
+            pg_options = (
+                f"-F -p {self.port} -c log_destination=stderr "
+                f"-c logging_collector=off{postgres_options_str}"
+            )
+            args = [
+                self.executable,
+                "start",
+                "-D", self.datadir,
+                "-o", pg_options,
+                "-l", self.logfile,
+                *shlex.split(self.startparams),
+            ]
+            result = subprocess.run(args, check=False, env=self.envvars)
             if result.returncode != 0:
                 raise ProcessFinishedWithError(self, result.returncode)
             return self
@@ -268,16 +281,22 @@ class PostgreSQLExecutor(TCPExecutor):
         return result.returncode == 0
 
     def check_subprocess(self) -> bool:
-        """Check if PostgreSQL server is running via pg_ctl status.
+        """Check whether the PostgreSQL server is ready.
 
-        Overrides mirakuru's default check which requires the launcher
-        subprocess (pg_ctl start -w) to still be alive.  On all platforms
-        pg_ctl start -w exits as soon as the server is ready, so the
-        subprocess is always dead by the time mirakuru polls.  Using
-        pg_ctl status instead makes start() and stopped() reliable on
-        Windows where the subprocess exit races the polling interval.
+        On Windows the launcher (pg_ctl start -w) is invoked synchronously
+        in start(), so mirakuru's polling loop is never reached and this
+        method is called only from running()-style checks.  Returning
+        self.running() (pg_ctl status) is appropriate there.
+
+        On non-Windows, mirakuru's TCPExecutor.check_subprocess() is the
+        correct check: it verifies both that the launcher subprocess is still
+        alive (enabling fast ProcessFinishedWithError on pg_ctl failures) and
+        that the TCP port is accepting connections.  Delegating to super()
+        preserves that failure-detection behaviour.
         """
-        return self.running()
+        if platform.system() == "Windows":
+            return self.running()
+        return super().check_subprocess()
 
     def _windows_terminate_process(self, _sig: Optional[int] = None) -> None:
         """Terminate process on Windows.
