@@ -31,10 +31,16 @@ class TestCommandTemplates:
         """
         template = PostgreSQLExecutor.WINDOWS_PROC_START_COMMAND
 
-        # Windows template should NOT use single quotes
-        assert "log_destination=stderr" in template
-        assert "log_destination='stderr'" not in template
+        # Template itself must contain no single quotes and delegate the -o payload
+        # to the _windows_pg_options helper (tested below).
         assert "'" not in template
+        assert "log_destination='stderr'" not in template
+
+        # The -o payload produced by the helper must use bare stderr (no single quotes)
+        # because cmd.exe treats single quotes as literal characters.
+        pg_options = PostgreSQLExecutor._windows_pg_options(5432, "")
+        assert "log_destination=stderr" in pg_options
+        assert "'" not in pg_options
 
     def test_windows_command_template_omits_unix_socket_directories(self) -> None:
         """Test that Windows template does not include unix_socket_directories.

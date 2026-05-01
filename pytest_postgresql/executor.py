@@ -71,17 +71,26 @@ class PostgreSQLExecutor(TCPExecutor):
 
     # Windows command template - no single quotes (cmd.exe treats them as literals,
     # not delimiters) and unix_socket_directories is omitted entirely since PostgreSQL
-    # ignores it on Windows. On Windows, mirakuru forces shell=True so the command
-    # goes through cmd.exe.
+    # ignores it on Windows. The -o payload is produced by _windows_pg_options() so
+    # both __init__ and start() always use identical arguments.
     WINDOWS_PROC_START_COMMAND = (
         '"{executable}" start -D "{datadir}" '
-        '-o "-F -p {port} -c log_destination=stderr '
-        '-c logging_collector=off{postgres_options}" '
+        '-o "{pg_options}" '
         '-l "{logfile}" {startparams}'
     )
 
     VERSION_RE = re.compile(r".* (?P<version>\d+(?:\.\d+)?)")
     MIN_SUPPORTED_VERSION = parse("14")
+
+    @staticmethod
+    def _windows_pg_options(port: int, postgres_options: str) -> str:
+        """Return the -o argument value for the Windows pg_ctl start invocation.
+
+        Centralises the construction so __init__ (command string) and start()
+        (argv list) always produce identical payloads without risk of drift.
+        """
+        extra = f" {postgres_options}" if postgres_options else ""
+        return f"-F -p {port} -c log_destination=stderr -c logging_collector=off{extra}"
 
     def __init__(
         self,
@@ -133,22 +142,27 @@ class PostgreSQLExecutor(TCPExecutor):
         self.startparams = startparams
         self.postgres_options = postgres_options
         if platform.system() == "Windows":
-            command_template = self.WINDOWS_PROC_START_COMMAND
+            command = self.WINDOWS_PROC_START_COMMAND.format(
+                executable=self.executable,
+                datadir=self.datadir,
+                pg_options=PostgreSQLExecutor._windows_pg_options(port, self.postgres_options),
+                logfile=self.logfile,
+                startparams=self.startparams,
+            )
         else:
-            command_template = self.UNIX_PROC_START_COMMAND
-        # PostgreSQL GUC single-quoted strings double single-quotes to escape them
-        # (e.g. /tmp/o'hare → /tmp/o''hare).  Apply this before interpolation so
-        # the generated unix_socket_directories value is always syntactically valid.
-        escaped_unixsocketdir = self.unixsocketdir.replace("'", "''")
-        command = command_template.format(
-            executable=self.executable,
-            datadir=self.datadir,
-            port=port,
-            unixsocketdir=escaped_unixsocketdir,
-            logfile=self.logfile,
-            startparams=self.startparams,
-            postgres_options=f" {self.postgres_options}" if self.postgres_options else "",
-        )
+            # PostgreSQL GUC single-quoted strings double single-quotes to escape them
+            # (e.g. /tmp/o'hare → /tmp/o''hare).  Apply this before interpolation so
+            # the generated unix_socket_directories value is always syntactically valid.
+            escaped_unixsocketdir = self.unixsocketdir.replace("'", "''")
+            command = self.UNIX_PROC_START_COMMAND.format(
+                executable=self.executable,
+                datadir=self.datadir,
+                port=port,
+                unixsocketdir=escaped_unixsocketdir,
+                logfile=self.logfile,
+                startparams=self.startparams,
+                postgres_options=f" {self.postgres_options}" if self.postgres_options else "",
+            )
         super().__init__(
             command,
             host,
@@ -186,8 +200,7 @@ class PostgreSQLExecutor(TCPExecutor):
             # so the loop never sees a live process and times out.
             # Run pg_ctl synchronously as an argv list (no shell) so quoting
             # is handled safely by subprocess, mirroring the stop() approach.
-            postgres_options_str = f" {self.postgres_options}" if self.postgres_options else ""
-            pg_options = f"-F -p {self.port} -c log_destination=stderr -c logging_collector=off{postgres_options_str}"
+            pg_options = self._windows_pg_options(self.port, self.postgres_options)
             args = [
                 self.executable,
                 "start",
