@@ -2,9 +2,17 @@
 
 import os
 import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from pytest_postgresql.executor import PostgreSQLExecutor
+
+pytestmark = pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="Windows-only tests",
+)
 
 
 class TestCommandTemplates:

@@ -1,22 +1,17 @@
-name: Run pytest tests
+name: Run pytest tests on Windows
 
 on:
   workflow_call:
     inputs:
       python-versions:
         description: 'Supported python versions'
-        default: '["3.10", "3.11", "3.12", "3.13", "3.14", "pypy-3.11"]'
+        default: '["3.10", "3.11", "3.12", "3.13", "3.14"]'
         required: false
         type: string
       postgresql:
         description: 'PostgreSQL version'
         required: true
         type: number
-      os:
-        description: 'Operating system to run tests on'
-        default: 'ubuntu-latest'
-        required: false
-        type: string
     secrets:
       codecov_token:
         description: 'Codecov token'
@@ -24,13 +19,13 @@ on:
 
 jobs:
   postgres:
-    runs-on: ${{ inputs.os }}
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ${{ fromJSON(inputs.python-versions) }}
     env:
-      OS: ${{ inputs.os }}
+      OS: windows-latest
       PYTHON: ${{ matrix.python-version }}
       POSTGRES: ${{ inputs.postgresql }}
     steps:
@@ -43,35 +38,24 @@ jobs:
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
-      - name: Set PostgreSQL path
+      - name: Detect PostgreSQL path on Windows
+        shell: pwsh
         run: |
-          # Try to find pg_ctl dynamically for cross-platform compatibility
-          if command -v pg_ctl >/dev/null 2>&1; then
-            PG_CTL_PATH=$(command -v pg_ctl)
-            echo "POSTGRESQL_EXEC=$PG_CTL_PATH" >> $GITHUB_ENV
-          elif [ -f "/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            # macOS Apple Silicon Homebrew path
-            echo "POSTGRESQL_EXEC=/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
-          elif [ -f "/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            # macOS Intel Homebrew path
-            echo "POSTGRESQL_EXEC=/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
-          elif [ -f "/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            # Debian/Ubuntu path (fallback)
-            echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
-          else
-            echo "Error: pg_ctl not found in expected locations"
+          $pgPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl.exe"
+          if (Test-Path $pgPath) {
+            echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+          } else {
+            $pgPath = (Get-Command pg_ctl -ErrorAction SilentlyContinue).Source
+            if ($pgPath) {
+              echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+            }
+          }
+
+          # Verify that PostgreSQL was found
+          if (-not $pgPath) {
+            Write-Error "Error: pg_ctl not found in expected locations. Checked hardcoded path and system PATH."
             exit 1
-          fi
-      - name: Check installed locales
-        run: |
-          locale -a
-      - name: update locale for tests
-        if: ${{ inputs.os == 'ubuntu-latest' }}
-        run: |
-          sudo locale-gen de_DE.UTF-8
-      - name: install libpq
-        if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
-        run: sudo apt install libpq5
+          }
       - name: Run test
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.4
         with:

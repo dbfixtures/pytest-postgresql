@@ -79,10 +79,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   windows_postgres_17:
     needs: [postgresql_17]
-    uses: ./.github/workflows/single-postgres.yml
+    uses: ./.github/workflows/single-postgres-windows.yml
     with:
       postgresql: 17
-      os: windows-latest
       python-versions: '["3.12", "3.13", "3.14"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
