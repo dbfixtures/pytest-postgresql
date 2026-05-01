@@ -176,6 +176,20 @@ class PostgreSQLExecutor(TCPExecutor):
                 f"The currently installed version of PostgreSQL: {self.version}."
             )
         self.init_directory()
+        if platform.system() == "Windows":
+            # On Windows, pg_ctl start -w exits as soon as the server is
+            # accepting connections.  mirakuru's polling loop calls
+            # check_subprocess() (our pg_ctl-status override) repeatedly
+            # while waiting for the launcher subprocess to indicate readiness,
+            # but by the time polling begins the launcher has already exited
+            # so the loop never sees a live process and times out.
+            # Running the command synchronously via the shell lets cmd.exe
+            # handle quoting and lets pg_ctl itself act as the readiness
+            # barrier, which is more reliable than mirakuru's approach here.
+            result = subprocess.run(self.command, shell=True, check=False)
+            if result.returncode != 0:
+                raise ProcessFinishedWithError(self, result.returncode)
+            return self
         return super().start()
 
     def clean_directory(self) -> None:

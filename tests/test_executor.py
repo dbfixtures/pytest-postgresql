@@ -27,7 +27,7 @@ def assert_executor_start_stop(executor: PostgreSQLExecutor) -> None:
         # becomes accessible before PostgreSQL finishes database recovery,
         # so an immediate connect may raise OperationalError with
         # "the database system is starting up".
-        retry(
+        conn = retry(
             lambda: psycopg.connect(
                 dbname=executor.user,
                 user=executor.user,
@@ -37,6 +37,7 @@ def assert_executor_start_stop(executor: PostgreSQLExecutor) -> None:
             ),
             possible_exception=psycopg.OperationalError,
         )
+        conn.close()
         with pytest.raises(psycopg.OperationalError):
             psycopg.connect(
                 dbname=executor.user,
@@ -233,7 +234,7 @@ def test_executor_with_special_chars_in_all_paths(
     if current_platform == "Windows":
         assert "unix_socket_directories" not in executor.command
     else:
-        assert "unix_socket_directories='" in executor.command
+        assert f"unix_socket_directories='{socket_dir}'" in executor.command
 
     # Start and stop the executor to verify it works
     assert_executor_start_stop(executor)
