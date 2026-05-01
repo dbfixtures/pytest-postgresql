@@ -4,8 +4,6 @@ import os
 import subprocess
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from pytest_postgresql.executor import PostgreSQLExecutor
 
 
