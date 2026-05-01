@@ -30,7 +30,7 @@ import time
 from typing import Any, Optional, TypeVar
 
 from mirakuru import TCPExecutor
-from mirakuru.exceptions import ProcessFinishedWithError
+from mirakuru.exceptions import ProcessFinishedWithError, TimeoutExpired
 from packaging.version import parse
 
 from pytest_postgresql.exceptions import ExecutableMissingException, PostgreSQLUnsupported
@@ -199,7 +199,12 @@ class PostgreSQLExecutor(TCPExecutor):
                 self.logfile,
                 *shlex.split(self.startparams),
             ]
-            result = subprocess.run(args, check=False, env=self.envvars)
+            try:
+                result = subprocess.run(args, check=False, env=self.envvars, timeout=self._timeout)
+            except subprocess.TimeoutExpired as exc:
+                # subprocess.run already killed the stuck pg_ctl process before
+                # re-raising, so no additional cleanup is required here.
+                raise TimeoutExpired(self, self._timeout) from exc
             if result.returncode != 0:
                 raise ProcessFinishedWithError(self, result.returncode)
             return self
