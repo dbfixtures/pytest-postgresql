@@ -108,7 +108,7 @@ def test_executor_init_bad_tmp_path(
     pg_exe = process._pg_exe(None, config)
     port = process._pg_port(-1, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / r"a bad\path/"
-    tmpdir.mkdir(exist_ok=True)
+    tmpdir.mkdir(parents=True, exist_ok=True)
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
     executor = PostgreSQLExecutor(
         executable=pg_exe,

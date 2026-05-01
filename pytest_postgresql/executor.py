@@ -293,6 +293,9 @@ class PostgreSQLExecutor(TCPExecutor):
         try:
             if platform.system() == "Windows":
                 self._windows_terminate_process(sig)
+                # Clean up mirakuru's internal process reference so that
+                # the stopped() context manager can call start() again
+                self._process = None
             else:
                 super().stop(sig, exp_sig)
         except ProcessFinishedWithError:
