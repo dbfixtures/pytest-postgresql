@@ -218,6 +218,10 @@ class PostgreSQLExecutor(TCPExecutor):
                 raise TimeoutExpired(self, self._timeout) from exc
             if result.returncode != 0:
                 raise ProcessFinishedWithError(self, result.returncode)
+            # pg_ctl start without -w returns before the server accepts connections.
+            # wait_for_postgres() polls self.running() when -w is absent; when -w is
+            # present pg_ctl has already waited so it returns immediately.
+            self.wait_for_postgres()
             return self
         return super().start()
 
@@ -349,9 +353,13 @@ class PostgreSQLExecutor(TCPExecutor):
 
     def stop(self: T, sig: Optional[int] = None, exp_sig: Optional[int] = None) -> T:
         """Issue a stop request to executable."""
-        subprocess.check_output(
-            [self.executable, "stop", "-D", self.datadir, "-m", "f"],
-        )
+        try:
+            subprocess.check_output(
+                [self.executable, "stop", "-D", self.datadir, "-m", "f"],
+                timeout=self._timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutExpired(self, self._timeout) from exc
         try:
             if platform.system() == "Windows":
                 self._windows_terminate_process(sig)
