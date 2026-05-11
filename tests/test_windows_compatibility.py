@@ -592,6 +592,7 @@ class TestWindowsCompatibility:
             # Should call pg_ctl stop and Windows terminate
             mock_subprocess.assert_called_once_with(
                 ["/path/to/pg_ctl", "stop", "-D", "/tmp/data", "-m", "f"],
+                timeout=executor._timeout,
             )
             mock_terminate.assert_called_once_with(None)
             assert result is executor
