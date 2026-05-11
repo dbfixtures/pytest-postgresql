@@ -619,8 +619,11 @@ class TestWindowsCompatibility:
             mock_super_stop.return_value = executor
             result = executor.stop()
 
-            # Should call pg_ctl stop and parent class stop
-            mock_subprocess.assert_called_once()
+            # Should call pg_ctl stop with the list-style argv and expected timeout
+            mock_subprocess.assert_called_once_with(
+                ["/path/to/pg_ctl", "stop", "-D", "/tmp/data", "-m", "f"],
+                timeout=executor._timeout,
+            )
             mock_super_stop.assert_called_once_with(None, None)
             assert result is executor
 
