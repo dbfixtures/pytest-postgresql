@@ -17,6 +17,6 @@ psycopg-binary = {version = "==3.3.4", markers="implementation_name == 'cpython'
 pytest-cov = "==7.1.0"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"
-mypy = {version = "==2.0.0", markers="implementation_name == 'cpython'"}
+mypy = {version = "==2.1.0", markers="implementation_name == 'cpython'"}
 types-setuptools = "==82.0.0.20260508"
 tbump = "==6.11.0"
