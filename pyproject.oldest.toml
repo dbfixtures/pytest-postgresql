@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 xfail_strict=true
-addopts = "--showlocals --verbose --cov"
+addopts = "--showlocals --verbose"
 testpaths = "tests"
 pytester_example_dir = "tests/examples"
 norecursedirs = "examples"
