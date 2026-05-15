@@ -1,0 +1,1 @@
+Migrate package publishing step to trusted publishing.
