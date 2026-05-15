@@ -1,1 +1,0 @@
-Make sure diagrams are using unified terminology.
