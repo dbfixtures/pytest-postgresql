@@ -32,6 +32,7 @@ from pytest_postgresql.config import PostgreSQLConfig, get_config
 from pytest_postgresql.exceptions import ExecutableMissingException
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
+from pytest_postgresql.types import FixtureScopeT
 
 PortType = port_for.PortType  # mypy requires explicit export
 
@@ -81,6 +82,7 @@ def postgresql_proc(
     unixsocketdir: str | None = None,
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
+    scope: FixtureScopeT = "session",
 ) -> Callable[[FixtureRequest, TempPathFactory], Iterator[PostgreSQLExecutor]]:
     """Postgresql process factory.
 
@@ -101,10 +103,11 @@ def postgresql_proc(
     :param unixsocketdir: directory to create postgresql's unixsockets
     :param postgres_options: Postgres executable options for use by pg_ctl
     :param load: List of functions used to initialize database's template.
+    :param scope: fixture scope; by default "session" which is recommended.
     :returns: function which makes a postgresql process
     """
 
-    @pytest.fixture(scope="session")
+    @pytest.fixture(scope=scope)
     def postgresql_proc_fixture(
         request: FixtureRequest, tmp_path_factory: TempPathFactory
     ) -> Iterator[PostgreSQLExecutor]:

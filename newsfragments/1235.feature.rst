@@ -1,0 +1,3 @@
+Added async PostgreSQL fixture support via ``postgresql_async`` factory and ``AsyncDatabaseJanitor``.
+Added configurable fixture ``scope`` parameter to ``postgresql``, ``postgresql_async``, ``postgresql_proc``, and ``postgresql_noproc`` factories (defaults preserved: ``"function"`` for client fixtures, ``"session"`` for process fixtures).
+Added optional ``async`` extra (``pip install pytest-postgresql[async]``) providing ``pytest-asyncio`` and ``aiofiles`` dependencies.

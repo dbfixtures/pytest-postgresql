@@ -36,6 +36,12 @@ dependencies = [
 ]
 requires-python = ">= 3.10"
 
+[project.optional-dependencies]
+async = [
+  "pytest-asyncio >= 0.21",
+  "aiofiles >= 23.0"
+]
+
 [project.urls]
 "Source" = "https://github.com/dbfixtures/pytest-postgresql"
 "Bug Tracker" = "https://github.com/dbfixtures/pytest-postgresql/issues"

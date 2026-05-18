@@ -27,6 +27,7 @@ from pytest import FixtureRequest
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor_noop import NoopExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
+from pytest_postgresql.types import FixtureScopeT
 
 
 def xdistify_dbname(dbname: str) -> str:
@@ -46,6 +47,7 @@ def postgresql_noproc(
     options: str = "",
     load: list[Callable | str | Path] | None = None,
     depends_on: str | None = None,
+    scope: FixtureScopeT = "session",
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 
@@ -57,10 +59,11 @@ def postgresql_noproc(
     :param options: Postgresql connection options
     :param load: List of functions used to initialize database's template.
     :param depends_on: Optional name of the fixture to depend on.
+    :param scope: fixture scope; by default "session" which is recommended.
     :returns: function which makes a postgresql process
     """
 
-    @pytest.fixture(scope="session")
+    @pytest.fixture(scope=scope)
     def postgresql_noproc_fixture(request: FixtureRequest) -> Iterator[NoopExecutor]:
         """Noop Process fixture for PostgreSQL.
 
