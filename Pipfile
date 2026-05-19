@@ -18,5 +18,5 @@ coverage = ">=7.14.0"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"
 mypy = {version = "==2.1.0", markers="implementation_name == 'cpython'"}
-types-setuptools = "==82.0.0.20260508"
+types-setuptools = "==82.0.0.20260518"
 tbump = "==6.11.0"
