@@ -68,7 +68,7 @@ jobs:
           output-file: coverage-docker.xml
       - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@v6.0.0
+        uses: codecov/codecov-action@v6.0.1
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
