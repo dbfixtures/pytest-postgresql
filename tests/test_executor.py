@@ -302,6 +302,8 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
     raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
 
     port_path = tmp_path_factory.getbasetemp()
+    if hasattr(request.config, "workerinput"):
+        port_path = tmp_path_factory.getbasetemp().parent
     pg_port = 54321
 
     executor_mock = MagicMock()
@@ -340,6 +342,40 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
         with pytest.raises(StopIteration):
             next(gen)
 
+    assert not port_file.exists()
+
+
+def test_postgresql_proc_removes_port_lock_on_setup_failure(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Port sentinel file is removed when fixture setup fails after claiming a port."""
+    fixture_func = postgresql_proc(port=None, scope="function")
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    port_path = tmp_path_factory.getbasetemp()
+    if hasattr(request.config, "workerinput"):
+        port_path = tmp_path_factory.getbasetemp().parent
+    pg_port = 54322
+
+    with (
+        patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
+        patch("pytest_postgresql.factories.process._pg_port", return_value=pg_port),
+        patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+        patch.object(tmp_path_factory, "mktemp", side_effect=OSError("setup failed")),
+    ):
+        config_mock = MagicMock()
+        config_mock.dbname = "tests"
+        config_mock.load = []
+        config_mock.drop_test_database = False
+        config_mock.port_search_count = 5
+        get_config_mock.return_value = config_mock
+
+        gen = raw_func(request, tmp_path_factory)
+        with pytest.raises(OSError, match="setup failed"):
+            next(gen)
+
+    port_file = port_path / f"postgresql-{pg_port}.port"
     assert not port_file.exists()
 
 

@@ -1,7 +1,7 @@
 """Tests for the `build_loader` function."""
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -61,3 +61,40 @@ async def test_sql_async_raises_without_aiofiles() -> None:
     with patch("pytest_postgresql.loader.aiofiles", None):
         with pytest.raises(ImportError, match="aiofiles"):
             await sql_async(Path("dummy.sql"), host="h", port=5432, user="u", dbname="d")
+
+
+@pytest.mark.asyncio
+async def test_sql_async_executes_sql_file() -> None:
+    """sql_async reads the file and executes SQL on an async connection."""
+    sql_path = Path("dummy.sql")
+    fd_mock = AsyncMock()
+    fd_mock.read = AsyncMock(return_value="SELECT 1")
+    fd_cm = AsyncMock()
+    fd_cm.__aenter__ = AsyncMock(return_value=fd_mock)
+    fd_cm.__aexit__ = AsyncMock(return_value=False)
+
+    cur_mock = AsyncMock()
+    cur_cm = MagicMock()
+    cur_cm.__aenter__ = AsyncMock(return_value=cur_mock)
+    cur_cm.__aexit__ = AsyncMock(return_value=False)
+
+    conn_mock = AsyncMock()
+    conn_mock.cursor = MagicMock(return_value=cur_cm)
+    conn_mock.commit = AsyncMock()
+    conn_cm = AsyncMock()
+    conn_cm.__aenter__ = AsyncMock(return_value=conn_mock)
+    conn_cm.__aexit__ = AsyncMock(return_value=False)
+
+    connect_mock = AsyncMock(return_value=conn_cm)
+    open_mock = MagicMock(return_value=fd_cm)
+    aiofiles_mock = MagicMock()
+    aiofiles_mock.open = open_mock
+
+    with (
+        patch("pytest_postgresql.loader.aiofiles", aiofiles_mock),
+        patch("pytest_postgresql.loader.psycopg.AsyncConnection.connect", connect_mock),
+    ):
+        await sql_async(sql_path, host="h", port=5432, user="u", dbname="d")
+
+    cur_mock.execute.assert_awaited_once_with("SELECT 1")
+    conn_mock.commit.assert_awaited_once()

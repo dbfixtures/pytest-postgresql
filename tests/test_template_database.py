@@ -37,7 +37,7 @@ def test_template_database(postgresql_template: Connection, _: int) -> None:
         assert len(res) == 0
 
 
-@pytest.mark.xdist_group(name="template_database_async")
+@pytest.mark.xdist_group(name="template_database")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("_", range(5))
 async def test_template_database_async(async_postgresql_template: AsyncConnection, _: int) -> None:
