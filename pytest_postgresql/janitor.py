@@ -247,11 +247,11 @@ class AsyncDatabaseJanitor:
             await cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(self.dbname)))
 
     @staticmethod
-    async def _dont_datallowconn(cur: AsyncCursor, dbname: str) -> None:  # type: ignore[type-arg]
+    async def _dont_datallowconn(cur: AsyncCursor, dbname: str) -> None:
         await cur.execute(sql.SQL("ALTER DATABASE {} WITH allow_connections false").format(sql.Identifier(dbname)))
 
     @staticmethod
-    async def _terminate_connection(cur: AsyncCursor, dbname: str) -> None:  # type: ignore[type-arg]
+    async def _terminate_connection(cur: AsyncCursor, dbname: str) -> None:
         await cur.execute(
             "SELECT pg_terminate_backend(pg_stat_activity.pid) "
             "FROM pg_stat_activity "
@@ -281,7 +281,7 @@ class AsyncDatabaseJanitor:
             await result
 
     @asynccontextmanager
-    async def cursor(self, dbname: str = "postgres") -> AsyncIterator[AsyncCursor]:  # type: ignore[type-arg]
+    async def cursor(self, dbname: str = "postgres") -> AsyncIterator[AsyncCursor]:
         """Return postgresql async cursor."""
 
         async def connect() -> psycopg.AsyncConnection:

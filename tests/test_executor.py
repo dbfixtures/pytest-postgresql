@@ -1,6 +1,7 @@
 """Test various executor behaviours."""
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import psycopg
 import pytest
@@ -173,3 +174,53 @@ def test_custom_isolation_level(postgres_isolation_level: Connection) -> None:
     cur = postgres_isolation_level.cursor()
     cur.execute("SELECT 1")
     assert cur.fetchone() == (1,)
+
+
+def test_postgresql_proc_removes_port_lock_on_teardown(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Port sentinel file is removed when the process fixture tears down."""
+    fixture_func = postgresql_proc(port=None, scope="function")
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    port_path = tmp_path_factory.getbasetemp()
+    pg_port = 54321
+
+    executor_mock = MagicMock()
+    executor_mock.__enter__ = MagicMock(return_value=executor_mock)
+    executor_mock.__exit__ = MagicMock(return_value=False)
+    executor_mock.user = "postgres"
+    executor_mock.host = "127.0.0.1"
+    executor_mock.port = pg_port
+    executor_mock.template_dbname = "template_tests"
+    executor_mock.version = 14
+    executor_mock.password = None
+    executor_mock.wait_for_postgres = MagicMock()
+
+    janitor_mock = MagicMock()
+    janitor_mock.__enter__ = MagicMock(return_value=janitor_mock)
+    janitor_mock.__exit__ = MagicMock(return_value=False)
+
+    with (
+        patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
+        patch("pytest_postgresql.factories.process._pg_port", return_value=pg_port),
+        patch("pytest_postgresql.factories.process.PostgreSQLExecutor", return_value=executor_mock),
+        patch("pytest_postgresql.factories.process.DatabaseJanitor", return_value=janitor_mock),
+        patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+    ):
+        config_mock = MagicMock()
+        config_mock.dbname = "tests"
+        config_mock.load = []
+        config_mock.drop_test_database = False
+        config_mock.port_search_count = 5
+        get_config_mock.return_value = config_mock
+
+        gen = raw_func(request, tmp_path_factory)
+        next(gen)
+        port_file = port_path / f"postgresql-{pg_port}.port"
+        assert port_file.exists()
+        with pytest.raises(StopIteration):
+            next(gen)
+
+    assert not port_file.exists()

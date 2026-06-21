@@ -46,6 +46,7 @@ async def test_retry_async_timeout() -> None:
     async def always_fail() -> None:
         raise ValueError("boom")
 
+    always_fail_mock = AsyncMock(side_effect=ValueError("boom"))
     sleep_mock = AsyncMock()
     base = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
     call_count = 0
@@ -61,7 +62,11 @@ async def test_retry_async_timeout() -> None:
         patch("pytest_postgresql.retry.get_current_datetime", advancing_clock),
     ):
         with pytest.raises(TimeoutError, match="Failed after"):
-            await retry_async(always_fail, timeout=1, possible_exception=ValueError)
+            await retry_async(always_fail_mock, timeout=1, possible_exception=ValueError)
+
+    sleep_mock.assert_not_awaited()
+    assert always_fail_mock.await_count == 1
+    assert call_count == 2
 
 
 @pytest.mark.asyncio

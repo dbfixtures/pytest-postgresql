@@ -13,6 +13,9 @@ psycopg = "==3.3.3"
 [dev-packages]
 towncrier = "==25.8.0"
 psycopg-binary = {version = "==3.3.3", markers="implementation_name == 'cpython'"}
+pytest-asyncio = ">=0.21"
+aiofiles = ">=23.0"
+types-aiofiles = ">=23.0"
 pytest-cov = "==7.0.0"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"

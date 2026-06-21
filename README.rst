@@ -38,6 +38,14 @@ Quick Start
 
    You will also need to install ``psycopg`` (version 3). See `its installation instructions <https://www.psycopg.org/psycopg3/docs/basic/install.html>`_.
 
+   For async tests with ``psycopg.AsyncConnection``, install the optional async extra:
+
+   .. code-block:: sh
+
+       pip install pytest-postgresql[async]
+
+   This pulls in ``pytest-asyncio`` and ``aiofiles``.
+
    .. note::
 
        While this plugin requires ``psycopg`` 3 to manage the database, your application code can still use ``psycopg`` 2.
@@ -53,6 +61,21 @@ Quick Start
            with postgresql.cursor() as cur:
                cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
                postgresql.commit()
+
+   For async code, use ``postgresql_async`` with ``pytest.mark.asyncio``:
+
+   .. code-block:: python
+
+       import pytest
+
+       @pytest.mark.asyncio
+       async def test_example_async(postgresql_async):
+           """Check main async postgresql fixture."""
+           async with postgresql_async.cursor() as cur:
+               await cur.execute(
+                   "CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);"
+               )
+               await postgresql_async.commit()
 
 How to use
 ==========
@@ -73,13 +96,15 @@ The plugin provides two main types of fixtures:
 **1. Client Fixtures**
     These provide a connection to a database for your tests.
 
-    * **postgresql** - A function-scoped fixture. It returns a connected ``psycopg.Connection``.
+    * **postgresql** - A function-scoped fixture (by default). It returns a connected ``psycopg.Connection``.
       After each test, it terminates leftover connections and drops the test database to ensure isolation.
+    * **postgresql_async** - The async counterpart. It returns a connected ``psycopg.AsyncConnection``.
+      Requires ``pytest-postgresql[async]`` and ``@pytest.mark.asyncio`` on your tests.
 
 **2. Process Fixtures**
     These manage the PostgreSQL server lifecycle.
 
-    * **postgresql_proc** - A session-scoped fixture that starts a PostgreSQL instance on its first use and stops it when all tests are finished.
+    * **postgresql_proc** - A session-scoped fixture (by default) that starts a PostgreSQL instance on its first use and stops it when all tests are finished.
     * **postgresql_noproc** - A fixture for connecting to an already running PostgreSQL instance (e.g., in Docker or CI).
 
 Customizing Fixtures
@@ -97,6 +122,12 @@ You can create additional fixtures using factories:
 
     # Create a client fixture that uses the custom process
     postgresql_my = factories.postgresql('postgresql_my_proc')
+
+    # Async client fixture (requires pytest-postgresql[async])
+    postgresql_my_async = factories.postgresql_async('postgresql_my_proc')
+
+All factories accept an optional ``scope`` parameter (``"session"``, ``"package"``, ``"module"``, ``"class"``, or ``"function"``).
+Defaults are unchanged: ``"function"`` for client fixtures and ``"session"`` for process fixtures.
 
 .. note::
 

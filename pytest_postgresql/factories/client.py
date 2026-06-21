@@ -17,23 +17,26 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql client."""
 
-from typing import AsyncIterator, Callable, Iterator
+from typing import Any, AsyncIterator, Callable, Iterator, cast
 
 import psycopg
 import pytest
 from psycopg import AsyncConnection, Connection
 from pytest import FixtureRequest
 
-try:
-    import pytest_asyncio
-except ImportError:
-    pytest_asyncio = None  # type: ignore[assignment]
-
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 from pytest_postgresql.types import FixtureScopeT
+
+pytest_asyncio: Any = None
+try:
+    import pytest_asyncio as _pytest_asyncio_module
+
+    pytest_asyncio = _pytest_asyncio_module
+except ImportError:
+    pass
 
 
 def postgresql(
@@ -113,15 +116,20 @@ def postgresql_async(
     if pytest_asyncio is None:
 
         @pytest.fixture(scope=scope)
-        def postgresql_async_factory(request: FixtureRequest) -> None:
+        def postgresql_async_stub(request: FixtureRequest) -> None:
             """Sync stub that raises ImportError when pytest-asyncio is absent."""
             raise ImportError(
                 "pytest-asyncio is required for async fixtures. Install it with: pip install pytest-postgresql[async]"
             )
 
-        return postgresql_async_factory  # type: ignore[return-value]
+        return cast(
+            Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
+            postgresql_async_stub,
+        )
 
-    @pytest_asyncio.fixture(scope=scope, loop_scope=scope)
+    assert pytest_asyncio is not None
+
+    @pytest_asyncio.fixture(scope=scope, loop_scope=scope)  # type: ignore[untyped-decorator]
     async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
         """Async connection fixture factory for PostgreSQL.
 
@@ -161,4 +169,7 @@ def postgresql_async(
             yield db_connection
             await db_connection.close()
 
-    return postgresql_async_factory
+    return cast(
+        Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
+        postgresql_async_factory,
+    )

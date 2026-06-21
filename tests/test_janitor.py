@@ -144,6 +144,26 @@ async def test_janitor_populate_async(connect_mock: MagicMock, load_database: st
     assert connect_mock.call_args.kwargs == call_kwargs
 
 
+@pytest.mark.asyncio
+async def test_janitor_populate_async_awaitable_loader() -> None:
+    """AsyncDatabaseJanitor.load awaits async loader callables."""
+    call_kwargs = {
+        "host": "host",
+        "port": "1234",
+        "user": "user",
+        "dbname": "database_name",
+        "password": "some_password",  # noqa: S106
+    }
+    loader_mock = AsyncMock()
+
+    async def async_loader(**kwargs: object) -> None:
+        await loader_mock(**kwargs)
+
+    janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
+    await janitor.load(async_loader)
+    loader_mock.assert_awaited_once_with(**call_kwargs)
+
+
 # ---------------------------------------------------------------------------
 # AsyncDatabaseJanitor -- init() / drop() / helper method tests
 # ---------------------------------------------------------------------------
@@ -154,9 +174,9 @@ def _render_sql(obj: object) -> str:
     if isinstance(obj, pgsql.Composed):
         return "".join(_render_sql(part) for part in obj)
     if isinstance(obj, pgsql.SQL):
-        return obj._obj  # type: ignore[attr-defined]
+        return obj._obj
     if isinstance(obj, pgsql.Identifier):
-        parts: tuple[str, ...] = obj._obj  # type: ignore[attr-defined]
+        parts = tuple(obj._obj)
         return ".".join('"' + s.replace('"', '""') + '"' for s in parts)
     return str(obj)
 
@@ -171,7 +191,7 @@ def _make_cursor_context(cur: AsyncMock) -> Any:
     """Return an async context manager that yields the given cursor mock."""
 
     @asynccontextmanager
-    async def _ctx(dbname: str = "postgres") -> AsyncIterator[AsyncMock]:
+    async def _ctx(self: AsyncDatabaseJanitor, dbname: str = "postgres") -> AsyncIterator[AsyncMock]:
         yield cur
 
     return _ctx
