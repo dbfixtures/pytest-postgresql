@@ -42,7 +42,6 @@ async def test_retry_async_succeeds_after_failures() -> None:
 @pytest.mark.asyncio
 async def test_retry_async_timeout() -> None:
     """Test that retry_async raises TimeoutError after the timeout elapses."""
-
     always_fail_mock = AsyncMock(side_effect=ValueError("boom"))
     sleep_mock = AsyncMock()
     base = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
