@@ -293,7 +293,9 @@ async def test_async_janitor_creates_database_from_template(postgresql_proc: Pos
         await base_janitor.init()
         await base_janitor.load(TEST_SQL_FILE)
         await clone_janitor.init()
-        async with await psycopg.AsyncConnection.connect(**_proc_connection_kwargs(postgresql_proc, dbname=clone_dbname)) as conn:
+        async with await psycopg.AsyncConnection.connect(
+            **_proc_connection_kwargs(postgresql_proc, dbname=clone_dbname)
+        ) as conn:
             async with conn.cursor() as cur:
                 await cur.execute("SELECT * FROM test_load")
                 rows = await cur.fetchall()
