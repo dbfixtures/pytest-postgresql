@@ -203,10 +203,25 @@ async def test_janitor_populate_async_sql_path(postgresql_proc: PostgreSQLExecut
 # ---------------------------------------------------------------------------
 
 
+def _render_composable_fallback(obj: pgsql.Composable) -> str:
+    """Render SQL composables without a connection (psycopg 3.0 Identifier compat)."""
+    if isinstance(obj, pgsql.Composed):
+        return "".join(_render_composable_fallback(part) for part in obj._obj)
+    if isinstance(obj, pgsql.SQL):
+        return obj._obj
+    if isinstance(obj, pgsql.Identifier):
+        parts = obj._obj if isinstance(obj._obj, tuple) else (obj._obj,)
+        return ".".join(f'"{part}"' for part in parts)
+    return str(obj)
+
+
 def _render_sql(obj: object) -> str:
     """Render a psycopg.sql Composable to its SQL text form for test assertions."""
     if isinstance(obj, pgsql.Composable):
-        return obj.as_string(None)
+        try:
+            return obj.as_string(None)
+        except (TypeError, ValueError):
+            return _render_composable_fallback(obj)
     return str(obj)
 
 

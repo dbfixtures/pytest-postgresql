@@ -17,8 +17,11 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Plugin module of pytest-postgresql."""
 
+import asyncio
+import sys
 from tempfile import gettempdir
 
+import pytest
 from _pytest.config.argparsing import Parser
 
 from pytest_postgresql import factories
@@ -40,6 +43,12 @@ _help_drop_test_database = (
     "when database was not cleared due to errors in previous test runs. "
     "Use cautiously and not on CI."
 )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Configure pytest-postgresql plugin."""
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 def pytest_addoption(parser: Parser) -> None:
