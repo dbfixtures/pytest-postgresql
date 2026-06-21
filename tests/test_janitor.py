@@ -2,15 +2,21 @@
 
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any, AsyncIterator
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import psycopg
 import psycopg.sql as pgsql
 import pytest
 from packaging.version import parse
 from psycopg import AsyncCursor
 
+from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.factories.noprocess import xdistify_dbname
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
+
+TEST_SQL_FILE = Path(__file__).resolve().parent / "test_sql" / "test.sql"
 
 VERSION = parse("10")
 
@@ -162,6 +168,34 @@ async def test_janitor_populate_async_awaitable_loader() -> None:
     janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
     await janitor.load(async_loader)
     loader_mock.assert_awaited_once_with(**call_kwargs)
+
+
+@pytest.mark.asyncio
+async def test_janitor_populate_async_sql_path(postgresql_proc: PostgreSQLExecutor) -> None:
+    """AsyncDatabaseJanitor.load executes SQL from a Path via sql_async against live PostgreSQL."""
+    dbname = xdistify_dbname("sql_async_load")
+    janitor = AsyncDatabaseJanitor(
+        user=postgresql_proc.user,
+        host=postgresql_proc.host,
+        port=postgresql_proc.port,
+        dbname=dbname,
+        version=postgresql_proc.version,
+        password=postgresql_proc.password,
+        connection_timeout=5,
+    )
+    async with janitor:
+        await janitor.load(TEST_SQL_FILE)
+        async with await psycopg.AsyncConnection.connect(
+            dbname=dbname,
+            user=postgresql_proc.user,
+            password=postgresql_proc.password,
+            host=postgresql_proc.host,
+            port=postgresql_proc.port,
+        ) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM test_load")
+                rows = await cur.fetchall()
+                assert len(rows) == 1
 
 
 # ---------------------------------------------------------------------------
