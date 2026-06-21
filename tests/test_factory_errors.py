@@ -29,5 +29,5 @@ def test_postgresql_async_raises_on_use_without_pytest_asyncio() -> None:
         # pytest 8+ wraps fixtures to prevent direct calls; unwrap first.
         raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
         assert not hasattr(raw_func, "__await__"), "stub must be a sync function, not a coroutine"
-        with pytest.raises(ImportError, match="pytest-asyncio >= 0.24"):
+        with pytest.raises(ImportError, match=r"pytest-asyncio >= 0\.24"):
             raw_func(None)  # type: ignore[arg-type]
