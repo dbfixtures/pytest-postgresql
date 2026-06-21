@@ -17,7 +17,7 @@ from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 TEST_SQL_FILE = Path(__file__).resolve().parent / "test_sql" / "test.sql"
 
 VERSION = parse("10")
-TEST_PASSWORD = "some_password"  # noqa: S106
+TEST_PASSWORD = "some_password"  # noqa: S105
 
 
 @pytest.mark.parametrize("version", (VERSION, 10, "10"))
