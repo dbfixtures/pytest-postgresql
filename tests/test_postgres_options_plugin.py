@@ -19,7 +19,6 @@ def pointed_pytester(pytester: Pytester) -> Pytester:
     pytest_postgresql_path = Path(pytest_postgresql.__file__)
     root_path = pytest_postgresql_path.parent.parent
     pytester.syspathinsert(root_path)
-    pytester.makeconftest("from pytest_postgresql.plugin import *\n")
     return pytester
 
 
@@ -50,7 +49,10 @@ def test_postgres_loader_in_ini(pointed_pytester: Pytester) -> None:
     """Check that pytest.ini arguments are honored for load."""
     pointed_pytester.copy_example("test_load.py")
     test_sql_path = pointed_pytester.copy_example("test.sql")
-    pointed_pytester.makefile(".ini", pytest=f"[pytest]\npostgresql_load = {test_sql_path}\n")
+    # Use forward slashes so configparser doesn't interpret Windows
+    # backslashes as escape sequences when reading the ini value back
+    sql_path_ini = str(test_sql_path).replace("\\", "/")
+    pointed_pytester.makefile(".ini", pytest=f"[pytest]\npostgresql_load = {sql_path_ini}\n")
     ret = pointed_pytester.runpytest("test_load.py")
     ret.assert_outcomes(passed=1)
 

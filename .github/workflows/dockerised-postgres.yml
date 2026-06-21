@@ -49,16 +49,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - name: Run test noproc fixture on docker
-        uses: fizyk/actions-reuse/.github/actions/pipenv@v4.2.1
+      - name: Set up Pipenv on python ${{ matrix.python-version }}
+        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.4.7
         with:
           python-version: ${{ matrix.python-version }}
-          command: pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --cov-report=xml:coverage-docker.xml
           allow-prereleases: true
+      - name: Run test noproc fixture on docker
+        id: run_docker_tests
+        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.7
+        with:
+          command: python -m coverage run --data-file=.coverage.docker -m pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres
+          env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.docker"}'
+      - name: Combine and export docker coverage
+        if: ${{ always() && (steps.run_docker_tests.conclusion == 'success' || steps.run_docker_tests.conclusion == 'failure') }}
+        uses: fizyk/actions-reuse/.github/actions/coverage-combine-export@v4.4.7
+        with:
+          data-file: .coverage.docker
+          output-file: coverage-docker.xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5.5.2
+        if: always()
+        uses: codecov/codecov-action@v6.0.1
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
           env_vars: OS,PYTHON
           fail_ci_if_error: false
+          files: coverage-docker.xml

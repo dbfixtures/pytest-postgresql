@@ -1,4 +1,6 @@
 [run]
+concurrency = multiprocessing
+parallel = true
 include =
     */pytest_postgresql/*
     */tests/*

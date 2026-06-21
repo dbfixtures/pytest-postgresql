@@ -4,21 +4,22 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pytest = "==9.0.2"
+pytest = "==9.0.3"
 port-for = "==1.0.0"
 mirakuru = "==3.0.2"
-packaging = "==26.0"
-psycopg = "==3.3.3"
+packaging = "==26.2"
+psycopg = "==3.3.4"
+pytest-postgresql = {path = ".", editable = true}
 
 [dev-packages]
 towncrier = "==25.8.0"
-psycopg-binary = {version = "==3.3.3", markers="implementation_name == 'cpython'"}
+psycopg-binary = {version = "==3.3.4", markers="implementation_name == 'cpython'"}
 pytest-asyncio = ">=0.21"
 aiofiles = ">=23.0"
 types-aiofiles = ">=23.0"
-pytest-cov = "==7.0.0"
+coverage = ">=7.14.1"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"
-mypy = {version = "==1.19.1", markers="implementation_name == 'cpython'"}
-types-setuptools = "==82.0.0.20260210"
+mypy = {version = "==2.1.0", markers="implementation_name == 'cpython'"}
+types-setuptools = "==82.0.0.20260518"
 tbump = "==6.11.0"

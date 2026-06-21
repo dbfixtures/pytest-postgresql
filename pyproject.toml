@@ -1,6 +1,6 @@
 [project]
 name = "pytest-postgresql"
-version = "8.0.0"
+version = "8.1.0"
 description = "Postgresql fixtures and fixture factories for Pytest."
 readme = "README.rst"
 keywords = ["tests", "pytest", "fixture", "postgresql"]
@@ -45,7 +45,7 @@ async = [
 [project.urls]
 "Source" = "https://github.com/dbfixtures/pytest-postgresql"
 "Bug Tracker" = "https://github.com/dbfixtures/pytest-postgresql/issues"
-"Changelog" = "https://github.com/dbfixtures/pytest-postgresql/blob/v8.0.0/CHANGES.rst"
+"Changelog" = "https://github.com/dbfixtures/pytest-postgresql/blob/v8.1.0/CHANGES.rst"
 
 [project.entry-points."pytest11"]
 pytest_postgresql = "pytest_postgresql.plugin"
@@ -64,7 +64,7 @@ namespaces = false
 
 [tool.pytest]
 strict_xfail=true
-addopts = ["--showlocals", "--verbose", "--cov"]
+addopts = ["--showlocals", "--verbose"]
 testpaths = ["tests"]
 pytester_example_dir = "tests/examples"
 norecursedirs = ["examples"]
@@ -142,7 +142,7 @@ name = "Miscellaneus"
 showcontent = true
 
 [tool.tbump.version]
-current = "8.0.0"
+current = "8.1.0"
 
 # Example of a semver regexp.
 # Make sure this matches current_version before

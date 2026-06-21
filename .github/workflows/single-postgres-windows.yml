@@ -1,22 +1,17 @@
-name: Run pytest tests
+name: Run pytest tests on Windows
 
 on:
   workflow_call:
     inputs:
       python-versions:
         description: 'Supported python versions'
-        default: '["3.10", "3.11", "3.12", "3.13", "3.14", "pypy-3.11"]'
+        default: '["3.10", "3.11", "3.12", "3.13", "3.14"]'
         required: false
         type: string
       postgresql:
         description: 'PostgreSQL version'
-        default: 14
+        required: true
         type: number
-      os:
-        description: 'Operating system to run tests on'
-        default: 'ubuntu-latest'
-        required: false
-        type: string
     secrets:
       codecov_token:
         description: 'Codecov token'
@@ -24,13 +19,13 @@ on:
 
 jobs:
   postgres:
-    runs-on: ${{ inputs.os }}
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ${{ fromJSON(inputs.python-versions) }}
     env:
-      OS: ${{ inputs.os }}
+      OS: windows-latest
       PYTHON: ${{ matrix.python-version }}
       POSTGRES: ${{ inputs.postgresql }}
     steps:
@@ -39,30 +34,33 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.4.7
         with:
           python-version: ${{ matrix.python-version }}
-          cache: false
           allow-prereleases: true
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
-      - name: Check installed locales
+      - name: Detect PostgreSQL path on Windows
+        shell: pwsh
         run: |
-          locale -a
-      - name: update locale for tests
-        if: ${{ inputs.os == 'ubuntu-latest' }}
-        run: |
-          sudo locale-gen de_DE.UTF-8
-      - name: install libpq
-        if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
-        run: sudo apt install libpq5
-      - name: Install oldest supported versions
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.7
-        with:
-          command: pip install -r oldest/requirements.txt
-      - name: Run tests without xdist
+          $pgPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl.exe"
+          if (Test-Path $pgPath) {
+            echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+          } else {
+            $pgPath = (Get-Command pg_ctl -ErrorAction SilentlyContinue).Source
+            if ($pgPath) {
+              echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+            }
+          }
+
+          # Verify that PostgreSQL was found
+          if (-not $pgPath) {
+            Write-Error "Error: pg_ctl not found in expected locations. Checked hardcoded path and system PATH."
+            exit 1
+          }
+      - name: Run test
         id: run_serial_tests
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.7
         with:
-          command: python -m coverage run --data-file=.coverage.serial -m pytest -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker"
+          command: python -m coverage run --data-file=.coverage.serial -m pytest -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.serial"}'
       - name: Combine and export serial coverage
         if: ${{ always() && (steps.run_serial_tests.conclusion == 'success' || steps.run_serial_tests.conclusion == 'failure') }}
@@ -74,7 +72,7 @@ jobs:
         id: run_xdist_tests
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.7
         with:
-          command: python -m coverage run --data-file=.coverage.xdist -m pytest -n auto -c pyproject.oldest.toml --dist loadgroup --max-worker-restart 0 --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker"
+          command: python -m coverage run --data-file=.coverage.xdist -m pytest -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.xdist"}'
       - name: Combine and export xdist coverage
         if: ${{ always() && (steps.run_xdist_tests.conclusion == 'success' || steps.run_xdist_tests.conclusion == 'failure') }}
@@ -85,8 +83,8 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
-          path: /tmp/pytest-of-runner/**
+          name: postgresql-windows-${{ matrix.python-version }}-${{ inputs.postgresql }}
+          path: ${{ runner.temp }}/pytest-basetemp/**
       - name: Upload coverage to Codecov
         if: always()
         uses: codecov/codecov-action@v6.0.1

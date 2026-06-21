@@ -3,6 +3,37 @@ CHANGELOG
 
 .. towncrier release notes start
 
+pytest-postgresql 8.1.0 (2026-05-15)
+====================================
+
+Features
+--------
+
+- Add Windows support for ``PostgreSQLExecutor``, including platform-specific start/stop handling. (`#1182 <https://github.com/dbfixtures/pytest-postgresql/issues/1182>`__)
+
+
+Documentation
+-------------
+
+- Make sure diagrams are using unified terminology.
+
+
+Miscellaneus
+------------
+
+- Fix typos (`#1267 <https://github.com/dbfixtures/pytest-postgresql/issues/1267>`__)
+- Add ``pytest-postgresql`` as an editable self-install in the Pipfile; remove the manual ``from pytest_postgresql.plugin import *`` import from ``tests/conftest.py`` and the ``makeconftest`` call in ``tests/test_postgres_options_plugin.py`` that re-registered the plugin and caused duplicate-plugin errors under editable install.
+- Add coderabbitai configuration with instructions to keep an eye for newsfragments.
+- Attempt to overcome random failure on CI on MacOS on xdist workers where test_executor_init_with_password is receiving
+  `FATAL: the database system is starting up` error message from psycopg.
+
+  That's the only test that doesn't have guards against attempting to start on the same port as other xdist worker.
+- Fix codecov pipeline configuration.
+- Fixes for diagram workflow.
+- Improve reliability of Coverage reporting on CI
+- Migrate package publishing step to trusted publishing.
+
+
 pytest-postgresql 8.0.0 (2026-01-23)
 ====================================
 

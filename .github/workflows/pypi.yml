@@ -4,9 +4,25 @@ on:
     tags:
       - v*
 jobs:
-  build-n-publish:
-    uses: fizyk/actions-reuse/.github/workflows/shared-pypi.yml@v4.4.0
+  build:
+    uses: fizyk/actions-reuse/.github/workflows/shared-pypi.yml@v4.4.7
     with:
-      publish: true
-    secrets:
-      pypi_token: ${{ secrets.pypi_password }}
+      publish: false
+
+  publish:
+    name: Publish Python 🐍 distributions 📦 to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distributions 📦
+        uses: actions/download-artifact@v8
+        with:
+          name: package
+          path: dist/
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.14.0
+        with:
+          verbose: true
