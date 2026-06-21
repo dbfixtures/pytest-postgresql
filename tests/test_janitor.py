@@ -1,13 +1,11 @@
 """Database Janitor tests."""
 
 import sys
-from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import psycopg
-import psycopg.sql as pgsql
 import pytest
 from packaging.version import parse
 from psycopg import AsyncCursor
@@ -199,113 +197,118 @@ async def test_janitor_populate_async_sql_path(postgresql_proc: PostgreSQLExecut
 
 
 # ---------------------------------------------------------------------------
-# AsyncDatabaseJanitor -- init() / drop() / helper method tests
+# AsyncDatabaseJanitor -- init() / drop() integration tests
 # ---------------------------------------------------------------------------
 
 
-def _render_composable_fallback(obj: pgsql.Composable) -> str:
-    """Render SQL composables without a connection (psycopg 3.0 Identifier compat)."""
-    if isinstance(obj, pgsql.Composed):
-        return "".join(_render_composable_fallback(part) for part in obj._obj)
-    if isinstance(obj, pgsql.SQL):
-        return obj._obj
-    if isinstance(obj, pgsql.Identifier):
-        parts = obj._obj if isinstance(obj._obj, tuple) else (obj._obj,)
-        return ".".join(f'"{part}"' for part in parts)
-    return str(obj)
+def _proc_connection_kwargs(proc: PostgreSQLExecutor, *, dbname: str = "postgres") -> dict[str, object]:
+    return {
+        "dbname": dbname,
+        "user": proc.user,
+        "password": proc.password,
+        "host": proc.host,
+        "port": proc.port,
+    }
 
 
-def _render_sql(obj: object) -> str:
-    """Render a psycopg.sql Composable to its SQL text form for test assertions."""
-    if isinstance(obj, pgsql.Composable):
-        try:
-            return obj.as_string(None)
-        except (TypeError, ValueError):
-            return _render_composable_fallback(obj)
-    return str(obj)
+async def _database_exists(proc: PostgreSQLExecutor, dbname: str) -> bool:
+    async with await psycopg.AsyncConnection.connect(**_proc_connection_kwargs(proc)) as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
+            return await cur.fetchone() is not None
 
 
-def _make_cursor_mock() -> MagicMock:
-    """Create a mock async cursor that records execute() calls."""
-    cur = AsyncMock(spec=AsyncCursor)
-    return cur
-
-
-def _make_cursor_context(cur: AsyncMock) -> Any:
-    """Return an async context manager that yields the given cursor mock."""
-
-    @asynccontextmanager
-    async def _ctx(self: AsyncDatabaseJanitor, dbname: str = "postgres") -> AsyncIterator[AsyncMock]:
-        yield cur
-
-    return _ctx
+async def _database_is_template(proc: PostgreSQLExecutor, dbname: str) -> bool:
+    async with await psycopg.AsyncConnection.connect(**_proc_connection_kwargs(proc)) as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT datistemplate FROM pg_database WHERE datname = %s", (dbname,))
+            row = await cur.fetchone()
+            return bool(row and row[0])
 
 
 @pytest.mark.asyncio
-async def test_async_janitor_init_creates_database() -> None:
-    """init() executes CREATE DATABASE with the configured dbname."""
-    cur = _make_cursor_mock()
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", version=10)
-    with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
-        await janitor.init()
-
-    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
-    assert 'CREATE DATABASE "mydb"' in executed_sql
-
-
-@pytest.mark.asyncio
-async def test_async_janitor_init_with_template() -> None:
-    """init() uses TEMPLATE clause when template_dbname is set."""
-    cur = _make_cursor_mock()
+async def test_async_janitor_init_and_drop(postgresql_proc: PostgreSQLExecutor) -> None:
+    """init() creates a database and drop() removes it against live PostgreSQL."""
+    dbname = xdistify_dbname("async_janitor_lifecycle")
     janitor = AsyncDatabaseJanitor(
-        user="user", host="host", port="1234", dbname="mydb", template_dbname="tmpl", version=10
+        user=postgresql_proc.user,
+        host=postgresql_proc.host,
+        port=postgresql_proc.port,
+        dbname=dbname,
+        version=postgresql_proc.version,
+        password=postgresql_proc.password,
+        connection_timeout=5,
     )
-    with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
-        await janitor.init()
-
-    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
-    assert 'CREATE DATABASE "mydb" TEMPLATE "tmpl"' in executed_sql
-
-
-@pytest.mark.asyncio
-async def test_async_janitor_init_as_template() -> None:
-    """init() appends IS_TEMPLATE = true when as_template is True."""
-    cur = _make_cursor_mock()
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10)
-    with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
-        await janitor.init()
-
-    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
-    assert "IS_TEMPLATE = true" in executed_sql
+    await janitor.init()
+    assert await _database_exists(postgresql_proc, dbname)
+    await janitor.drop()
+    assert not await _database_exists(postgresql_proc, dbname)
 
 
 @pytest.mark.asyncio
-async def test_async_janitor_drop_drops_database() -> None:
-    """drop() executes DROP DATABASE IF EXISTS for the configured dbname."""
-    cur = _make_cursor_mock()
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", version=10)
-    with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
-        await janitor.drop()
-
-    executed_sql = " ".join(_render_sql(c.args[0]) for c in cur.execute.call_args_list)
-    assert 'DROP DATABASE IF EXISTS "mydb"' in executed_sql
+async def test_async_janitor_template_flag_and_context_manager(postgresql_proc: PostgreSQLExecutor) -> None:
+    """as_template marks the database as a template and async with drops it cleanly."""
+    dbname = xdistify_dbname("async_janitor_tmpl")
+    janitor = AsyncDatabaseJanitor(
+        user=postgresql_proc.user,
+        host=postgresql_proc.host,
+        port=postgresql_proc.port,
+        dbname=dbname,
+        version=postgresql_proc.version,
+        password=postgresql_proc.password,
+        as_template=True,
+        connection_timeout=5,
+    )
+    async with janitor:
+        assert await _database_is_template(postgresql_proc, dbname)
+    assert not await _database_exists(postgresql_proc, dbname)
 
 
 @pytest.mark.asyncio
-async def test_async_janitor_drop_as_template() -> None:
-    """drop() resets is_template before dropping when as_template is True."""
-    cur = _make_cursor_mock()
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10)
-    with patch.object(AsyncDatabaseJanitor, "cursor", _make_cursor_context(cur)):
-        await janitor.drop()
+async def test_async_janitor_creates_database_from_template(postgresql_proc: PostgreSQLExecutor) -> None:
+    """init() clones schema and data from a template database."""
+    base_dbname = xdistify_dbname("async_janitor_tmpl_base")
+    clone_dbname = xdistify_dbname("async_janitor_tmpl_clone")
+    base_janitor = AsyncDatabaseJanitor(
+        user=postgresql_proc.user,
+        host=postgresql_proc.host,
+        port=postgresql_proc.port,
+        dbname=base_dbname,
+        version=postgresql_proc.version,
+        password=postgresql_proc.password,
+        as_template=True,
+        connection_timeout=5,
+    )
+    clone_janitor = AsyncDatabaseJanitor(
+        user=postgresql_proc.user,
+        host=postgresql_proc.host,
+        port=postgresql_proc.port,
+        dbname=clone_dbname,
+        template_dbname=base_dbname,
+        version=postgresql_proc.version,
+        password=postgresql_proc.password,
+        connection_timeout=5,
+    )
+    try:
+        await base_janitor.init()
+        await base_janitor.load(TEST_SQL_FILE)
+        await clone_janitor.init()
+        async with await psycopg.AsyncConnection.connect(**_proc_connection_kwargs(postgresql_proc, dbname=clone_dbname)) as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT * FROM test_load")
+                rows = await cur.fetchall()
+                assert len(rows) == 1
+    finally:
+        await clone_janitor.drop()
+        await base_janitor.drop()
 
-    executed_sql = [_render_sql(c.args[0]) for c in cur.execute.call_args_list]
-    assert any("is_template false" in s for s in executed_sql)
-    assert any('DROP DATABASE IF EXISTS "mydb"' in s for s in executed_sql)
-    # is_template false must come before DROP
-    template_idx = next(i for i, s in enumerate(executed_sql) if "is_template false" in s)
-    drop_idx = next(i for i, s in enumerate(executed_sql) if "DROP DATABASE" in s)
-    assert template_idx < drop_idx
+    assert not await _database_exists(postgresql_proc, clone_dbname)
+    assert not await _database_exists(postgresql_proc, base_dbname)
+
+
+# ---------------------------------------------------------------------------
+# AsyncDatabaseJanitor -- lightweight unit tests
+# ---------------------------------------------------------------------------
 
 
 def test_async_janitor_is_template_false() -> None:
@@ -343,18 +346,6 @@ async def test_async_janitor_terminate_connection_sql() -> None:
     sql_str, params = cur.execute.call_args.args
     assert "pg_terminate_backend" in sql_str
     assert params == ("target_db",)
-
-
-@pytest.mark.asyncio
-async def test_async_janitor_dont_datallowconn_sql() -> None:
-    """_dont_datallowconn() executes ALTER DATABASE allow_connections false for the dbname."""
-    cur = AsyncMock(spec=AsyncCursor)
-    await AsyncDatabaseJanitor._dont_datallowconn(cur, "target_db")
-
-    cur.execute.assert_called_once()
-    sql_str = _render_sql(cur.execute.call_args.args[0])
-    assert "allow_connections false" in sql_str
-    assert '"target_db"' in sql_str
 
 
 def _make_async_conn_mock() -> MagicMock:
