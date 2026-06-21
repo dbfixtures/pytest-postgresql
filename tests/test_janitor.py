@@ -171,13 +171,8 @@ async def test_janitor_populate_async_awaitable_loader() -> None:
 
 def _render_sql(obj: object) -> str:
     """Render a psycopg.sql Composable to its SQL text form for test assertions."""
-    if isinstance(obj, pgsql.Composed):
-        return "".join(_render_sql(part) for part in obj)
-    if isinstance(obj, pgsql.SQL):
-        return obj._obj
-    if isinstance(obj, pgsql.Identifier):
-        parts = tuple(obj._obj)
-        return ".".join('"' + s.replace('"', '""') + '"' for s in parts)
+    if isinstance(obj, pgsql.Composable):
+        return obj.as_string(None)
     return str(obj)
 
 

@@ -149,10 +149,10 @@ def postgresql_proc(
                     )
                 n += 1
 
-        tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
-        datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port))
-
         try:
+            tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
+            datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port))
+
             postgresql_executor = PostgreSQLExecutor(
                 executable=postgresql_ctl,
                 host=host or config.host,
