@@ -201,25 +201,27 @@ async def test_janitor_populate_async_sql_path(postgresql_proc: PostgreSQLExecut
 # ---------------------------------------------------------------------------
 
 
-def _proc_connection_kwargs(proc: PostgreSQLExecutor, *, dbname: str = "postgres") -> dict[str, object]:
-    return {
-        "dbname": dbname,
-        "user": proc.user,
-        "password": proc.password,
-        "host": proc.host,
-        "port": proc.port,
-    }
-
-
 async def _database_exists(proc: PostgreSQLExecutor, dbname: str) -> bool:
-    async with await psycopg.AsyncConnection.connect(**_proc_connection_kwargs(proc)) as conn:
+    async with await psycopg.AsyncConnection.connect(
+        dbname="postgres",
+        user=proc.user,
+        password=proc.password,
+        host=proc.host,
+        port=proc.port,
+    ) as conn:
         async with conn.cursor() as cur:
             await cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
             return await cur.fetchone() is not None
 
 
 async def _database_is_template(proc: PostgreSQLExecutor, dbname: str) -> bool:
-    async with await psycopg.AsyncConnection.connect(**_proc_connection_kwargs(proc)) as conn:
+    async with await psycopg.AsyncConnection.connect(
+        dbname="postgres",
+        user=proc.user,
+        password=proc.password,
+        host=proc.host,
+        port=proc.port,
+    ) as conn:
         async with conn.cursor() as cur:
             await cur.execute("SELECT datistemplate FROM pg_database WHERE datname = %s", (dbname,))
             row = await cur.fetchone()
@@ -294,7 +296,11 @@ async def test_async_janitor_creates_database_from_template(postgresql_proc: Pos
         await base_janitor.load(TEST_SQL_FILE)
         await clone_janitor.init()
         async with await psycopg.AsyncConnection.connect(
-            **_proc_connection_kwargs(postgresql_proc, dbname=clone_dbname)
+            dbname=clone_dbname,
+            user=postgresql_proc.user,
+            password=postgresql_proc.password,
+            host=postgresql_proc.host,
+            port=postgresql_proc.port,
         ) as conn:
             async with conn.cursor() as cur:
                 await cur.execute("SELECT * FROM test_load")
