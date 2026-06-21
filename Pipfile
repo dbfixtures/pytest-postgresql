@@ -14,7 +14,7 @@ pytest-postgresql = {path = ".", editable = true}
 [dev-packages]
 towncrier = "==25.8.0"
 psycopg-binary = {version = "==3.3.4", markers="implementation_name == 'cpython'"}
-pytest-asyncio = ">=0.21"
+pytest-asyncio = ">=0.24"
 aiofiles = ">=23.0"
 types-aiofiles = ">=23.0"
 coverage = ">=7.14.1"
