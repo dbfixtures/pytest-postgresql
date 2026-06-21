@@ -47,7 +47,7 @@ _help_drop_test_database = (
 
 def pytest_configure(config: pytest.Config) -> None:
     """Configure pytest-postgresql plugin."""
-    if sys.platform == "win32":
+    if sys.platform == "win32" and config.pluginmanager.has_plugin("asyncio"):
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 

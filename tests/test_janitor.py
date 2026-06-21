@@ -17,6 +17,7 @@ from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 TEST_SQL_FILE = Path(__file__).resolve().parent / "test_sql" / "test.sql"
 
 VERSION = parse("10")
+TEST_PASSWORD = "some_password"  # noqa: S106
 
 
 @pytest.mark.parametrize("version", (VERSION, 10, "10"))
@@ -64,11 +65,11 @@ def test_cursor_connects_with_password(connect_mock: MagicMock) -> None:
         port="1234",
         dbname="database_name",
         version=10,
-        password="some_password",  # noqa: S106
+        password=TEST_PASSWORD,
     )
     with janitor.cursor():
         connect_mock.assert_called_once_with(
-            dbname="postgres", user="user", password="some_password", host="host", port="1234"
+            dbname="postgres", user="user", password=TEST_PASSWORD, host="host", port="1234"
         )
 
 
@@ -84,11 +85,11 @@ async def test_cursor_connects_with_password_async() -> None:
             port="1234",
             dbname="database_name",
             version=10,
-            password="some_password",  # noqa: S106
+            password=TEST_PASSWORD,
         )
         async with janitor.cursor():
             connect_mock.assert_called_once_with(
-                dbname="postgres", user="user", password="some_password", host="host", port="1234"
+                dbname="postgres", user="user", password=TEST_PASSWORD, host="host", port="1234"
             )
 
 
@@ -118,7 +119,7 @@ def test_janitor_populate(connect_mock: MagicMock, load_database: str) -> None:
         "port": "1234",
         "user": "user",
         "dbname": "database_name",
-        "password": "some_password",  # noqa: S106
+        "password": TEST_PASSWORD,
     }
     janitor = DatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
     janitor.load(load_database)
@@ -140,7 +141,7 @@ async def test_janitor_populate_async(connect_mock: MagicMock, load_database: st
         "port": "1234",
         "user": "user",
         "dbname": "database_name",
-        "password": "some_password",  # noqa: S106
+        "password": TEST_PASSWORD,
     }
     janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
     await janitor.load(load_database)
@@ -156,7 +157,7 @@ async def test_janitor_populate_async_awaitable_loader() -> None:
         "port": "1234",
         "user": "user",
         "dbname": "database_name",
-        "password": "some_password",  # noqa: S106
+        "password": TEST_PASSWORD,
     }
     loader_mock = AsyncMock()
 
