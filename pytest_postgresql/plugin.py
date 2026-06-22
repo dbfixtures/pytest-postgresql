@@ -78,15 +78,15 @@ def pytest_configure(config: pytest.Config) -> None:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # type: ignore[attr-defined]
 
 
-@pytest.hookimpl(optionalhook=True)
-def pytest_asyncio_loop_factories(
-    config: pytest.Config,
-    item: pytest.Item,
-) -> dict[str, Callable[[], asyncio.AbstractEventLoop]] | None:
-    """Use SelectorEventLoop on Windows for psycopg async compatibility."""
-    if not _is_windows():
-        return None
-    return {"selector": _windows_selector_event_loop}
+if _is_windows():
+
+    @pytest.hookimpl(optionalhook=True)
+    def pytest_asyncio_loop_factories(
+        config: pytest.Config,
+        item: pytest.Item,
+    ) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
+        """Use SelectorEventLoop on Windows for psycopg async compatibility."""
+        return {"selector": _windows_selector_event_loop}
 
 
 def pytest_addoption(parser: Parser) -> None:

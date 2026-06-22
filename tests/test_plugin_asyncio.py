@@ -6,11 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pytest_postgresql.plugin import (
-    _windows_selector_event_loop,
-    pytest_asyncio_loop_factories,
-    pytest_configure,
-)
+import pytest_postgresql.plugin as plugin_module
+from pytest_postgresql.plugin import _windows_selector_event_loop, pytest_configure
 
 
 @pytest.mark.skipif(sys.version_info < (3, 14), reason="Deprecation applies from Python 3.14")
@@ -38,12 +35,10 @@ def test_windows_selector_loop_factory() -> None:
         loop.close()
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="Windows returns a selector factory mapping")
-def test_pytest_asyncio_loop_factories_returns_none_on_non_windows() -> None:
-    """Non-Windows platforms do not override pytest-asyncio loop factories."""
-    config = MagicMock()
-    item = MagicMock()
-    assert pytest_asyncio_loop_factories(config, item) is None
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows registers loop factory hook at import")
+def test_loop_factory_hook_not_registered_on_non_windows() -> None:
+    """Non-Windows platforms must not register pytest_asyncio_loop_factories."""
+    assert not hasattr(plugin_module, "pytest_asyncio_loop_factories")
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory hook")
@@ -51,7 +46,7 @@ def test_pytest_asyncio_loop_factories_on_windows() -> None:
     """Windows configures a single selector loop factory for pytest-asyncio."""
     config = MagicMock()
     item = MagicMock()
-    factories = pytest_asyncio_loop_factories(config, item)
+    factories = plugin_module.pytest_asyncio_loop_factories(config, item)
 
     assert factories is not None
     assert set(factories) == {"selector"}
