@@ -22,12 +22,21 @@ import platform
 import selectors
 from collections.abc import Callable
 from tempfile import gettempdir
+from typing import Any
 
 import pytest
 from _pytest.config.argparsing import Parser
 from packaging.version import Version, parse
 
 from pytest_postgresql import factories
+
+pytest_asyncio: Any = None
+try:
+    import pytest_asyncio as _pytest_asyncio_module
+
+    pytest_asyncio = _pytest_asyncio_module
+except ImportError:
+    pass
 
 _help_executable = "Path to PostgreSQL executable"
 _help_host = "Host at which PostgreSQL will accept connections"
@@ -53,12 +62,9 @@ def _windows_selector_event_loop() -> asyncio.AbstractEventLoop:
 
 
 def _pytest_asyncio_supports_loop_factories() -> bool:
-    try:
-        import pytest_asyncio
-
-        return parse(pytest_asyncio.__version__) >= parse("1.4.0")
-    except ImportError:
+    if pytest_asyncio is None:
         return False
+    return parse(pytest_asyncio.__version__) >= parse("1.4.0")
 
 
 def _is_windows() -> bool:
