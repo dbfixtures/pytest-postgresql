@@ -19,7 +19,7 @@ def build_loader(load: Callable | str | Path) -> Callable:
     if isinstance(load, Path):
         return partial(sql, load)
     elif isinstance(load, str):
-        loader_parts = re.split("[.:]", load, maxsplit=2)
+        loader_parts = re.split("[.:]", load)
         import_path = ".".join(loader_parts[:-1])
         loader_name = loader_parts[-1]
         _temp_import = importlib.import_module(import_path)
@@ -43,7 +43,7 @@ def build_loader_async(load: Callable | str | Path) -> Callable:
     if isinstance(load, Path):
         return partial(sql_async, load)
     elif isinstance(load, str):
-        loader_parts = re.split("[.:]", load, maxsplit=2)
+        loader_parts = re.split("[.:]", load)
         import_path = ".".join(loader_parts[:-1])
         loader_name = loader_parts[-1]
         _temp_import = importlib.import_module(import_path)

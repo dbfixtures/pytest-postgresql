@@ -1,6 +1,7 @@
 """Tests for the `build_loader` function."""
 
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import patch
 
 import pytest
@@ -20,6 +21,17 @@ def test_loader_callables_dot_separator() -> None:
     assert build_loader("tests.loader.load_database") == load_database
 
 
+def test_loader_deeply_nested_import_path() -> None:
+    """All path segments before the final delimiter are joined as the import path."""
+    sentinel = object()
+    fake_module = ModuleType("fake_module")
+    fake_module.my_loader = sentinel  # type: ignore[attr-defined]
+    with patch("pytest_postgresql.loader.importlib.import_module", return_value=fake_module) as import_mock:
+        result = build_loader("a.b.c.d:my_loader")
+    import_mock.assert_called_once_with("a.b.c.d")
+    assert result is sentinel
+
+
 @pytest.mark.asyncio
 async def test_loader_callables_async() -> None:
     """Async test handling callables in build_loader_async."""
@@ -36,6 +48,17 @@ async def test_loader_callables_async() -> None:
 async def test_loader_callables_async_dot_separator() -> None:
     """Dot-separated import path is resolved identically by build_loader_async."""
     assert build_loader_async("tests.loader.load_database") == load_database
+
+
+def test_loader_async_deeply_nested_import_path() -> None:
+    """build_loader_async splits all path segments before the final loader name."""
+    sentinel = object()
+    fake_module = ModuleType("fake_module")
+    fake_module.my_loader = sentinel  # type: ignore[attr-defined]
+    with patch("pytest_postgresql.loader.importlib.import_module", return_value=fake_module) as import_mock:
+        result = build_loader_async("a.b.c.d:my_loader")
+    import_mock.assert_called_once_with("a.b.c.d")
+    assert result is sentinel
 
 
 def test_loader_sql() -> None:
