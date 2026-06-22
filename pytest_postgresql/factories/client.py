@@ -28,7 +28,6 @@ from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
-from pytest_postgresql.types import FixtureScopeT
 
 pytest_asyncio: Any = None
 try:
@@ -43,7 +42,6 @@ def postgresql(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-    scope: FixtureScopeT = "function",
 ) -> Callable[[FixtureRequest], Iterator[Connection]]:
     """Return connection fixture factory for PostgreSQL.
 
@@ -51,11 +49,10 @@ def postgresql(
     :param dbname: database name
     :param isolation_level: optional postgresql isolation level
                             defaults to server's default
-    :param scope: fixture scope; by default "function" which is recommended.
     :returns: function which makes a connection to postgresql
     """
 
-    @pytest.fixture(scope=scope)
+    @pytest.fixture
     def postgresql_factory(request: FixtureRequest) -> Iterator[Connection]:
         """Fixture connection factory for PostgreSQL.
 
@@ -102,24 +99,20 @@ def postgresql_async(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-    scope: FixtureScopeT = "function",
 ) -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
     """Return async connection fixture factory for PostgreSQL.
 
     Requires ``pytest-asyncio`` >= 0.24 (install via ``pip install pytest-postgresql[async]``).
-    Scoped fixtures pass ``loop_scope=scope`` to ``pytest_asyncio.fixture``, which is only
-    supported in pytest-asyncio 0.24 and later.
 
     :param process_fixture_name: name of the process fixture
     :param dbname: database name
     :param isolation_level: optional postgresql isolation level
                             defaults to server's default
-    :param scope: fixture scope; by default "function" which is recommended.
     :returns: function which makes an async connection to postgresql
     """
     if pytest_asyncio is None:
 
-        @pytest.fixture(scope=scope)
+        @pytest.fixture
         def postgresql_async_stub(request: FixtureRequest) -> None:
             """Sync stub that raises ImportError when pytest-asyncio is absent."""
             raise ImportError(
@@ -134,7 +127,7 @@ def postgresql_async(
 
     assert pytest_asyncio is not None
 
-    @pytest_asyncio.fixture(scope=scope, loop_scope=scope)  # type: ignore[untyped-decorator]
+    @pytest_asyncio.fixture  # type: ignore[untyped-decorator]
     async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
         """Async connection fixture factory for PostgreSQL.
 

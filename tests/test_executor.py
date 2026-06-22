@@ -298,7 +298,7 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     """Port sentinel file is removed when the process fixture tears down."""
-    fixture_func = postgresql_proc(port=None, scope="function")
+    fixture_func = postgresql_proc(port=None)
     raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
 
     port_path = tmp_path_factory.getbasetemp()
@@ -350,7 +350,7 @@ def test_postgresql_proc_removes_port_lock_on_setup_failure(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     """Port sentinel file is removed when fixture setup fails after claiming a port."""
-    fixture_func = postgresql_proc(port=None, scope="function")
+    fixture_func = postgresql_proc(port=None)
     raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
 
     port_path = tmp_path_factory.getbasetemp()
