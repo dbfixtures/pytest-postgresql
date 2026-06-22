@@ -38,7 +38,7 @@ requires-python = ">= 3.10"
 
 [project.optional-dependencies]
 async = [
-  "pytest-asyncio >= 0.24",
+  "pytest-asyncio >= 1.4",
   "aiofiles >= 23.0"
 ]
 

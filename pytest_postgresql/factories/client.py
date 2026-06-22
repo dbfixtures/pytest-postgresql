@@ -102,7 +102,7 @@ def postgresql_async(
 ) -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
     """Return async connection fixture factory for PostgreSQL.
 
-    Requires ``pytest-asyncio`` >= 0.24 (install via ``pip install pytest-postgresql[async]``).
+    Requires ``pytest-asyncio`` >= 1.4 (install via ``pip install pytest-postgresql[async]``).
 
     :param process_fixture_name: name of the process fixture
     :param dbname: database name
@@ -116,7 +116,7 @@ def postgresql_async(
         def postgresql_async_stub(request: FixtureRequest) -> None:
             """Sync stub that raises ImportError when pytest-asyncio is absent."""
             raise ImportError(
-                "pytest-asyncio >= 0.24 is required for async fixtures. "
+                "pytest-asyncio >= 1.4 is required for async fixtures. "
                 "Install it with: pip install pytest-postgresql[async]"
             )
 

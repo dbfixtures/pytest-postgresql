@@ -46,10 +46,14 @@ Quick Start
 
    This installs:
 
-   * ``pytest-asyncio`` (>= 0.24) — required for ``@pytest.mark.asyncio`` and
+   * ``pytest-asyncio`` (>= 1.4) — required for ``@pytest.mark.asyncio`` and
      ``postgresql_async`` fixtures.
    * ``aiofiles`` (>= 23.0) — required only when loading SQL files via the
      async loader (``sql_async``).
+
+   On Windows, the plugin configures a ``SelectorEventLoop`` automatically (required
+   by ``psycopg`` async). On Python 3.14+, this uses pytest-asyncio's loop-factory
+   hook instead of the deprecated asyncio policy API.
 
    .. note::
 
@@ -104,7 +108,7 @@ The plugin provides two main types of fixtures:
     * **postgresql** - A function-scoped fixture. It returns a connected ``psycopg.Connection``.
       After each test, it terminates leftover connections and drops the test database to ensure isolation.
     * **postgresql_async** - The async counterpart. It returns a connected ``psycopg.AsyncConnection``.
-      Requires ``pytest-postgresql[async]`` (``pytest-asyncio`` >= 0.24), and each test must be
+      Requires ``pytest-postgresql[async]`` (``pytest-asyncio`` >= 1.4), and each test must be
       marked with ``@pytest.mark.asyncio``.
 
 **Async fixtures**
@@ -115,7 +119,7 @@ The plugin provides two main types of fixtures:
 
     .. code-block:: text
 
-        pytest-asyncio >= 0.24
+        pytest-asyncio >= 1.4
         aiofiles >= 23.0        # only for async SQL file loading
 
     If ``pytest-asyncio`` is missing, fixture setup raises ``ImportError``.
@@ -142,7 +146,7 @@ You can create additional fixtures using factories:
     # Create a client fixture that uses the custom process
     postgresql_my = factories.postgresql('postgresql_my_proc')
 
-    # Async client fixture (requires pytest-postgresql[async], pytest-asyncio >= 0.24)
+    # Async client fixture (requires pytest-postgresql[async], pytest-asyncio >= 1.4)
     postgresql_my_async = factories.postgresql_async('postgresql_my_proc')
 
 .. note::
