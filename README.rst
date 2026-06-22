@@ -47,9 +47,7 @@ Quick Start
    This installs:
 
    * ``pytest-asyncio`` (>= 0.24) — required for ``@pytest.mark.asyncio`` and
-     ``postgresql_async`` fixtures. Version 0.24 or newer is required because
-     scoped async fixtures rely on the ``loop_scope`` argument introduced in
-     that release.
+     ``postgresql_async`` fixtures.
    * ``aiofiles`` (>= 23.0) — required only when loading SQL files via the
      async loader (``sql_async``).
 

@@ -90,7 +90,7 @@ def test_executor_init_with_password(
     config = get_config(request)
     monkeypatch.setenv("LC_ALL", locale)
     pg_exe = process._pg_exe(None, config)
-    port = process._pg_port(-1, config, [])
+    port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
     executor = PostgreSQLExecutor(
@@ -114,7 +114,7 @@ def test_executor_init_bad_tmp_path(
     r"""Test init with \ and space chars in the path."""
     config = get_config(request)
     pg_exe = process._pg_exe(None, config)
-    port = process._pg_port(-1, config, [])
+    port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / r"a bad\path/"
     tmpdir.mkdir(parents=True, exist_ok=True)
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
@@ -199,7 +199,7 @@ def test_executor_with_special_chars_in_all_paths(
     """
     config = get_config(request)
     pg_exe = process._pg_exe(None, config)
-    port = process._pg_port(-1, config, [])
+    port = process._pg_port(None, config, [])
     # Create a tmpdir with spaces in the name
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / "my test dir"
     tmpdir.mkdir(exist_ok=True)
@@ -391,7 +391,7 @@ def test_actual_postgresql_start_windows(
     """
     config = get_config(request)
     pg_exe = process._pg_exe(None, config)
-    port = process._pg_port(-1, config, [])
+    port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
 
@@ -430,7 +430,7 @@ def test_actual_postgresql_start_unix(
     """
     config = get_config(request)
     pg_exe = process._pg_exe(None, config)
-    port = process._pg_port(-1, config, [])
+    port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
 
@@ -466,7 +466,7 @@ def test_actual_postgresql_start_darwin(
     """
     config = get_config(request)
     pg_exe = process._pg_exe(None, config)
-    port = process._pg_port(-1, config, [])
+    port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port)
 
