@@ -70,6 +70,7 @@ def pytest_configure(config: pytest.Config) -> None:
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
+@pytest.hookimpl(optionalhook=True)
 def pytest_asyncio_loop_factories(
     config: pytest.Config,
     item: pytest.Item,

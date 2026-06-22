@@ -19,7 +19,10 @@ def test_pytest_configure_skips_deprecated_policy_on_python_314() -> None:
     config = MagicMock()
     config.pluginmanager.has_plugin.return_value = True
 
-    with patch.object(asyncio, "set_event_loop_policy") as set_policy:
+    with (
+        patch("pytest_postgresql.plugin.sys.platform", "win32"),
+        patch.object(asyncio, "set_event_loop_policy") as set_policy,
+    ):
         pytest_configure(config)
 
     set_policy.assert_not_called()

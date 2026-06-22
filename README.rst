@@ -52,8 +52,9 @@ Quick Start
      async loader (``sql_async``).
 
    On Windows, the plugin configures a ``SelectorEventLoop`` automatically (required
-   by ``psycopg`` async). On Python 3.14+, this uses pytest-asyncio's loop-factory
-   hook instead of the deprecated asyncio policy API.
+   by ``psycopg`` async). With ``pytest-asyncio`` >= 1.4, this is done via the
+   loop-factory hook on all supported Python versions. On Python 3.14+, the legacy
+   ``asyncio`` policy fallback is not used because that API is deprecated.
 
    .. note::
 
