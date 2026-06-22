@@ -18,14 +18,14 @@
 """Plugin module of pytest-postgresql."""
 
 import asyncio
+import platform
 import selectors
-import sys
 from collections.abc import Callable
 from tempfile import gettempdir
 
 import pytest
 from _pytest.config.argparsing import Parser
-from packaging.version import parse
+from packaging.version import Version, parse
 
 from pytest_postgresql import factories
 
@@ -61,13 +61,21 @@ def _pytest_asyncio_supports_loop_factories() -> bool:
         return False
 
 
+def _is_windows() -> bool:
+    return platform.system() == "Windows"
+
+
+def _uses_deprecated_asyncio_policy_on_windows() -> bool:
+    return Version(platform.python_version()) < Version("3.14") and not _pytest_asyncio_supports_loop_factories()
+
+
 def pytest_configure(config: pytest.Config) -> None:
     """Configure pytest-postgresql plugin."""
-    if sys.platform != "win32" or not config.pluginmanager.has_plugin("asyncio"):
+    if not _is_windows() or not config.pluginmanager.has_plugin("asyncio"):
         return
-    if sys.version_info >= (3, 14) or _pytest_asyncio_supports_loop_factories():
+    if not _uses_deprecated_asyncio_policy_on_windows():
         return
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # type: ignore[attr-defined]
 
 
 @pytest.hookimpl(optionalhook=True)
@@ -76,7 +84,7 @@ def pytest_asyncio_loop_factories(
     item: pytest.Item,
 ) -> dict[str, Callable[[], asyncio.AbstractEventLoop]] | None:
     """Use SelectorEventLoop on Windows for psycopg async compatibility."""
-    if sys.platform != "win32":
+    if not _is_windows():
         return None
     return {"selector": _windows_selector_event_loop}
 
