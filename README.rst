@@ -38,6 +38,24 @@ Quick Start
 
    You will also need to install ``psycopg`` (version 3). See `its installation instructions <https://www.psycopg.org/psycopg3/docs/basic/install.html>`_.
 
+   For async tests with ``psycopg.AsyncConnection``, install the optional async extra:
+
+   .. code-block:: sh
+
+       pip install pytest-postgresql[async]
+
+   This installs:
+
+   * ``pytest-asyncio`` (>= 1.4) — required for ``@pytest.mark.asyncio`` and
+     ``postgresql_async`` fixtures.
+   * ``aiofiles`` (>= 23.0) — required only when loading SQL files via the
+     async loader (``sql_async``).
+
+   On Windows, the plugin configures a ``SelectorEventLoop`` automatically (required
+   by ``psycopg`` async). With ``pytest-asyncio`` >= 1.4, this is done via the
+   loop-factory hook on all supported Python versions. On Python 3.14+, the legacy
+   ``asyncio`` policy fallback is not used because that API is deprecated.
+
    .. note::
 
        While this plugin requires ``psycopg`` 3 to manage the database, your application code can still use ``psycopg`` 2.
@@ -53,6 +71,21 @@ Quick Start
            with postgresql.cursor() as cur:
                cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
                postgresql.commit()
+
+   For async code, use ``postgresql_async`` with ``pytest.mark.asyncio``:
+
+   .. code-block:: python
+
+       import pytest
+
+       @pytest.mark.asyncio
+       async def test_example_async(postgresql_async):
+           """Check main async postgresql fixture."""
+           async with postgresql_async.cursor() as cur:
+               await cur.execute(
+                   "CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);"
+               )
+               await postgresql_async.commit()
 
 How to use
 ==========
@@ -75,6 +108,22 @@ The plugin provides two main types of fixtures:
 
     * **postgresql** - A function-scoped fixture. It returns a connected ``psycopg.Connection``.
       After each test, it terminates leftover connections and drops the test database to ensure isolation.
+    * **postgresql_async** - The async counterpart. It returns a connected ``psycopg.AsyncConnection``.
+      Requires ``pytest-postgresql[async]`` (``pytest-asyncio`` >= 1.4), and each test must be
+      marked with ``@pytest.mark.asyncio``.
+
+**Async fixtures**
+    ``postgresql_async`` and custom factories created with ``factories.postgresql_async`` are
+    async generator fixtures using ``pytest_asyncio.fixture``.
+
+    Minimum versions when installing manually instead of via ``[async]``:
+
+    .. code-block:: text
+
+        pytest-asyncio >= 1.4
+        aiofiles >= 23.0        # only for async SQL file loading
+
+    If ``pytest-asyncio`` is missing, fixture setup raises ``ImportError``.
 
 **2. Process Fixtures**
     These manage the PostgreSQL server lifecycle.
@@ -97,6 +146,9 @@ You can create additional fixtures using factories:
 
     # Create a client fixture that uses the custom process
     postgresql_my = factories.postgresql('postgresql_my_proc')
+
+    # Async client fixture (requires pytest-postgresql[async], pytest-asyncio >= 1.4)
+    postgresql_my_async = factories.postgresql_async('postgresql_my_proc')
 
 .. note::
 

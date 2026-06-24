@@ -17,11 +17,26 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Plugin module of pytest-postgresql."""
 
+import asyncio
+import platform
+import selectors
+from collections.abc import Callable
 from tempfile import gettempdir
+from typing import Any
 
+import pytest
 from _pytest.config.argparsing import Parser
+from packaging.version import Version, parse
 
 from pytest_postgresql import factories
+
+pytest_asyncio: Any = None
+try:
+    import pytest_asyncio as _pytest_asyncio_module
+
+    pytest_asyncio = _pytest_asyncio_module
+except ImportError:
+    pass
 
 _help_executable = "Path to PostgreSQL executable"
 _help_host = "Host at which PostgreSQL will accept connections"
@@ -40,6 +55,44 @@ _help_drop_test_database = (
     "when database was not cleared due to errors in previous test runs. "
     "Use cautiously and not on CI."
 )
+
+
+def _windows_selector_event_loop() -> asyncio.AbstractEventLoop:
+    return asyncio.SelectorEventLoop(selectors.SelectSelector())
+
+
+def _pytest_asyncio_supports_loop_factories() -> bool:
+    if pytest_asyncio is None:
+        return False
+    return parse(pytest_asyncio.__version__) >= parse("1.4.0")
+
+
+def _is_windows() -> bool:
+    return platform.system() == "Windows"
+
+
+def _uses_deprecated_asyncio_policy_on_windows() -> bool:
+    return Version(platform.python_version()) < Version("3.14") and not _pytest_asyncio_supports_loop_factories()
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Configure pytest-postgresql plugin."""
+    if not _is_windows() or not config.pluginmanager.has_plugin("asyncio"):
+        return
+    if not _uses_deprecated_asyncio_policy_on_windows():
+        return
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # type: ignore[attr-defined]
+
+
+if _is_windows():
+
+    @pytest.hookimpl(optionalhook=True)
+    def pytest_asyncio_loop_factories(
+        config: pytest.Config,
+        item: pytest.Item,
+    ) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
+        """Use SelectorEventLoop on Windows for psycopg async compatibility."""
+        return {"selector": _windows_selector_event_loop}
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -135,3 +188,4 @@ def pytest_addoption(parser: Parser) -> None:
 postgresql_proc = factories.postgresql_proc()
 postgresql_noproc = factories.postgresql_noproc()
 postgresql = factories.postgresql("postgresql_proc")
+postgresql_async = factories.postgresql_async("postgresql_proc")

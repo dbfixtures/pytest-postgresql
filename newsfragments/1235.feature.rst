@@ -1,0 +1,2 @@
+Added async PostgreSQL fixture support via ``postgresql_async`` factory and ``AsyncDatabaseJanitor``.
+Added optional ``async`` extra (``pip install pytest-postgresql[async]``) providing ``pytest-asyncio`` (>= 1.4) and ``aiofiles`` dependencies.

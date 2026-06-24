@@ -144,3 +144,67 @@ def test_postgres_drop_test_database(
             pass
     assert hasattr(excinfo.value, "__cause__")
     assert f'FATAL:  database "{template_janitor.dbname}" does not exist' in str(excinfo.value.__cause__)
+
+
+def test_postgres_drop_test_database_async(
+    postgresql_proc_to_override: PostgreSQLExecutor,
+    pointed_pytester: Pytester,
+) -> None:
+    """Check that async client fixture drops the database when --postgresql-drop-test-database is set.
+
+    Mirrors ``test_postgres_drop_test_database`` but runs an async subprocess test that uses
+    ``postgresql_async`` against the same live PostgreSQL process.
+    """
+    dbname = xdistify_dbname("override")
+    template_dbname = dbname + "_tmpl"
+    template_janitor = DatabaseJanitor(
+        user=postgresql_proc_to_override.user,
+        host=postgresql_proc_to_override.host,
+        port=postgresql_proc_to_override.port,
+        dbname=template_dbname,
+        as_template=True,
+        version=postgresql_proc_to_override.version,
+        password=postgresql_proc_to_override.password,
+        connection_timeout=5,
+    )
+    template_janitor.init()
+    template_janitor.load(load_database)
+    assert template_janitor.dbname
+    janitor = DatabaseJanitor(
+        user=postgresql_proc_to_override.user,
+        host=postgresql_proc_to_override.host,
+        port=postgresql_proc_to_override.port,
+        dbname=dbname,
+        template_dbname=template_janitor.dbname,
+        version=postgresql_proc_to_override.version,
+        password=postgresql_proc_to_override.password,
+        connection_timeout=5,
+    )
+    janitor.init()
+    assert janitor.dbname
+    with janitor.cursor(janitor.dbname) as cur:
+        cur.execute("SELECT * FROM stories")
+        res = cur.fetchall()
+        assert len(res) == 4
+
+    pointed_pytester.copy_example("test_drop_test_database_async.py")
+    test_sql_path = pointed_pytester.copy_example("test.sql")
+    ret = pointed_pytester.runpytest(
+        f"--postgresql-load={test_sql_path}",
+        f"--postgresql-port={postgresql_proc_to_override.port}",
+        "--postgresql-dbname=override",
+        "--postgresql-drop-test-database",
+        "test_drop_test_database_async.py",
+    )
+    ret.assert_outcomes(passed=1)
+
+    with pytest.raises(TimeoutError) as excinfo:
+        with janitor.cursor(janitor.dbname):
+            pass
+    assert hasattr(excinfo.value, "__cause__")
+    assert f'FATAL:  database "{janitor.dbname}" does not exist' in str(excinfo.value.__cause__)
+    with pytest.raises(TimeoutError) as excinfo:
+        with template_janitor.cursor(template_janitor.dbname):
+            pass
+    assert hasattr(excinfo.value, "__cause__")
+    assert f'FATAL:  database "{template_janitor.dbname}" does not exist' in str(excinfo.value.__cause__)

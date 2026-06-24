@@ -17,17 +17,25 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql client."""
 
-from typing import Callable, Iterator
+from typing import Any, AsyncIterator, Callable, Iterator, cast
 
 import psycopg
 import pytest
-from psycopg import Connection
+from psycopg import AsyncConnection, Connection
 from pytest import FixtureRequest
 
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
-from pytest_postgresql.janitor import DatabaseJanitor
+from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
+
+pytest_asyncio: Any = None
+try:
+    import pytest_asyncio as _pytest_asyncio_module
+
+    pytest_asyncio = _pytest_asyncio_module
+except ImportError:
+    pass
 
 
 def postgresql(
@@ -46,7 +54,7 @@ def postgresql(
 
     @pytest.fixture
     def postgresql_factory(request: FixtureRequest) -> Iterator[Connection]:
-        """Fixture factory for PostgreSQL.
+        """Fixture connection factory for PostgreSQL.
 
         :param request: fixture request object
         :returns: postgresql client
@@ -85,3 +93,81 @@ def postgresql(
             db_connection.close()
 
     return postgresql_factory
+
+
+def postgresql_async(
+    process_fixture_name: str,
+    dbname: str | None = None,
+    isolation_level: "psycopg.IsolationLevel | None" = None,
+) -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
+    """Return async connection fixture factory for PostgreSQL.
+
+    Requires ``pytest-asyncio`` >= 1.4 (install via ``pip install pytest-postgresql[async]``).
+
+    :param process_fixture_name: name of the process fixture
+    :param dbname: database name
+    :param isolation_level: optional postgresql isolation level
+                            defaults to server's default
+    :returns: function which makes an async connection to postgresql
+    """
+    if pytest_asyncio is None:
+
+        @pytest.fixture
+        def postgresql_async_stub(request: FixtureRequest) -> None:
+            """Sync stub that raises ImportError when pytest-asyncio is absent."""
+            raise ImportError(
+                "pytest-asyncio >= 1.4 is required for async fixtures. "
+                "Install it with: pip install pytest-postgresql[async]"
+            )
+
+        return cast(
+            Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
+            postgresql_async_stub,
+        )
+
+    assert pytest_asyncio is not None
+
+    @pytest_asyncio.fixture  # type: ignore[untyped-decorator]
+    async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
+        """Async connection fixture factory for PostgreSQL.
+
+        :param request: fixture request object
+        :returns: postgresql async client
+        """
+        proc_fixture: PostgreSQLExecutor | NoopExecutor = request.getfixturevalue(process_fixture_name)
+        config = get_config(request)
+
+        pg_host = proc_fixture.host
+        pg_port = proc_fixture.port
+        pg_user = proc_fixture.user
+        pg_password = proc_fixture.password
+        pg_options = proc_fixture.options
+        pg_db = dbname or proc_fixture.dbname
+        janitor = AsyncDatabaseJanitor(
+            user=pg_user,
+            host=pg_host,
+            port=pg_port,
+            dbname=pg_db,
+            template_dbname=proc_fixture.template_dbname,
+            version=proc_fixture.version,
+            password=pg_password,
+            isolation_level=isolation_level,
+        )
+        if config.drop_test_database:
+            await janitor.drop()
+        async with janitor:
+            db_connection: AsyncConnection = await AsyncConnection.connect(
+                dbname=pg_db,
+                user=pg_user,
+                password=pg_password,
+                host=pg_host,
+                port=pg_port,
+                options=pg_options,
+            )
+            yield db_connection
+            await db_connection.close()
+
+    return cast(
+        Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
+        postgresql_async_factory,
+    )

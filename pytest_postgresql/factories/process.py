@@ -146,40 +146,43 @@ def postgresql_proc(
                     )
                 n += 1
 
-        tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
-        datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port))
+        try:
+            tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
+            datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port))
 
-        postgresql_executor = PostgreSQLExecutor(
-            executable=postgresql_ctl,
-            host=host or config.host,
-            port=pg_port,
-            user=user or config.user,
-            password=password or config.password,
-            dbname=pg_dbname,
-            options=options or config.options,
-            datadir=str(datadir),
-            unixsocketdir=unixsocketdir or config.unixsocketdir,
-            logfile=str(logfile_path),
-            startparams=startparams or config.startparams,
-            postgres_options=postgres_options or config.postgres_options,
-        )
-        # start server
-        with postgresql_executor:
-            postgresql_executor.wait_for_postgres()
-            janitor = DatabaseJanitor(
-                user=postgresql_executor.user,
-                host=postgresql_executor.host,
-                port=postgresql_executor.port,
-                dbname=postgresql_executor.template_dbname,
-                as_template=True,
-                version=postgresql_executor.version,
-                password=postgresql_executor.password,
+            postgresql_executor = PostgreSQLExecutor(
+                executable=postgresql_ctl,
+                host=host or config.host,
+                port=pg_port,
+                user=user or config.user,
+                password=password or config.password,
+                dbname=pg_dbname,
+                options=options or config.options,
+                datadir=str(datadir),
+                unixsocketdir=unixsocketdir or config.unixsocketdir,
+                logfile=str(logfile_path),
+                startparams=startparams or config.startparams,
+                postgres_options=postgres_options or config.postgres_options,
             )
-            if config.drop_test_database:
-                janitor.drop()
-            with janitor:
-                for load_element in pg_load:
-                    janitor.load(load_element)
-                yield postgresql_executor
+            # start server
+            with postgresql_executor:
+                postgresql_executor.wait_for_postgres()
+                janitor = DatabaseJanitor(
+                    user=postgresql_executor.user,
+                    host=postgresql_executor.host,
+                    port=postgresql_executor.port,
+                    dbname=postgresql_executor.template_dbname,
+                    as_template=True,
+                    version=postgresql_executor.version,
+                    password=postgresql_executor.password,
+                )
+                if config.drop_test_database:
+                    janitor.drop()
+                with janitor:
+                    for load_element in pg_load:
+                        janitor.load(load_element)
+                    yield postgresql_executor
+        finally:
+            port_filename_path.unlink(missing_ok=True)
 
     return postgresql_proc_fixture
