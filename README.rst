@@ -51,10 +51,18 @@ Quick Start
    * ``aiofiles`` (>= 23.0) — required only when loading SQL files via the
      async loader (``sql_async``).
 
-   On Windows, the plugin configures a ``SelectorEventLoop`` automatically (required
-   by ``psycopg`` async). With ``pytest-asyncio`` >= 1.4, this is done via the
-   loop-factory hook on all supported Python versions. On Python 3.14+, the legacy
-   ``asyncio`` policy fallback is not used because that API is deprecated.
+   On Windows, the plugin configures a ``SelectorEventLoop`` automatically.  This
+   is required because ``psycopg`` async is incompatible with the default
+   ``ProactorEventLoop`` on Windows (`documented by psycopg
+   <https://www.psycopg.org/psycopg3/docs/advanced/async.html>`_).  Without it,
+   ``postgresql_async`` tests fail with ``Psycopg cannot use the
+   'ProactorEventLoop' to run in async mode``.  No extra configuration is needed
+   when you install ``pytest-postgresql[async]``.
+
+   With ``pytest-asyncio`` >= 1.4, the plugin registers a selector loop factory via
+   pytest-asyncio's loop-factory hook on all supported Python versions.  On
+   Python 3.14+, the legacy ``asyncio`` policy fallback is not used because that
+   API is deprecated.
 
    .. note::
 

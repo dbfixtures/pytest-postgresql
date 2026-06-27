@@ -56,8 +56,23 @@ _help_drop_test_database = (
     "Use cautiously and not on CI."
 )
 
+# psycopg async cannot use Windows' default ProactorEventLoop (the default since
+# Python 3.8).  libpq socket I/O relies on selector APIs (add_reader / fileno)
+# that Proactor does not support.  See:
+# https://www.psycopg.org/psycopg3/docs/advanced/async.html
+#
+# pytest-asyncio does not switch event loops for us, so without the hook below
+# ``postgresql_async`` tests fail on Windows with:
+# "Psycopg cannot use the 'ProactorEventLoop' to run in async mode".
+#
+# We register a SelectorEventLoop via pytest-asyncio's official
+# ``pytest_asyncio_loop_factories`` hook (pytest-asyncio >= 1.4).  A legacy
+# ``WindowsSelectorEventLoopPolicy`` fallback in ``pytest_configure`` remains for
+# Windows + Python < 3.14 when the loop-factory hook is unavailable.
+
 
 def _windows_selector_event_loop() -> asyncio.AbstractEventLoop:
+    """Create a SelectorEventLoop for psycopg async on Windows."""
     return asyncio.SelectorEventLoop(selectors.SelectSelector())
 
 
@@ -76,7 +91,7 @@ def _uses_deprecated_asyncio_policy_on_windows() -> bool:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Configure pytest-postgresql plugin."""
+    """Set legacy Windows selector policy when loop-factory hook is unavailable."""
     if not _is_windows() or not config.pluginmanager.has_plugin("asyncio"):
         return
     if not _uses_deprecated_asyncio_policy_on_windows():
@@ -91,7 +106,13 @@ if _is_windows():
         config: pytest.Config,
         item: pytest.Item,
     ) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
-        """Use SelectorEventLoop on Windows for psycopg async compatibility."""
+        """Register a SelectorEventLoop factory for psycopg async on Windows.
+
+        psycopg async is incompatible with the default ProactorEventLoop; see
+        https://www.psycopg.org/psycopg3/docs/advanced/async.html .  pytest-asyncio
+        exposes this hook (>= 1.4) so plugins can supply a compatible loop without
+        requiring users to call ``asyncio.set_event_loop_policy`` themselves.
+        """
         return {"selector": _windows_selector_event_loop}
 
 
