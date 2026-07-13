@@ -413,6 +413,46 @@ def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
     assert not list(port_path.glob("postgresql-*.port"))
 
 
+def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Exhausted port retries must not delete another worker's port lock file."""
+    fixture_func = postgresql_proc(port=None)
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    port_path = tmp_path_factory.getbasetemp()
+    if hasattr(request.config, "workerinput"):
+        port_path = tmp_path_factory.getbasetemp().parent
+
+    pg_ports = [54321, 54322, 54323]
+    foreign_locks = []
+    for pg_port in pg_ports:
+        foreign_lock = port_path / f"postgresql-{pg_port}.port"
+        foreign_lock.write_text(f"pg_port {pg_port}\n", encoding="utf-8")
+        foreign_locks.append(foreign_lock)
+
+    with (
+        patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
+        patch("pytest_postgresql.factories.process._pg_port", side_effect=pg_ports),
+        patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+    ):
+        config_mock = MagicMock()
+        config_mock.dbname = "tests"
+        config_mock.load = []
+        config_mock.drop_test_database = False
+        config_mock.port_search_count = 2
+        get_config_mock.return_value = config_mock
+
+        gen = raw_func(request, tmp_path_factory)
+        with pytest.raises(PortForException, match="Attempted"):
+            next(gen)
+
+    for pg_port, foreign_lock in zip(pg_ports, foreign_locks, strict=True):
+        assert foreign_lock.exists()
+        assert foreign_lock.read_text(encoding="utf-8") == f"pg_port {pg_port}\n"
+
+
 @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
 def test_actual_postgresql_start_windows(
     request: FixtureRequest,

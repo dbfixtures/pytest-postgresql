@@ -129,15 +129,16 @@ def postgresql_proc(
             while True:
                 try:
                     pg_port = _pg_port(port, config, used_ports)
-                    port_filename_path = port_path / f"postgresql-{pg_port}.port"
+                    candidate_port_file = port_path / f"postgresql-{pg_port}.port"
                     if pg_port in used_ports:
                         raise PortForException(
                             f"Port {pg_port} already in use, probably by other instances of the test. "
-                            f"{port_filename_path} is already used."
+                            f"{candidate_port_file} is already used."
                         )
                     used_ports.add(pg_port)
-                    with (port_filename_path).open("x") as port_file:
+                    with candidate_port_file.open("x") as port_file:
                         port_file.write(f"pg_port {pg_port}\n")
+                    port_filename_path = candidate_port_file
                     break
                 except FileExistsError:
                     if n >= config.port_search_count:
