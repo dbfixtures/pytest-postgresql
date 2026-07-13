@@ -18,14 +18,12 @@ jobs:
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_async_extra:
-    needs: [postgresql_18]
     uses: ./.github/workflows/async-postgres.yml
     with:
       postgresql: 18
       python-version: '3.12'
       os: ubuntu-latest
   windows_postgres_async_extra:
-    needs: [postgresql_18]
     uses: ./.github/workflows/async-postgres.yml
     with:
       postgresql: 17
