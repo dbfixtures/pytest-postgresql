@@ -17,7 +17,7 @@ class PostgreSQLConfig:
     port: str | None
     port_search_count: int
     user: str
-    password: str
+    password: str | None
     options: str
     startparams: str
     unixsocketdir: str

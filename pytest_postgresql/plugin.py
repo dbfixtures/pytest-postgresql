@@ -132,7 +132,7 @@ if _is_windows():
 
 def pytest_addoption(parser: Parser) -> None:
     """Configure options for pytest-postgresql."""
-    parser.addini(name="postgresql_exec", help=_help_executable, default="/usr/lib/postgresql/13/bin/pg_ctl")
+    parser.addini(name="postgresql_exec", help=_help_executable, default="/usr/lib/postgresql/14/bin/pg_ctl")
 
     parser.addini(name="postgresql_host", help=_help_host, default="127.0.0.1")
 

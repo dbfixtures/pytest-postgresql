@@ -138,7 +138,7 @@ showcontent = true
 
 [[tool.towncrier.type]]
 directory = "misc"
-name = "Miscellaneus"
+name = "Miscellaneous"
 showcontent = true
 
 [tool.tbump.version]

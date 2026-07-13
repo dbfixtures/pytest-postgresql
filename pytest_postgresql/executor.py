@@ -102,7 +102,7 @@ class PostgreSQLExecutor(TCPExecutor):
         timeout: Optional[int] = 60,
         sleep: float = 0.1,
         user: str = "postgres",
-        password: str = "",
+        password: str | None = None,
         options: str = "",
         postgres_options: str = "",
     ):

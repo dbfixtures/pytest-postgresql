@@ -6,7 +6,7 @@ from pathlib import Path
 from pytest_postgresql import factories
 
 pytest_plugins = ["pytester"]
-POSTGRESQL_VERSION = os.environ.get("POSTGRES", "13")
+POSTGRESQL_VERSION = os.environ.get("POSTGRES", "14")
 
 
 TEST_SQL_DIR = os.path.dirname(os.path.abspath(__file__)) + "/test_sql/"
