@@ -289,8 +289,8 @@ postgres_isolation_level = postgresql("postgresql_proc", isolation_level=psycopg
 def test_custom_isolation_level(postgres_isolation_level: Connection) -> None:
     """Check that a client fixture with a custom isolation level works."""
     cur = postgres_isolation_level.cursor()
-    cur.execute("SELECT 1")
-    assert cur.fetchone() == (1,)
+    cur.execute("SHOW transaction_isolation")
+    assert cur.fetchone() == ("serializable",)
 
 
 postgres_async_isolation_level = postgresql_async(
@@ -303,8 +303,8 @@ postgres_async_isolation_level = postgresql_async(
 async def test_custom_async_isolation_level(postgres_async_isolation_level: psycopg.AsyncConnection) -> None:
     """Check that an async client fixture with a custom isolation level works."""
     async with postgres_async_isolation_level.cursor() as cur:
-        await cur.execute("SELECT 1")
-        assert await cur.fetchone() == (1,)
+        await cur.execute("SHOW transaction_isolation")
+        assert await cur.fetchone() == ("serializable",)
 
 
 def test_postgresql_proc_removes_port_lock_on_teardown(

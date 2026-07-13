@@ -1,6 +1,8 @@
 """Tests for Windows asyncio loop configuration in the plugin."""
 
 import asyncio
+import os
+import shutil
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -28,6 +30,16 @@ def pointed_pytester(pytester: Pytester) -> Pytester:
 
 
 postgresql_proc_to_override = postgresql_proc()
+
+
+def _postgresql_available() -> bool:
+    """Return True when a PostgreSQL installation is likely available for integration tests."""
+    postgresql_exec = os.environ.get("POSTGRESQL_EXEC")
+    if postgresql_exec and os.path.exists(postgresql_exec):
+        return True
+    if shutil.which("pg_config") is not None:
+        return True
+    return shutil.which("pg_ctl") is not None
 
 
 def _make_item_with_fixtures(*fixture_names: str, postgresql_async_names: set[str] | None = None) -> MagicMock:
@@ -162,6 +174,7 @@ def test_item_uses_postgresql_async_fixture_detects_non_suffix_name() -> None:
     assert item_uses_postgresql_async_fixture(item) is True
 
 
+@pytest.mark.skipif(not _postgresql_available(), reason="PostgreSQL not available")
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows postgresql_async E2E")
 def test_postgresql_async_windows_subprocess_smoke(
     postgresql_proc_to_override: PostgreSQLExecutor,
