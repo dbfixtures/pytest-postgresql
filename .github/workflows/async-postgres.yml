@@ -83,11 +83,8 @@ jobs:
         run: |
           sudo locale-gen de_DE.UTF-8
       - name: Run async tests
-        env:
-          POSTGRESQL_EXEC: ${{ env.POSTGRESQL_EXEC }}
-          PYTEST_BASETEMP: ${{ runner.temp }}/pytest-basetemp
         run: |
-          python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="$POSTGRESQL_EXEC" -k "not docker" --basetemp="$PYTEST_BASETEMP"
+          python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
