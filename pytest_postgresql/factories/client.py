@@ -24,6 +24,7 @@ import pytest
 from psycopg import AsyncConnection, Connection
 from pytest import FixtureRequest
 
+from pytest_postgresql._asyncio_compat import is_async_extra_available
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
@@ -33,6 +34,23 @@ try:
     import pytest_asyncio
 except ImportError:
     pytest_asyncio = None  # type: ignore[assignment]
+
+
+def _postgresql_async_unavailable_stub() -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
+    """Return a sync fixture stub that raises when pytest-asyncio is missing or too old."""
+
+    @pytest.fixture
+    def postgresql_async_stub(request: FixtureRequest) -> None:
+        """Sync stub that raises ImportError when pytest-asyncio is absent or too old."""
+        raise ImportError(
+            "pytest-asyncio >= 1.4 is required for async fixtures. "
+            "Install it with: pip install pytest-postgresql[async]"
+        )
+
+    return cast(
+        Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
+        postgresql_async_stub,
+    )
 
 
 def postgresql(
@@ -107,20 +125,8 @@ def postgresql_async(
                             defaults to server's default
     :returns: function which makes an async connection to postgresql
     """
-    if pytest_asyncio is None:
-
-        @pytest.fixture
-        def postgresql_async_stub(request: FixtureRequest) -> None:
-            """Sync stub that raises ImportError when pytest-asyncio is absent."""
-            raise ImportError(
-                "pytest-asyncio >= 1.4 is required for async fixtures. "
-                "Install it with: pip install pytest-postgresql[async]"
-            )
-
-        return cast(
-            Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
-            postgresql_async_stub,
-        )
+    if not is_async_extra_available(pytest_asyncio):
+        return _postgresql_async_unavailable_stub()
 
     assert pytest_asyncio is not None
 

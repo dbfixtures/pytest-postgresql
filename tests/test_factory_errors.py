@@ -31,3 +31,15 @@ def test_postgresql_async_raises_on_use_without_pytest_asyncio() -> None:
         assert not hasattr(raw_func, "__await__"), "stub must be a sync function, not a coroutine"
         with pytest.raises(ImportError, match=r"pytest-asyncio >= 1\.4"):
             raw_func(None)  # type: ignore[arg-type]
+
+
+def test_postgresql_async_raises_on_use_with_old_pytest_asyncio() -> None:
+    """When pytest-asyncio is too old, the registered stub raises ImportError on use."""
+    old_pytest_asyncio = pytest.importorskip("pytest_asyncio")
+    with patch("pytest_postgresql.factories.client.pytest_asyncio", old_pytest_asyncio):
+        with patch.object(old_pytest_asyncio, "__version__", "1.3.0"):
+            fixture_func = postgresql_async("some_proc_fixture")
+            raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+            assert not hasattr(raw_func, "__await__"), "stub must be a sync function, not a coroutine"
+            with pytest.raises(ImportError, match=r"pytest-asyncio >= 1\.4"):
+                raw_func(None)  # type: ignore[arg-type]

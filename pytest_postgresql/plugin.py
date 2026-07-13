@@ -25,9 +25,10 @@ from tempfile import gettempdir
 
 import pytest
 from _pytest.config.argparsing import Parser
-from packaging.version import Version, parse
+from packaging.version import Version
 
 from pytest_postgresql import factories
+from pytest_postgresql._asyncio_compat import item_uses_postgresql_async_fixture, supports_loop_factories
 
 try:
     import pytest_asyncio
@@ -72,18 +73,12 @@ def _windows_selector_event_loop() -> asyncio.AbstractEventLoop:
     return asyncio.SelectorEventLoop(selectors.SelectSelector())
 
 
-def _pytest_asyncio_supports_loop_factories() -> bool:
-    if pytest_asyncio is None:
-        return False
-    return parse(pytest_asyncio.__version__) >= parse("1.4.0")
-
-
 def _is_windows() -> bool:
     return platform.system() == "Windows"
 
 
 def _uses_deprecated_asyncio_policy_on_windows() -> bool:
-    return Version(platform.python_version()) < Version("3.14") and not _pytest_asyncio_supports_loop_factories()
+    return Version(platform.python_version()) < Version("3.14") and not supports_loop_factories(pytest_asyncio)
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -108,8 +103,13 @@ if _is_windows():
         https://www.psycopg.org/psycopg3/docs/advanced/async.html .  pytest-asyncio
         exposes this hook (>= 1.4) so plugins can supply a compatible loop without
         requiring users to call ``asyncio.set_event_loop_policy`` themselves.
+
+        The selector factory is returned only for tests that use a postgresql async
+        client fixture.  Other asyncio tests receive the default event loop factory.
         """
-        return {"selector": _windows_selector_event_loop}
+        if item_uses_postgresql_async_fixture(item):
+            return {"selector": _windows_selector_event_loop}
+        return {"default": asyncio.new_event_loop}
 
 
 def pytest_addoption(parser: Parser) -> None:
