@@ -18,6 +18,10 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   async-extra:
     runs-on: ${{ inputs.os }}
@@ -27,6 +31,8 @@ jobs:
       POSTGRES: ${{ inputs.postgresql }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v6
         with:

@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   postgresql_18:
     uses: ./.github/workflows/single-postgres.yml
