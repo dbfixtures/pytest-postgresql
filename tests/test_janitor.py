@@ -106,6 +106,20 @@ async def test_cursor_custom_dbname_async() -> None:
             )
 
 
+@pytest.mark.asyncio
+async def test_cursor_skips_isolation_level_when_none_async() -> None:
+    """Async cursor must not call set_isolation_level when isolation_level is None."""
+    conn_mock = _make_async_conn_mock()
+    connect_mock = AsyncMock(return_value=conn_mock)
+    with patch("pytest_postgresql.janitor.psycopg.AsyncConnection.connect", connect_mock):
+        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=10)
+        async with janitor.cursor():
+            pass
+
+    conn_mock.set_isolation_level.assert_not_called()
+    conn_mock.set_autocommit.assert_called_once_with(True)
+
+
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="Unittest call_args.kwargs was introduced since python 3.8")
 @pytest.mark.parametrize("load_database", ("tests.loader.load_database", "tests.loader:load_database"))
 @patch("pytest_postgresql.janitor.psycopg.connect")

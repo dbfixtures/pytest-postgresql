@@ -65,6 +65,12 @@ Quick Start
    only.  On Python 3.14+, the legacy ``asyncio`` policy fallback is not used
    because that API is deprecated.
 
+   Because pytest-asyncio requires a non-empty loop-factory mapping whenever this
+   hook is registered, other asyncio tests in the same run on Windows are assigned
+   a default ``asyncio.new_event_loop`` factory (you may see test IDs such as
+   ``test_example[default]``).  This does not change the loop type for unrelated
+   tests; only postgresql async fixtures receive the ``SelectorEventLoop``.
+
    If you use an older ``pytest-asyncio`` (< 1.4) on Windows with Python < 3.14,
    the plugin falls back to setting a global ``WindowsSelectorEventLoopPolicy`` for
    the **entire test session** — not only for postgresql async tests.  That can change
@@ -159,10 +165,15 @@ The plugin provides two main types of fixtures:
 
     **Async SQL file loading**
 
-    When a process fixture ``load`` list contains ``Path`` objects and you use
-    ``postgresql_async``, SQL files are loaded via ``sql_async`` (requires
-    ``aiofiles`` from the ``[async]`` extra).  Callable loaders may be sync or
-    async; return values that are awaitable are awaited automatically.
+    Process and noproc fixtures always populate their template database
+    synchronously during session setup (via ``DatabaseJanitor.load()``), even when
+    you use ``postgresql_async`` as the client fixture.  SQL ``Path`` entries in a
+    process fixture ``load`` list are executed with the sync ``sql()`` loader.
+
+    Use ``sql_async`` (requires ``aiofiles`` from the ``[async]`` extra) when you
+    call ``AsyncDatabaseJanitor.load()`` directly with a ``Path``.  Callable loaders
+    passed to ``AsyncDatabaseJanitor.load()`` may be sync or async; return values
+    that are awaitable are awaited automatically.
 
     .. code-block:: python
 
@@ -232,7 +243,7 @@ Defining pre-population on the command line:
 
 .. code-block:: sh
 
-    pytest --postgresql-populate-template=path/to/file.sql --postgresql-populate-template=path.to.function
+    pytest --postgresql-load=path/to/file.sql --postgresql-load=path.to.function
 
 Connecting to an existing PostgreSQL database
 ----------------------------------------------
@@ -449,7 +460,9 @@ Advanced Usage: AsyncDatabaseJanitor
 
 ``AsyncDatabaseJanitor`` is the async counterpart to ``DatabaseJanitor``.  Use it
 when managing database state with ``psycopg.AsyncConnection`` outside of standard
-fixtures.  Requires ``pytest-postgresql[async]``.
+fixtures.  It requires ``psycopg`` (a core dependency).  Install
+``pytest-postgresql[async]`` when you need ``aiofiles`` for SQL file loading via
+``sql_async``, or ``pytest-asyncio`` for pytest async tests.
 
 .. code-block:: python
 

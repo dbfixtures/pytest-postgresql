@@ -39,8 +39,7 @@ def _make_item_with_fixtures(*fixture_names: str, postgresql_async_names: set[st
     for name in fixture_names:
         if name in async_names:
             fixture_func = postgresql_async("postgresql_proc")
-            raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
-            fixturedefs[name] = (SimpleNamespace(func=raw_func),)
+            fixturedefs[name] = (SimpleNamespace(func=fixture_func),)
         else:
             fixturedefs[name] = (SimpleNamespace(func=lambda: None),)
 
@@ -122,12 +121,22 @@ def test_pytest_asyncio_loop_factories_skips_unrelated_async_tests() -> None:
 
     factories = _resolve_windows_loop_factories(item, None)
     assert factories is not None
+    assert "selector" not in factories
     assert set(factories) == {"default"}
     loop = factories["default"]()
     try:
         assert isinstance(loop, asyncio.AbstractEventLoop)
     finally:
         loop.close()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory hook")
+def test_pytest_asyncio_loop_factories_never_injects_selector_for_sync_tests() -> None:
+    """Sync tests that do not request postgresql async fixtures are not detected."""
+    item = _make_item_with_fixtures("postgresql")
+    assert item_uses_postgresql_async_fixture(item) is False
+    factories = _resolve_windows_loop_factories(item, None)
+    assert "selector" not in factories
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory hook")

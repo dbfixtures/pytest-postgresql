@@ -30,11 +30,14 @@ def mark_postgresql_async_fixture(func: Callable[..., Any]) -> Callable[..., Any
 
 def is_postgresql_async_fixture_func(func: object) -> bool:
     """Return True when func was created by postgresql_async()."""
-    wrapped = getattr(func, "__wrapped__", func)
-    if getattr(wrapped, POSTGRESQL_ASYNC_FIXTURE_ATTR, False):
-        return True
-    module = getattr(wrapped, "__module__", "")
-    return module.startswith("pytest_postgresql") and getattr(wrapped, "__name__", "") == "postgresql_async_factory"
+    current: object | None = func
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if getattr(current, POSTGRESQL_ASYNC_FIXTURE_ATTR, False):
+            return True
+        current = getattr(current, "__wrapped__", None)
+    return False
 
 
 def item_uses_postgresql_async_fixture(item: pytest.Item) -> bool:

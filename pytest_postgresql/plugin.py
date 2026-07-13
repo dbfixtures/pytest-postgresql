@@ -91,6 +91,8 @@ def _resolve_windows_loop_factories(
         return {"selector": _windows_selector_event_loop}
     if prior_result is not None:
         return prior_result
+    # pytest-asyncio requires a non-empty mapping when this hook is registered.
+    # Use the stdlib factory so unrelated asyncio tests keep default loop behaviour.
     return {"default": asyncio.new_event_loop}
 
 
@@ -119,8 +121,9 @@ if _is_windows():
 
         The selector factory is forced for tests that use a postgresql async client
         fixture.  Other asyncio tests defer to earlier hook implementations; when
-        none are registered, a default factory is supplied so pytest-asyncio's
-        non-empty mapping requirement is satisfied.
+        none are registered, a default factory is supplied because pytest-asyncio
+        rejects an empty mapping once this hook is present (see README Windows
+        notes for the resulting ``[default]`` test IDs).
         """
         outcome: Any = yield
         result = outcome.get_result()
