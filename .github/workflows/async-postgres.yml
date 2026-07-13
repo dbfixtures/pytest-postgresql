@@ -63,25 +63,9 @@ jobs:
           fi
       - name: Detect PostgreSQL path on Windows
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $pgFound = $false
-          $hardcodedPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl.exe"
-          if (Test-Path $hardcodedPath) {
-            echo "POSTGRESQL_EXEC=$hardcodedPath" >> $env:GITHUB_ENV
-            $pgFound = $true
-          } else {
-            $pgPath = (Get-Command pg_ctl -ErrorAction SilentlyContinue).Source
-            if ($pgPath) {
-              echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
-              $pgFound = $true
-            }
-          }
-
-          if (-not $pgFound) {
-            Write-Error "Error: pg_ctl not found in expected locations. Checked hardcoded path and system PATH."
-            exit 1
-          }
+        uses: ./.github/actions/detect-pg-ctl
+        with:
+          postgresql-version: ${{ inputs.postgresql }}
       - name: update locale for tests
         if: ${{ inputs.os == 'ubuntu-latest' }}
         run: |

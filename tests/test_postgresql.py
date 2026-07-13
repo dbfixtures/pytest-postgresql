@@ -1,8 +1,7 @@
 """All tests for pytest-postgresql."""
 
-import decimal
-
 import pytest
+from packaging.version import parse
 from psycopg import AsyncConnection, Connection
 from psycopg.pq import ConnStatus
 
@@ -107,7 +106,7 @@ async def test_rand_postgres_port_async(postgresql2_async: AsyncConnection) -> N
 
 
 @pytest.mark.skipif(
-    decimal.Decimal(POSTGRESQL_VERSION) < 10,
+    parse(POSTGRESQL_VERSION) < parse("10"),
     reason="Test query not supported in those postgresql versions, and soon will not be supported.",
 )
 @pytest.mark.xdist_group(name="terminate_connection")

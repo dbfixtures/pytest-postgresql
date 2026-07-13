@@ -1,0 +1,28 @@
+name: Detect PostgreSQL path on Windows
+description: Set POSTGRESQL_EXEC for pg_ctl on Windows runners
+inputs:
+  postgresql-version:
+    description: PostgreSQL major version
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: pwsh
+      run: |
+        $pgFound = $false
+        $hardcodedPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql-version }}\bin\pg_ctl.exe"
+        if (Test-Path $hardcodedPath) {
+          echo "POSTGRESQL_EXEC=$hardcodedPath" >> $env:GITHUB_ENV
+          $pgFound = $true
+        } else {
+          $pgPath = (Get-Command pg_ctl -ErrorAction SilentlyContinue).Source
+          if ($pgPath) {
+            echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+            $pgFound = $true
+          }
+        }
+
+        if (-not $pgFound) {
+          Write-Error "Error: pg_ctl not found in expected locations. Checked hardcoded path and system PATH."
+          exit 1
+        }
