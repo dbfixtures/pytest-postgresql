@@ -146,7 +146,7 @@ def postgresql_proc(
                             f"Attempted {n} times to select ports. "
                             f"All attempted ports: {', '.join(map(str, used_ports))} are already "
                             f"in use, probably by other instances of the test."
-                        )
+                        ) from None
                     n += 1
 
             tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
