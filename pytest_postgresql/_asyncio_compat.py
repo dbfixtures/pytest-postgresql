@@ -22,11 +22,6 @@ def supports_loop_factories(pytest_asyncio: ModuleType | None) -> bool:
     return parse(pytest_asyncio.__version__) >= _MIN_PYTEST_ASYNCIO_VERSION
 
 
-def is_pytest_asyncio_supported(pytest_asyncio: ModuleType | None) -> bool:
-    """Return True when pytest-asyncio meets the minimum version for async fixtures."""
-    return supports_loop_factories(pytest_asyncio)
-
-
 def mark_postgresql_async_fixture(func: Callable[..., Any]) -> Callable[..., Any]:
     """Tag a fixture function as a postgresql async client fixture."""
     setattr(func, POSTGRESQL_ASYNC_FIXTURE_ATTR, True)

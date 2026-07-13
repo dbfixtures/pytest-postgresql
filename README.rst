@@ -206,6 +206,10 @@ Connecting to an existing PostgreSQL database
 
 To connect to an external server (e.g., running in Docker), use the ``postgresql_noproc`` fixture.
 
+For async tests against an external server, create a client fixture with
+``factories.postgresql_async("postgresql_noproc")`` (see
+``tests/examples/test_drop_test_database_async.py``).
+
 .. code-block:: python
 
     postgresql_external = factories.postgresql('postgresql_noproc')

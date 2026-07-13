@@ -24,7 +24,7 @@ import pytest
 from psycopg import AsyncConnection, Connection
 from pytest import FixtureRequest
 
-from pytest_postgresql._asyncio_compat import is_pytest_asyncio_supported, mark_postgresql_async_fixture
+from pytest_postgresql._asyncio_compat import mark_postgresql_async_fixture, supports_loop_factories
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
@@ -126,7 +126,7 @@ def postgresql_async(
                             defaults to server's default
     :returns: function which makes an async connection to postgresql
     """
-    if not is_pytest_asyncio_supported(pytest_asyncio):
+    if not supports_loop_factories(pytest_asyncio):
         return _postgresql_async_unavailable_stub()
 
     assert pytest_asyncio is not None
