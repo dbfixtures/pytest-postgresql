@@ -41,18 +41,20 @@ jobs:
       - name: Detect PostgreSQL path on Windows
         shell: pwsh
         run: |
-          $pgPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl.exe"
-          if (Test-Path $pgPath) {
-            echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+          $pgFound = $false
+          $hardcodedPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl.exe"
+          if (Test-Path $hardcodedPath) {
+            echo "POSTGRESQL_EXEC=$hardcodedPath" >> $env:GITHUB_ENV
+            $pgFound = $true
           } else {
             $pgPath = (Get-Command pg_ctl -ErrorAction SilentlyContinue).Source
             if ($pgPath) {
               echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
+              $pgFound = $true
             }
           }
 
-          # Verify that PostgreSQL was found
-          if (-not $pgPath) {
+          if (-not $pgFound) {
             Write-Error "Error: pg_ctl not found in expected locations. Checked hardcoded path and system PATH."
             exit 1
           }

@@ -9,9 +9,9 @@ from typing import Any, Callable
 import psycopg
 
 try:
-    import aiofiles
+    import aiofiles  # type: ignore[import-untyped]
 except ImportError:
-    aiofiles = None  # type: ignore[assignment]
+    aiofiles = None
 
 
 def sql(sql_filename: Path, **kwargs: Any) -> None:

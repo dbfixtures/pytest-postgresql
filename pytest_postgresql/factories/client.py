@@ -24,7 +24,7 @@ import pytest
 from psycopg import AsyncConnection, Connection
 from pytest import FixtureRequest
 
-from pytest_postgresql._asyncio_compat import is_async_extra_available
+from pytest_postgresql._asyncio_compat import is_pytest_asyncio_supported, mark_postgresql_async_fixture
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
@@ -47,6 +47,7 @@ def _postgresql_async_unavailable_stub() -> Callable[[FixtureRequest], AsyncIter
             "Install it with: pip install pytest-postgresql[async]"
         )
 
+    mark_postgresql_async_fixture(postgresql_async_stub)
     return cast(
         Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
         postgresql_async_stub,
@@ -125,12 +126,12 @@ def postgresql_async(
                             defaults to server's default
     :returns: function which makes an async connection to postgresql
     """
-    if not is_async_extra_available(pytest_asyncio):
+    if not is_pytest_asyncio_supported(pytest_asyncio):
         return _postgresql_async_unavailable_stub()
 
     assert pytest_asyncio is not None
 
-    @pytest_asyncio.fixture  # type: ignore[untyped-decorator]
+    @pytest_asyncio.fixture
     async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
         """Async connection fixture factory for PostgreSQL.
 
@@ -170,6 +171,7 @@ def postgresql_async(
             yield db_connection
             await db_connection.close()
 
+    mark_postgresql_async_fixture(postgresql_async_factory)
     return cast(
         Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
         postgresql_async_factory,

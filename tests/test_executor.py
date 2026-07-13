@@ -15,7 +15,7 @@ import pytest_postgresql.factories.process as process
 from pytest_postgresql.config import get_config
 from pytest_postgresql.exceptions import PostgreSQLUnsupported
 from pytest_postgresql.executor import PostgreSQLExecutor
-from pytest_postgresql.factories import postgresql, postgresql_proc
+from pytest_postgresql.factories import postgresql, postgresql_async, postgresql_proc
 from pytest_postgresql.retry import retry
 
 
@@ -291,6 +291,20 @@ def test_custom_isolation_level(postgres_isolation_level: Connection) -> None:
     cur = postgres_isolation_level.cursor()
     cur.execute("SELECT 1")
     assert cur.fetchone() == (1,)
+
+
+postgres_async_isolation_level = postgresql_async(
+    "postgresql_proc",
+    isolation_level=psycopg.IsolationLevel.SERIALIZABLE,
+)
+
+
+@pytest.mark.asyncio
+async def test_custom_async_isolation_level(postgres_async_isolation_level: psycopg.AsyncConnection) -> None:
+    """Check that an async client fixture with a custom isolation level works."""
+    async with postgres_async_isolation_level.cursor() as cur:
+        await cur.execute("SELECT 1")
+        assert await cur.fetchone() == (1,)
 
 
 def test_postgresql_proc_removes_port_lock_on_teardown(

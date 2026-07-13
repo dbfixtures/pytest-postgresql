@@ -65,6 +65,11 @@ Quick Start
    only.  On Python 3.14+, the legacy ``asyncio`` policy fallback is not used
    because that API is deprecated.
 
+   If you use an older ``pytest-asyncio`` (< 1.4) on Windows with Python < 3.14,
+   the plugin falls back to setting a global ``WindowsSelectorEventLoopPolicy`` for
+   the whole test session.  Install ``pytest-postgresql[async]`` (which pulls
+   ``pytest-asyncio`` >= 1.4) to avoid that legacy path.
+
    .. note::
 
        While this plugin requires ``psycopg`` 3 to manage the database, your application code can still use ``psycopg`` 2.
@@ -400,6 +405,39 @@ Advanced Usage: DatabaseJanitor
                 password="secret_password",
             ) as conn:
                 # use connection
+                pass
+
+Advanced Usage: AsyncDatabaseJanitor
+------------------------------------
+
+``AsyncDatabaseJanitor`` is the async counterpart to ``DatabaseJanitor``.  Use it
+when managing database state with ``psycopg.AsyncConnection`` outside of standard
+fixtures.  Requires ``pytest-postgresql[async]``.
+
+.. code-block:: python
+
+    import pytest
+    import psycopg
+    from pytest_postgresql.janitor import AsyncDatabaseJanitor
+
+    @pytest.mark.asyncio
+    async def test_manual_async_janitor(postgresql_proc):
+        async with AsyncDatabaseJanitor(
+            user=postgresql_proc.user,
+            host=postgresql_proc.host,
+            port=postgresql_proc.port,
+            dbname="my_custom_db",
+            version=postgresql_proc.version,
+            password="secret_password",
+        ):
+            async with await psycopg.AsyncConnection.connect(
+                dbname="my_custom_db",
+                user=postgresql_proc.user,
+                host=postgresql_proc.host,
+                port=postgresql_proc.port,
+                password="secret_password",
+            ) as conn:
+                # use async connection
                 pass
 
 Connecting to PostgreSQL in Docker

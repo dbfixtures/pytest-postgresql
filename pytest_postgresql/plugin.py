@@ -20,8 +20,9 @@
 import asyncio
 import platform
 import selectors
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from tempfile import gettempdir
+from typing import Any
 
 import pytest
 from _pytest.config.argparsing import Parser
@@ -81,22 +82,34 @@ def _uses_deprecated_asyncio_policy_on_windows() -> bool:
     return Version(platform.python_version()) < Version("3.14") and not supports_loop_factories(pytest_asyncio)
 
 
+def _resolve_windows_loop_factories(
+    item: pytest.Item,
+    prior_result: dict[str, Callable[[], asyncio.AbstractEventLoop]] | None,
+) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
+    """Choose loop factories for a test item on Windows."""
+    if item_uses_postgresql_async_fixture(item):
+        return {"selector": _windows_selector_event_loop}
+    if prior_result is not None:
+        return prior_result
+    return {"default": asyncio.new_event_loop}
+
+
 def pytest_configure(config: pytest.Config) -> None:
     """Set legacy Windows selector policy when loop-factory hook is unavailable."""
     if not _is_windows() or not config.pluginmanager.has_plugin("asyncio"):
         return
     if not _uses_deprecated_asyncio_policy_on_windows():
         return
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # type: ignore[attr-defined]
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 if _is_windows():
 
-    @pytest.hookimpl(optionalhook=True)
+    @pytest.hookimpl(hookwrapper=True, optionalhook=True)
     def pytest_asyncio_loop_factories(
         config: pytest.Config,
         item: pytest.Item,
-    ) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
+    ) -> Generator[None, object, None]:
         """Register a SelectorEventLoop factory for psycopg async on Windows.
 
         psycopg async is incompatible with the default ProactorEventLoop; see
@@ -104,12 +117,14 @@ if _is_windows():
         exposes this hook (>= 1.4) so plugins can supply a compatible loop without
         requiring users to call ``asyncio.set_event_loop_policy`` themselves.
 
-        The selector factory is returned only for tests that use a postgresql async
-        client fixture.  Other asyncio tests receive the default event loop factory.
+        The selector factory is forced for tests that use a postgresql async client
+        fixture.  Other asyncio tests defer to earlier hook implementations; when
+        none are registered, a default factory is supplied so pytest-asyncio's
+        non-empty mapping requirement is satisfied.
         """
-        if item_uses_postgresql_async_fixture(item):
-            return {"selector": _windows_selector_event_loop}
-        return {"default": asyncio.new_event_loop}
+        outcome: Any = yield
+        result = outcome.get_result()
+        outcome.force_result(_resolve_windows_loop_factories(item, result))
 
 
 def pytest_addoption(parser: Parser) -> None:
