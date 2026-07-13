@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import AsyncIterator, Callable, Iterator, Type, TypeVar
+from typing import AsyncIterator, Callable, Iterator, Protocol, Type, TypeVar
 
 import psycopg
 import psycopg.sql as sql
@@ -84,8 +84,46 @@ def _init_janitor_config(
     )
 
 
+class _JanitorConfigTarget(Protocol):
+    user: str
+    password: str | None
+    host: str
+    port: str | int
+    dbname: str
+    template_dbname: str | None
+    as_template: bool
+    _connection_timeout: int
+    isolation_level: "psycopg.IsolationLevel | None"
+    version: Version  # type: ignore[valid-type]
+
+
+def _apply_janitor_config(target: _JanitorConfigTarget, config: _JanitorConfig) -> None:
+    """Copy shared janitor configuration onto a janitor instance."""
+    target.user = config.user
+    target.password = config.password
+    target.host = config.host
+    target.port = config.port
+    target.dbname = config.dbname
+    target.template_dbname = config.template_dbname
+    target.as_template = config.as_template
+    target._connection_timeout = config.connection_timeout
+    target.isolation_level = config.isolation_level
+    target.version = config.version
+
+
 class DatabaseJanitor:
     """Manage database state for specific tasks."""
+
+    user: str
+    password: str | None
+    host: str
+    port: str | int
+    dbname: str
+    template_dbname: str | None
+    as_template: bool
+    _connection_timeout: int
+    isolation_level: "psycopg.IsolationLevel | None"
+    version: Version  # type: ignore[valid-type]
 
     def __init__(
         self,
@@ -128,16 +166,7 @@ class DatabaseJanitor:
             isolation_level=isolation_level,
             connection_timeout=connection_timeout,
         )
-        self.user = config.user
-        self.password = config.password
-        self.host = config.host
-        self.port = config.port
-        self.dbname = config.dbname
-        self.template_dbname = config.template_dbname
-        self.as_template = config.as_template
-        self._connection_timeout = config.connection_timeout
-        self.isolation_level = config.isolation_level
-        self.version = config.version
+        _apply_janitor_config(self, config)
 
     def init(self) -> None:
         """Create database in postgresql."""
@@ -239,6 +268,17 @@ class DatabaseJanitor:
 class AsyncDatabaseJanitor:
     """Manage database state asynchronously for specific tasks."""
 
+    user: str
+    password: str | None
+    host: str
+    port: str | int
+    dbname: str
+    template_dbname: str | None
+    as_template: bool
+    _connection_timeout: int
+    isolation_level: "psycopg.IsolationLevel | None"
+    version: Version  # type: ignore[valid-type]
+
     def __init__(
         self,
         *,
@@ -280,16 +320,7 @@ class AsyncDatabaseJanitor:
             isolation_level=isolation_level,
             connection_timeout=connection_timeout,
         )
-        self.user = config.user
-        self.password = config.password
-        self.host = config.host
-        self.port = config.port
-        self.dbname = config.dbname
-        self.template_dbname = config.template_dbname
-        self.as_template = config.as_template
-        self._connection_timeout = config.connection_timeout
-        self.isolation_level = config.isolation_level
-        self.version = config.version
+        _apply_janitor_config(self, config)
 
     async def init(self) -> None:
         """Create database in postgresql."""
