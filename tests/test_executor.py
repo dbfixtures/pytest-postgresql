@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import psycopg
 import pytest
 from packaging.version import parse
-from port_for import get_port
+from port_for import PortForException, get_port
 from psycopg import Connection
 from pytest import FixtureRequest
 
@@ -377,6 +377,40 @@ def test_postgresql_proc_removes_port_lock_on_setup_failure(
 
     port_file = port_path / f"postgresql-{pg_port}.port"
     assert not port_file.exists()
+
+
+def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Port lock cleanup must not raise UnboundLocalError when _pg_port fails early."""
+    fixture_func = postgresql_proc(port=None)
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    port_path = tmp_path_factory.getbasetemp()
+    if hasattr(request.config, "workerinput"):
+        port_path = tmp_path_factory.getbasetemp().parent
+
+    with (
+        patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
+        patch(
+            "pytest_postgresql.factories.process._pg_port",
+            side_effect=PortForException("no free ports"),
+        ),
+        patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+    ):
+        config_mock = MagicMock()
+        config_mock.dbname = "tests"
+        config_mock.load = []
+        config_mock.drop_test_database = False
+        config_mock.port_search_count = 5
+        get_config_mock.return_value = config_mock
+
+        gen = raw_func(request, tmp_path_factory)
+        with pytest.raises(PortForException, match="no free ports"):
+            next(gen)
+
+    assert not list(port_path.glob("postgresql-*.port"))
 
 
 @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
