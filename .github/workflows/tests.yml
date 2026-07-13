@@ -10,7 +10,6 @@ jobs:
   postgresql_18:
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 18
@@ -19,7 +18,6 @@ jobs:
   postgresql_async_extra:
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/async-postgres.yml
     with:
       postgresql: 18
@@ -28,7 +26,6 @@ jobs:
   windows_postgres_async_extra:
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/async-postgres.yml
     with:
       postgresql: 17
@@ -38,7 +35,6 @@ jobs:
     needs: [postgresql_18]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/oldest-postgres.yml
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -46,7 +42,6 @@ jobs:
     needs: [postgresql_18]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 17
@@ -57,7 +52,6 @@ jobs:
     needs: [postgresql_17]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 16
@@ -68,7 +62,6 @@ jobs:
     needs: [postgresql_16]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 15
@@ -79,7 +72,6 @@ jobs:
     needs: [postgresql_15]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 14
@@ -90,7 +82,6 @@ jobs:
     needs: [postgresql_18]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 18
@@ -102,7 +93,6 @@ jobs:
     needs: [postgresql_17, macos_postgres_18]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 17
@@ -114,7 +104,6 @@ jobs:
     needs: [postgresql_16, macos_postgres_17]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 16
@@ -126,7 +115,6 @@ jobs:
     needs: [postgresql_17]
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres-windows.yml
     with:
       postgresql: 17
