@@ -31,9 +31,11 @@ from pytest_postgresql.executor_noop import NoopExecutor
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 
 try:
-    import pytest_asyncio
+    import pytest_asyncio as _pytest_asyncio
 except ImportError:
-    pytest_asyncio = None  # type: ignore[assignment]
+    _pytest_asyncio = None  # type: ignore[assignment]
+
+pytest_asyncio = _pytest_asyncio
 
 
 def _postgresql_async_unavailable_stub() -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
@@ -128,8 +130,6 @@ def postgresql_async(
     """
     if not supports_loop_factories(pytest_asyncio):
         return _postgresql_async_unavailable_stub()
-
-    assert pytest_asyncio is not None
 
     @pytest_asyncio.fixture
     async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:

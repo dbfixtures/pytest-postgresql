@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from types import ModuleType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeGuard
 
 from packaging.version import parse
 
@@ -15,7 +15,7 @@ _MIN_PYTEST_ASYNCIO_VERSION = parse("1.4.0")
 POSTGRESQL_ASYNC_FIXTURE_ATTR = "_pytest_postgresql_async_fixture"
 
 
-def supports_loop_factories(pytest_asyncio: ModuleType | None) -> bool:
+def supports_loop_factories(pytest_asyncio: ModuleType | None) -> TypeGuard[ModuleType]:
     """Return True when pytest-asyncio is installed at a version that supports loop factories."""
     if pytest_asyncio is None:
         return False

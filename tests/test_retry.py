@@ -1,11 +1,71 @@
 """Unit tests for retry and retry_async."""
 
 import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from pytest_postgresql.retry import retry_async
+from pytest_postgresql.retry import retry, retry_async
+
+
+def test_retry_immediate_success() -> None:
+    """Test that retry returns immediately when function succeeds on first call."""
+
+    def ok() -> int:
+        return 42
+
+    assert retry(ok, timeout=5) == 42
+
+
+def test_retry_succeeds_after_failures() -> None:
+    """Test that retry retries on the expected exception and returns on success."""
+    attempts = 0
+
+    def flaky() -> str:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise ConnectionError("transient")
+        return "ok"
+
+    with patch("pytest_postgresql.retry.sleep") as sleep_mock:
+        result = retry(flaky, timeout=10, possible_exception=ConnectionError)
+
+    assert result == "ok"
+    assert attempts == 3
+    assert sleep_mock.call_count == 2
+
+
+def test_retry_timeout() -> None:
+    """Test that retry raises TimeoutError after the timeout elapses."""
+    always_fail_mock = MagicMock(side_effect=ValueError("boom"))
+    base = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    call_count = 0
+
+    def advancing_clock() -> datetime.datetime:
+        nonlocal call_count
+        call_count += 1
+        return base if call_count == 1 else base + datetime.timedelta(seconds=10)
+
+    with (
+        patch("pytest_postgresql.retry.sleep"),
+        patch("pytest_postgresql.retry.get_current_datetime", advancing_clock),
+    ):
+        with pytest.raises(TimeoutError, match="Failed after"):
+            retry(always_fail_mock, timeout=1, possible_exception=ValueError)
+
+    assert always_fail_mock.call_count == 1
+    assert call_count == 2
+
+
+def test_retry_unmatched_exception_propagates() -> None:
+    """Test that an exception not matching possible_exception propagates immediately."""
+
+    def wrong_exc() -> None:
+        raise TypeError("unexpected")
+
+    with pytest.raises(TypeError, match="unexpected"):
+        retry(wrong_exc, timeout=5, possible_exception=ValueError)
 
 
 @pytest.mark.asyncio

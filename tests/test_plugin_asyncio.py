@@ -2,15 +2,32 @@
 
 import asyncio
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pytest import Pytester
 
+import pytest_postgresql
 import pytest_postgresql.plugin as plugin_module
 from pytest_postgresql._asyncio_compat import item_uses_postgresql_async_fixture
+from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.factories import postgresql_proc
 from pytest_postgresql.factories.client import postgresql_async
 from pytest_postgresql.plugin import _resolve_windows_loop_factories, _windows_selector_event_loop, pytest_configure
+
+
+@pytest.fixture
+def pointed_pytester(pytester: Pytester) -> Pytester:
+    """Pre-configured pytester fixture."""
+    pytest_postgresql_path = Path(pytest_postgresql.__file__)
+    root_path = pytest_postgresql_path.parent.parent
+    pytester.syspathinsert(root_path)
+    return pytester
+
+
+postgresql_proc_to_override = postgresql_proc()
 
 
 def _make_item_with_fixtures(*fixture_names: str, postgresql_async_names: set[str] | None = None) -> MagicMock:
@@ -134,3 +151,17 @@ def test_item_uses_postgresql_async_fixture_detects_non_suffix_name() -> None:
     """Fixture names without an _async suffix are detected via the factory marker."""
     item = _make_item_with_fixtures("async_postgresql_template", postgresql_async_names={"async_postgresql_template"})
     assert item_uses_postgresql_async_fixture(item) is True
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows postgresql_async E2E")
+def test_postgresql_async_windows_subprocess_smoke(
+    postgresql_proc_to_override: PostgreSQLExecutor,
+    pointed_pytester: Pytester,
+) -> None:
+    """postgresql_async works in a subprocess on Windows without manual loop configuration."""
+    pointed_pytester.copy_example("test_postgresql_async_windows_smoke.py")
+    ret = pointed_pytester.runpytest(
+        f"--postgresql-port={postgresql_proc_to_override.port}",
+        "test_postgresql_async_windows_smoke.py",
+    )
+    ret.assert_outcomes(passed=1)

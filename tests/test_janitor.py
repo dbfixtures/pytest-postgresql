@@ -357,6 +357,15 @@ async def test_async_janitor_terminate_connection_sql() -> None:
     assert params == ("target_db",)
 
 
+@pytest.mark.asyncio
+async def test_async_janitor_load_sql_path_raises_without_aiofiles() -> None:
+    """AsyncDatabaseJanitor.load() surfaces aiofiles ImportError for SQL file paths."""
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", version=10)
+    with patch("pytest_postgresql.loader.aiofiles", None):
+        with pytest.raises(ImportError, match="aiofiles"):
+            await janitor.load(Path("dummy.sql"))
+
+
 def _make_async_conn_mock() -> MagicMock:
     """Create a MagicMock that behaves like a psycopg3 AsyncConnection."""
     conn = MagicMock()

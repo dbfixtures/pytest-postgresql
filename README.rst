@@ -67,8 +67,22 @@ Quick Start
 
    If you use an older ``pytest-asyncio`` (< 1.4) on Windows with Python < 3.14,
    the plugin falls back to setting a global ``WindowsSelectorEventLoopPolicy`` for
-   the whole test session.  Install ``pytest-postgresql[async]`` (which pulls
-   ``pytest-asyncio`` >= 1.4) to avoid that legacy path.
+   the **entire test session** — not only for postgresql async tests.  That can change
+   event-loop behaviour for unrelated asyncio tests in the same run.  Install
+   ``pytest-postgresql[async]`` (which pulls ``pytest-asyncio`` >= 1.4) to avoid
+   that legacy path.
+
+   **pytest-asyncio configuration**
+
+   pytest-asyncio 1.x defaults to ``asyncio_mode = strict``, so each async test must
+   be marked with ``@pytest.mark.asyncio``.  If you set ``asyncio_mode = auto`` in
+   ``pytest.ini`` or ``pyproject.toml``, unmarked async test functions are detected
+   automatically — ``postgresql_async`` still requires the ``[async]`` extra.
+
+   .. code-block:: ini
+
+       [pytest]
+       asyncio_mode = strict
 
    .. note::
 
@@ -112,7 +126,11 @@ How does it work
 ----------------
 
 .. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/main/docs/images/architecture.svg
-    :alt: Project Architecture Diagram
+    :alt: Project Architecture Diagram (sync fixtures)
+    :align: center
+
+.. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/main/docs/images/architecture_async.svg
+    :alt: Project Architecture Diagram (async fixtures)
     :align: center
 
 The plugin provides two main types of fixtures:
@@ -138,6 +156,21 @@ The plugin provides two main types of fixtures:
         aiofiles >= 23.0        # only for async SQL file loading
 
     If ``pytest-asyncio`` is missing, fixture setup raises ``ImportError``.
+
+    **Async SQL file loading**
+
+    When a process fixture ``load`` list contains ``Path`` objects and you use
+    ``postgresql_async``, SQL files are loaded via ``sql_async`` (requires
+    ``aiofiles`` from the ``[async]`` extra).  Callable loaders may be sync or
+    async; return values that are awaitable are awaited automatically.
+
+    .. code-block:: python
+
+        from pathlib import Path
+        from pytest_postgresql import factories
+
+        postgresql_my_proc = factories.postgresql_proc(load=[Path("schema.sql")])
+        postgresql_my_async = factories.postgresql_async("postgresql_my_proc")
 
 **2. Process Fixtures**
     These manage the PostgreSQL server lifecycle.

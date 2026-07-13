@@ -1,0 +1,17 @@
+sequenceDiagram
+    autonumber
+    participant Pytest as Pytest runner
+    participant Plugin as plugin.py (Windows loop hook)
+    participant AsyncFactory as postgresql_async fixture
+    participant Janitor as AsyncDatabaseJanitor
+    participant PgServer as PostgreSQL server
+    participant TestDB as Per-test DB (clone)
+
+    Note over Plugin: Windows only: SelectorEventLoop for postgresql async fixtures
+    Pytest->>AsyncFactory: request postgresql_async (@pytest.mark.asyncio)
+    AsyncFactory->>Janitor: async with janitor
+    Janitor->>PgServer: CREATE DATABASE from template
+    AsyncFactory->>PgServer: AsyncConnection.connect
+    PgServer-->>Pytest: yield psycopg.AsyncConnection
+    Pytest->>TestDB: run async test queries
+    AsyncFactory->>Janitor: teardown: terminate connections and drop database
