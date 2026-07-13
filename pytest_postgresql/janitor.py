@@ -11,7 +11,7 @@ import psycopg.sql as sql
 from packaging.version import parse
 from psycopg import AsyncCursor, Connection, Cursor
 
-from pytest_postgresql.loader import build_loader, build_loader_async
+from pytest_postgresql.loader import build_loader, sql_async
 from pytest_postgresql.retry import retry, retry_async
 
 Version = type(parse("1"))
@@ -269,7 +269,7 @@ class AsyncDatabaseJanitor:
             * a callable that expects: host, port, user, dbname and password arguments.
 
         """
-        _loader = build_loader_async(load)
+        _loader = build_loader(load, sql_loader=sql_async)
         result = _loader(
             host=self.host,
             port=self.port,

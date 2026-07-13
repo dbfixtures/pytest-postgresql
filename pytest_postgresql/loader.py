@@ -14,21 +14,6 @@ except ImportError:
     aiofiles = None  # type: ignore[assignment]
 
 
-def build_loader(load: Callable | str | Path) -> Callable:
-    """Build a loader callable."""
-    if isinstance(load, Path):
-        return partial(sql, load)
-    elif isinstance(load, str):
-        loader_parts = re.split("[.:]", load)
-        import_path = ".".join(loader_parts[:-1])
-        loader_name = loader_parts[-1]
-        _temp_import = importlib.import_module(import_path)
-        _loader: Callable = getattr(_temp_import, loader_name)
-        return _loader
-    else:
-        return load
-
-
 def sql(sql_filename: Path, **kwargs: Any) -> None:
     """Database loader for sql files."""
     with psycopg.connect(**kwargs) as db_connection:
@@ -36,21 +21,6 @@ def sql(sql_filename: Path, **kwargs: Any) -> None:
             with db_connection.cursor() as cur:
                 cur.execute(_fd.read())
         db_connection.commit()
-
-
-def build_loader_async(load: Callable | str | Path) -> Callable:
-    """Build an async loader callable."""
-    if isinstance(load, Path):
-        return partial(sql_async, load)
-    elif isinstance(load, str):
-        loader_parts = re.split("[.:]", load)
-        import_path = ".".join(loader_parts[:-1])
-        loader_name = loader_parts[-1]
-        _temp_import = importlib.import_module(import_path)
-        _loader: Callable = getattr(_temp_import, loader_name)
-        return _loader
-    else:
-        return load
 
 
 async def sql_async(sql_filename: Path, **kwargs: Any) -> None:
@@ -68,3 +38,22 @@ async def sql_async(sql_filename: Path, **kwargs: Any) -> None:
             async with aiofiles.open(sql_filename, "r") as _fd:
                 await cur.execute(await _fd.read())
         await db_connection.commit()
+
+
+def build_loader(
+    load: Callable | str | Path,
+    *,
+    sql_loader: Callable[..., Any] = sql,
+) -> Callable:
+    """Build a loader callable."""
+    if isinstance(load, Path):
+        return partial(sql_loader, load)
+    elif isinstance(load, str):
+        loader_parts = re.split("[.:]", load)
+        import_path = ".".join(loader_parts[:-1])
+        loader_name = loader_parts[-1]
+        _temp_import = importlib.import_module(import_path)
+        _loader: Callable = getattr(_temp_import, loader_name)
+        return _loader
+    else:
+        return load

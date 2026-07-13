@@ -17,7 +17,7 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql client."""
 
-from typing import Any, AsyncIterator, Callable, Iterator, cast
+from typing import AsyncIterator, Callable, Iterator, cast
 
 import psycopg
 import pytest
@@ -29,13 +29,10 @@ from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 
-pytest_asyncio: Any = None
 try:
-    import pytest_asyncio as _pytest_asyncio_module
-
-    pytest_asyncio = _pytest_asyncio_module
+    import pytest_asyncio
 except ImportError:
-    pass
+    pytest_asyncio = None  # type: ignore[assignment]
 
 
 def postgresql(

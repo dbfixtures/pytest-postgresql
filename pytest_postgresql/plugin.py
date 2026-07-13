@@ -22,7 +22,6 @@ import platform
 import selectors
 from collections.abc import Callable
 from tempfile import gettempdir
-from typing import Any
 
 import pytest
 from _pytest.config.argparsing import Parser
@@ -30,13 +29,10 @@ from packaging.version import Version, parse
 
 from pytest_postgresql import factories
 
-pytest_asyncio: Any = None
 try:
-    import pytest_asyncio as _pytest_asyncio_module
-
-    pytest_asyncio = _pytest_asyncio_module
+    import pytest_asyncio
 except ImportError:
-    pass
+    pytest_asyncio = None  # type: ignore[assignment]
 
 _help_executable = "Path to PostgreSQL executable"
 _help_host = "Host at which PostgreSQL will accept connections"
