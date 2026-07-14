@@ -234,11 +234,14 @@ class PostgreSQLExecutor(TCPExecutor):
 
     def _initdb_env(self) -> dict[str, str]:
         """Build subprocess environment for initdb."""
-        return {
+        env = {
+            **os.environ,
             "LC_ALL": _LOCALE,
             "LC_CTYPE": _LOCALE,
             "LANG": _LOCALE,
         }
+        env.pop("PGDATA", None)
+        return env
 
     def _build_initdb_command(self, initdb_options: list[str], pgdata: str | None = None) -> list[str]:
         """Build the initdb invocation for the current platform."""
