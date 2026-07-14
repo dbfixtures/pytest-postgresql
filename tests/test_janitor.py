@@ -184,6 +184,26 @@ async def test_janitor_populate_async_awaitable_loader() -> None:
 
 
 @pytest.mark.asyncio
+async def test_janitor_populate_async_sync_loader_returns_awaitable() -> None:
+    """AsyncDatabaseJanitor.load awaits awaitables returned by sync loaders."""
+    call_kwargs = {
+        "host": "host",
+        "port": "1234",
+        "user": "user",
+        "dbname": "database_name",
+        "password": TEST_PASSWORD,
+    }
+    loader_mock = AsyncMock()
+
+    def sync_loader(**kwargs: object) -> object:
+        return loader_mock(**kwargs)
+
+    janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
+    await janitor.load(sync_loader)
+    loader_mock.assert_awaited_once_with(**call_kwargs)
+
+
+@pytest.mark.asyncio
 async def test_janitor_populate_async_sql_path(postgresql_proc: PostgreSQLExecutor) -> None:
     """AsyncDatabaseJanitor.load executes SQL from a Path via sql_async against live PostgreSQL."""
     dbname = xdistify_dbname("sql_async_load")

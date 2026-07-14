@@ -67,15 +67,10 @@ jobs:
         with:
           postgresql-version: ${{ inputs.postgresql }}
       - name: update locale for tests
-        if: ${{ inputs.os == 'ubuntu-latest' }}
+        if: startsWith(inputs.os, 'ubuntu')
         run: |
           sudo locale-gen de_DE.UTF-8
-      - name: Run async tests on Windows
-        if: runner.os == 'Windows'
-        run: |
-          python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
       - name: Run async tests
-        if: runner.os != 'Windows'
         run: |
           python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
       - uses: actions/upload-artifact@v7

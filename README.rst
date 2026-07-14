@@ -385,7 +385,7 @@ You can define settings via fixture factory arguments, command line options, or 
 
 .. note::
 
-    If the ``executable`` is not provided, the plugin attempts to find it by calling ``pg_config``. If that fails, it fallbacks to a common path like ``/usr/lib/postgresql/14/bin/pg_ctl``.
+    If the ``executable`` is not provided, the plugin attempts to find it by calling ``pg_config``. If that fails, it falls back to a common path like ``/usr/lib/postgresql/14/bin/pg_ctl``.
 
 Examples
 ========

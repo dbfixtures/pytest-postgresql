@@ -236,10 +236,7 @@ def postgresql_proc(
             request.addfinalizer(cleanup)
             return postgresql_executor
         except Exception:
-            try:
-                _stop_executor_best_effort()
-            finally:
-                _unlink_port_sentinel()
+            _cleanup_executor_resources()
             raise
 
     return postgresql_proc_fixture

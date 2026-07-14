@@ -401,7 +401,9 @@ class AsyncDatabaseJanitor:
             if inspect.isawaitable(result):
                 await result
         else:
-            await asyncio.to_thread(_loader, **loader_kwargs)
+            result = await asyncio.to_thread(_loader, **loader_kwargs)
+            if inspect.isawaitable(result):
+                await result
 
     @asynccontextmanager
     async def cursor(self, dbname: str = "postgres") -> AsyncIterator[AsyncCursor]:
