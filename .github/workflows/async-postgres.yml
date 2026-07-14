@@ -73,7 +73,7 @@ jobs:
       - name: Run async tests on Windows
         if: runner.os == 'Windows'
         run: |
-          python -m pytest -svv tests/test_postgresql.py::test_postgresql_proc tests/ -m "asyncio or bootstrap" -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker"
+          python -m pytest -svv tests/test_postgresql.py::test_postgresql_proc tests/ -m "asyncio or bootstrap" -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
       - name: Run async tests
         if: runner.os != 'Windows'
         run: |

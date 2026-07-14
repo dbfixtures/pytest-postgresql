@@ -398,6 +398,114 @@ def test_postgresql_proc_removes_port_lock_on_setup_failure(
     assert not port_file.exists()
 
 
+def test_postgresql_proc_stops_executor_on_setup_failure_after_start(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Executor is stopped when fixture setup fails after the server starts."""
+    fixture_func = postgresql_proc(port=None)
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    port_path = tmp_path_factory.getbasetemp()
+    if hasattr(request.config, "workerinput"):
+        port_path = tmp_path_factory.getbasetemp().parent
+    pg_port = get_port(None)
+    assert pg_port is not None
+
+    executor_mock = MagicMock()
+    executor_mock.start = MagicMock(return_value=executor_mock)
+    executor_mock.stop = MagicMock(return_value=executor_mock)
+    executor_mock.user = "postgres"
+    executor_mock.host = "127.0.0.1"
+    executor_mock.port = pg_port
+    executor_mock.template_dbname = "template_tests"
+    executor_mock.version = 14
+    executor_mock.password = None
+    executor_mock.wait_for_postgres = MagicMock()
+
+    janitor_mock = MagicMock()
+    janitor_mock.init = MagicMock(side_effect=RuntimeError("init failed"))
+    janitor_mock.drop = MagicMock()
+
+    with (
+        patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
+        patch("pytest_postgresql.factories.process._pg_port", return_value=pg_port),
+        patch("pytest_postgresql.factories.process.PostgreSQLExecutor", return_value=executor_mock),
+        patch("pytest_postgresql.factories.process.DatabaseJanitor", return_value=janitor_mock),
+        patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+    ):
+        config_mock = MagicMock()
+        config_mock.dbname = "tests"
+        config_mock.load = []
+        config_mock.drop_test_database = False
+        config_mock.port_search_count = 5
+        get_config_mock.return_value = config_mock
+
+        with pytest.raises(RuntimeError, match="init failed"):
+            raw_func(request, tmp_path_factory)
+
+    executor_mock.stop.assert_called_once()
+    port_file = port_path / f"postgresql-{pg_port}.port"
+    assert not port_file.exists()
+
+
+def test_postgresql_proc_cleanup_stops_executor_when_drop_fails(
+    request: FixtureRequest,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    """Executor is stopped and port lock removed even when janitor.drop() fails."""
+    fixture_func = postgresql_proc(port=None)
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    port_path = tmp_path_factory.getbasetemp()
+    if hasattr(request.config, "workerinput"):
+        port_path = tmp_path_factory.getbasetemp().parent
+    pg_port = get_port(None)
+    assert pg_port is not None
+
+    executor_mock = MagicMock()
+    executor_mock.start = MagicMock(return_value=executor_mock)
+    executor_mock.stop = MagicMock(return_value=executor_mock)
+    executor_mock.user = "postgres"
+    executor_mock.host = "127.0.0.1"
+    executor_mock.port = pg_port
+    executor_mock.template_dbname = "template_tests"
+    executor_mock.version = 14
+    executor_mock.password = None
+    executor_mock.wait_for_postgres = MagicMock()
+
+    janitor_mock = MagicMock()
+    janitor_mock.init = MagicMock()
+    janitor_mock.drop = MagicMock(side_effect=RuntimeError("drop failed"))
+
+    finalizers: list[Callable[[], None]] = []
+
+    with (
+        patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
+        patch("pytest_postgresql.factories.process._pg_port", return_value=pg_port),
+        patch("pytest_postgresql.factories.process.PostgreSQLExecutor", return_value=executor_mock),
+        patch("pytest_postgresql.factories.process.DatabaseJanitor", return_value=janitor_mock),
+        patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+        patch.object(request, "addfinalizer", side_effect=finalizers.append),
+    ):
+        config_mock = MagicMock()
+        config_mock.dbname = "tests"
+        config_mock.load = []
+        config_mock.drop_test_database = False
+        config_mock.port_search_count = 5
+        get_config_mock.return_value = config_mock
+
+        raw_func(request, tmp_path_factory)
+        port_file = port_path / f"postgresql-{pg_port}.port"
+        assert port_file.exists()
+        with pytest.raises(RuntimeError, match="drop failed"):
+            for finalizer in finalizers:
+                finalizer()
+
+    executor_mock.stop.assert_called_once()
+    assert not port_file.exists()
+
+
 def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
     request: FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,

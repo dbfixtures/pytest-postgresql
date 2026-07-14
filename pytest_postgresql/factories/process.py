@@ -130,6 +130,18 @@ def postgresql_proc(
         n = 0
         used_ports: set[int] = set()
         port_filename_path: Path | None = None
+        postgresql_executor: PostgreSQLExecutor | None = None
+
+        def _release_executor_resources() -> None:
+            if postgresql_executor is not None:
+                try:
+                    postgresql_executor.stop()
+                finally:
+                    if port_filename_path is not None:
+                        port_filename_path.unlink(missing_ok=True)
+            elif port_filename_path is not None:
+                port_filename_path.unlink(missing_ok=True)
+
         try:
             while True:
                 try:
@@ -190,16 +202,15 @@ def postgresql_proc(
                 janitor.load(load_element)
 
             def cleanup() -> None:
-                janitor.drop()
-                postgresql_executor.stop()
-                if port_filename_path is not None:
-                    port_filename_path.unlink(missing_ok=True)
+                try:
+                    janitor.drop()
+                finally:
+                    _release_executor_resources()
 
             request.addfinalizer(cleanup)
             return postgresql_executor
         except Exception:
-            if port_filename_path is not None:
-                port_filename_path.unlink(missing_ok=True)
+            _release_executor_resources()
             raise
 
     return postgresql_proc_fixture

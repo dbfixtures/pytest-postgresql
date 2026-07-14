@@ -909,6 +909,7 @@ class TestInitdbEnvironment:
     ) -> None:
         """Initdb uses the executor locale environment."""
         monkeypatch.setenv("HOME", "/home/user")
+        monkeypatch.setenv("PGDATA", "/wrong")
         with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/17/bin/pg_ctl",
@@ -924,6 +925,7 @@ class TestInitdbEnvironment:
             env = executor._initdb_env()
 
         assert env["HOME"] == "/home/user"
+        assert "PGDATA" not in env
         assert env["LC_ALL"] == executor.envvars["LC_ALL"]
         assert env["LC_CTYPE"] == executor.envvars["LC_CTYPE"]
         assert env["LANG"] == executor.envvars["LANG"]
