@@ -29,7 +29,7 @@ from _pytest.config.argparsing import Parser
 from packaging.version import Version
 
 from pytest_postgresql import factories
-from pytest_postgresql._asyncio_compat import item_uses_postgresql_async_fixture, supports_loop_factories
+from pytest_postgresql._asyncio_compat import supports_loop_factories
 
 try:
     import pytest_asyncio
