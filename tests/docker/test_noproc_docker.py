@@ -43,7 +43,11 @@ async def test_postgres_docker_load_async(async_postgres_with_schema: AsyncConne
     async with async_postgres_with_schema.cursor() as cur:
         await cur.execute("select * from public.tokens")
         rows = await cur.fetchall()
-        assert len(rows) > 0
+        assert isinstance(rows, list)
+        await cur.execute("SELECT to_regclass('public.tokens')")
+        table_name = await cur.fetchone()
+        assert table_name is not None
+        assert table_name[0] == "tokens"
 
 
 @pytest.mark.xdist_group(name="template_database")

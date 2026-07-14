@@ -68,7 +68,9 @@ def _prepare_dir(tmpdir: Path, pg_port: PortType, session_token: str) -> tuple[P
         # initdb on Windows cannot mkdir through existing pytest temp parents.
         temp_dir = Path(tempfile.gettempdir())
         datadir = temp_dir / f"pytest-postgresql-data-{session_token}-{pg_port}"
-        logfile_path = tmpdir / f"postgresql.{pg_port}.log"
+        # Keep the logfile on the same drive as pgdata; pytest basetemp can be
+        # on a different volume and pg_ctl rejects the -l path with Access denied.
+        logfile_path = temp_dir / f"pytest-postgresql-{session_token}-{pg_port}.log"
     else:
         datadir = tmpdir / f"data-{pg_port}"
         logfile_path = tmpdir / f"postgresql.{pg_port}.log"
