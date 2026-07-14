@@ -75,22 +75,11 @@ def test_postgres_port_search_count_in_ini_is_int(pointed_pytester: Pytester) ->
 postgresql_proc_to_override = postgresql_proc()
 
 
-def test_postgres_drop_test_database(
+def _run_drop_test_database_case(
     postgresql_proc_to_override: PostgreSQLExecutor,
     pointed_pytester: Pytester,
+    example_filename: str,
 ) -> None:
-    """Check that the database is dropped on both process and client level if argument is passed.
-
-    Given:
-        Preexisting tables override_tmpl and override (created with two DatabaseJanitor instances)
-    When:
-        Run test that connects to the process from current process with flag to drop database
-        specified
-    Then:
-        The internal pytest run will delete the database on start (and after).
-        It Would fail if it did not. Checks are performed by trying to connect to both override_tmpl
-        and override databases and checking resulting exceptions.
-    """
     dbname = xdistify_dbname("override")
     template_dbname = dbname + "_tmpl"
     template_janitor = DatabaseJanitor(
@@ -122,15 +111,15 @@ def test_postgres_drop_test_database(
         cur.execute("SELECT * FROM stories")
         res = cur.fetchall()
         assert len(res) == 4
-    # Actual test happens now
-    pointed_pytester.copy_example("test_drop_test_database.py")
+
+    pointed_pytester.copy_example(example_filename)
     test_sql_path = pointed_pytester.copy_example("test.sql")
     ret = pointed_pytester.runpytest(
         f"--postgresql-load={test_sql_path}",
         f"--postgresql-port={postgresql_proc_to_override.port}",
         "--postgresql-dbname=override",
         "--postgresql-drop-test-database",
-        "test_drop_test_database.py",
+        example_filename,
     )
     ret.assert_outcomes(passed=1)
 
@@ -144,3 +133,42 @@ def test_postgres_drop_test_database(
             pass
     assert hasattr(excinfo.value, "__cause__")
     assert f'FATAL:  database "{template_janitor.dbname}" does not exist' in str(excinfo.value.__cause__)
+
+
+def test_postgres_drop_test_database(
+    postgresql_proc_to_override: PostgreSQLExecutor,
+    pointed_pytester: Pytester,
+) -> None:
+    """Check that the database is dropped on both process and client level if argument is passed.
+
+    Given:
+        Preexisting tables override_tmpl and override (created with two DatabaseJanitor instances)
+    When:
+        Run test that connects to the process from current process with flag to drop database
+        specified
+    Then:
+        The internal pytest run will delete the database on start (and after).
+        It Would fail if it did not. Checks are performed by trying to connect to both override_tmpl
+        and override databases and checking resulting exceptions.
+    """
+    _run_drop_test_database_case(
+        postgresql_proc_to_override,
+        pointed_pytester,
+        "test_drop_test_database.py",
+    )
+
+
+def test_postgres_drop_test_database_async(
+    postgresql_proc_to_override: PostgreSQLExecutor,
+    pointed_pytester: Pytester,
+) -> None:
+    """Check that async client fixture drops the database when --postgresql-drop-test-database is set.
+
+    Mirrors ``test_postgres_drop_test_database`` but runs an async subprocess test that uses
+    ``postgresql_async`` against the same live PostgreSQL process.
+    """
+    _run_drop_test_database_case(
+        postgresql_proc_to_override,
+        pointed_pytester,
+        "test_drop_test_database_async.py",
+    )

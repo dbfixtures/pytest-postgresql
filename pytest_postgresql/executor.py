@@ -27,6 +27,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from pathlib import Path
 from typing import Any, Optional, TypeVar
 
 from mirakuru import TCPExecutor
@@ -102,7 +103,7 @@ class PostgreSQLExecutor(TCPExecutor):
         timeout: Optional[int] = 60,
         sleep: float = 0.1,
         user: str = "postgres",
-        password: str = "",
+        password: str | None = None,
         options: str = "",
         postgres_options: str = "",
     ):
@@ -227,9 +228,53 @@ class PostgreSQLExecutor(TCPExecutor):
 
     def clean_directory(self) -> None:
         """Remove directory created for postgresql run."""
-        if os.path.isdir(self.datadir):
+        if not os.path.isdir(self.datadir):
+            self._directory_initialised = False
+            return
+        if self.running():
+            logger.warning(
+                "Skipping removal of %s because PostgreSQL is still running",
+                self.datadir,
+            )
+            return
+        try:
             shutil.rmtree(self.datadir)
+        except OSError:
+            logger.exception("Failed to remove PostgreSQL data directory %s", self.datadir)
+            return
         self._directory_initialised = False
+
+    def _initdb_env(self) -> dict[str, str]:
+        """Build subprocess environment for initdb."""
+        merged_env = os.environ.copy()
+        merged_env.update(self.envvars)
+        merged_env.pop("PGDATA", None)
+        return merged_env
+
+    def _format_initdb_options(self, initdb_options: list[str]) -> str:
+        """Format initdb options for pg_ctl -o, preserving argument boundaries."""
+        if platform.system() == "Windows":
+            return subprocess.list2cmdline(initdb_options)
+        return " ".join(shlex.quote(opt) for opt in initdb_options)
+
+    def _build_initdb_command(self, initdb_options: list[str], pgdata: str | None = None) -> list[str]:
+        """Build the initdb invocation for the current platform."""
+        data_dir = pgdata or self.datadir
+        return [
+            self.executable,
+            "initdb",
+            "--pgdata",
+            data_dir,
+            "-o",
+            self._format_initdb_options(initdb_options),
+        ]
+
+    def _run_initdb(self, command: list[str]) -> None:
+        """Run initdb via pg_ctl and translate subprocess timeouts."""
+        try:
+            subprocess.check_output(command, env=self._initdb_env(), timeout=self._timeout)
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutExpired(self, self._timeout) from exc
 
     def init_directory(self) -> None:
         """Initialize postgresql data directory.
@@ -242,26 +287,33 @@ class PostgreSQLExecutor(TCPExecutor):
             return
         # remove old one if exists first.
         self.clean_directory()
-        init_directory = [self.executable, "initdb", "--pgdata", self.datadir]
+        pgdata = str(Path(self.datadir).resolve())
         options = ["--username=%s" % self.user]
 
         if self.password:
-            with tempfile.NamedTemporaryFile() as password_file:
-                options += ["--auth=password", "--pwfile=%s" % password_file.name]
+            password_file = tempfile.NamedTemporaryFile(delete=False)
+            password_path = password_file.name
+            try:
+                options += ["--auth=password", "--pwfile=%s" % password_path]
                 if hasattr(self.password, "encode"):
                     password = self.password.encode("utf-8")
                 else:
                     password = self.password  # type: ignore[assignment]
                 password_file.write(password)
                 password_file.flush()
-                init_directory += ["-o", " ".join(options)]
-                # Passing envvars to command to avoid weird MacOs error.
-                subprocess.check_output(init_directory, env=self.envvars)
+                password_file.close()
+                init_directory = self._build_initdb_command(options, pgdata=pgdata)
+                self._run_initdb(init_directory)
+            finally:
+                password_file.close()
+                try:
+                    os.unlink(password_path)
+                except OSError as exc:
+                    logger.warning("Failed to remove password file %s: %s", password_path, exc)
         else:
             options += ["--auth=trust"]
-            init_directory += ["-o", " ".join(options)]
-            # Passing envvars to command to avoid weird MacOs error.
-            subprocess.check_output(init_directory, env=self.envvars)
+            init_directory = self._build_initdb_command(options, pgdata=pgdata)
+            self._run_initdb(init_directory)
 
         self._directory_initialised = True
 
@@ -294,11 +346,20 @@ class PostgreSQLExecutor(TCPExecutor):
         """Check if server is running."""
         if not os.path.exists(self.datadir):
             return False
-        result = subprocess.run(
-            [self.executable, "status", "-D", self.datadir],
-            check=False,
-            capture_output=True,
-        )
+        try:
+            result = subprocess.run(
+                [self.executable, "status", "-D", self.datadir],
+                check=False,
+                capture_output=True,
+                timeout=self._timeout,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning(
+                "pg_ctl status timed out after %s seconds for datadir %s",
+                self._timeout,
+                self.datadir,
+            )
+            return True
         return result.returncode == 0
 
     def check_subprocess(self) -> bool:

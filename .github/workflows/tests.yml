@@ -8,18 +8,44 @@ on:
 
 jobs:
   postgresql_18:
+    permissions:
+      contents: read
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 18
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
+  postgresql_async_extra:
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/async-postgres.yml
+    with:
+      postgresql: 18
+      python-version: '3.12'
+      os: ubuntu-latest
+  windows_postgres_async_extra:
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/async-postgres.yml
+    with:
+      postgresql: 17
+      python-version: '3.14'
+      os: windows-latest
   postgresql_oldest:
     needs: [postgresql_18]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/oldest-postgres.yml
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_17:
     needs: [postgresql_18]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 17
@@ -28,6 +54,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_16:
     needs: [postgresql_17]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 16
@@ -36,6 +65,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_15:
     needs: [postgresql_16]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 15
@@ -44,6 +76,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_14:
     needs: [postgresql_15]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 14
@@ -52,6 +87,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   macos_postgres_18:
     needs: [postgresql_18]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 18
@@ -61,6 +99,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   macos_postgres_17:
     needs: [postgresql_17, macos_postgres_18]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 17
@@ -70,6 +111,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   macos_postgres_16:
     needs: [postgresql_16, macos_postgres_17]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 16
@@ -79,6 +123,9 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   windows_postgres_17:
     needs: [postgresql_17]
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/single-postgres-windows.yml
     with:
       postgresql: 17
@@ -87,6 +134,8 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_18:
     needs: [postgresql_18]
+    permissions:
+      contents: read
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 18
@@ -94,6 +143,8 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_17:
     needs: [postgresql_17, docker_postgresql_18]
+    permissions:
+      contents: read
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 17
@@ -102,6 +153,8 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_16:
     needs: [postgresql_16, docker_postgresql_18]
+    permissions:
+      contents: read
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 16
@@ -110,6 +163,8 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_15:
     needs: [postgresql_15, docker_postgresql_16]
+    permissions:
+      contents: read
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 15
@@ -118,6 +173,8 @@ jobs:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_14:
     needs: [postgresql_14, docker_postgresql_15]
+    permissions:
+      contents: read
     uses: ./.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 14

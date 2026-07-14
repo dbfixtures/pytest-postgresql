@@ -4,6 +4,8 @@ import os
 import subprocess
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from pytest_postgresql.executor import PostgreSQLExecutor
 
 
@@ -896,3 +898,117 @@ class TestRunningMethod:
 
             args = mock_run.call_args[0][0]
             assert args[3] == "/tmp/my data dir", f"Datadir not passed as argv element: {args!r}"
+
+    def test_running_uses_timeout(self) -> None:
+        """Test that running() passes self._timeout to subprocess.run."""
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+            timeout=42,
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+        ):
+            mock_run.return_value = MagicMock(returncode=0)
+            executor.running()
+
+            kwargs = mock_run.call_args[1]
+            assert kwargs.get("timeout") == 42
+
+    def test_running_returns_true_on_timeout(self) -> None:
+        """Test that running() treats pg_ctl status timeout as still running."""
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+            timeout=30,
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch(
+                "pytest_postgresql.executor.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(cmd="pg_ctl status", timeout=30),
+            ),
+        ):
+            assert executor.running() is True
+
+
+class TestInitdbEnvironment:
+    """Test initdb subprocess environment construction."""
+
+    def test_initdb_env_includes_locale_overrides(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Initdb uses the executor locale environment."""
+        monkeypatch.setenv("HOME", "/home/user")
+        monkeypatch.setenv("PGDATA", "/wrong")
+        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+            executor = PostgreSQLExecutor(
+                executable="/usr/lib/postgresql/17/bin/pg_ctl",
+                host="localhost",
+                port=5432,
+                datadir="/tmp/data",
+                unixsocketdir="/tmp/socket",
+                logfile="/tmp/log",
+                startparams="-w",
+                dbname="test",
+            )
+
+            env = executor._initdb_env()
+
+        assert env["HOME"] == "/home/user"
+        assert "PGDATA" not in env
+        assert env["LC_ALL"] == executor.envvars["LC_ALL"]
+        assert env["LC_CTYPE"] == executor.envvars["LC_CTYPE"]
+        assert env["LANG"] == executor.envvars["LANG"]
+
+    def test_build_initdb_command_uses_pg_ctl_on_windows(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Windows must invoke initdb through pg_ctl with wrapped options."""
+        monkeypatch.setattr(
+            "pytest_postgresql.executor.platform.system",
+            lambda: "Windows",
+        )
+        executor = PostgreSQLExecutor(
+            executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
+            host="localhost",
+            port=5432,
+            datadir="D:/data/cluster",
+            unixsocketdir="D:/tmp",
+            logfile="D:/tmp/log",
+            startparams="-w",
+            dbname="test",
+        )
+
+        initdb_options = [
+            "--username=postgres",
+            "--auth=trust",
+            "--locale=C:\\Program Files\\locale",
+        ]
+        command = executor._build_initdb_command(initdb_options)
+
+        assert command == [
+            "C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
+            "initdb",
+            "--pgdata",
+            "D:/data/cluster",
+            "-o",
+            subprocess.list2cmdline(initdb_options),
+        ]

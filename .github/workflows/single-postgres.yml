@@ -25,6 +25,7 @@ on:
 jobs:
   postgres:
     runs-on: ${{ inputs.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

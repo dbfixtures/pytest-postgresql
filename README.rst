@@ -38,6 +38,57 @@ Quick Start
 
    You will also need to install ``psycopg`` (version 3). See `its installation instructions <https://www.psycopg.org/psycopg3/docs/basic/install.html>`_.
 
+   For async tests with ``psycopg.AsyncConnection``, install the optional async extra:
+
+   .. code-block:: sh
+
+       pip install pytest-postgresql[async]
+
+   This installs:
+
+   * ``pytest-asyncio`` (>= 1.4) — required for ``@pytest.mark.asyncio`` and
+     ``postgresql_async`` fixtures.
+   * ``aiofiles`` (>= 23.0) — required only when loading SQL files via the
+     async loader (``sql_async``).
+
+   On Windows, the plugin configures a ``SelectorEventLoop`` automatically for
+   asyncio tests when no earlier pytest-asyncio loop factory is registered.  This
+   is required because ``psycopg`` async is incompatible with the default
+   ``ProactorEventLoop`` on Windows (`documented by
+   psycopg <https://www.psycopg.org/psycopg3/docs/advanced/async.html>`_).  Without
+   it, ``postgresql_async`` tests fail with ``Psycopg cannot use the
+   'ProactorEventLoop' to run in async mode``.  No extra configuration is needed
+   when you install ``pytest-postgresql[async]``.
+
+   With ``pytest-asyncio`` >= 1.4 on Windows, the plugin registers a selector loop
+   factory via pytest-asyncio's loop-factory hook for **all** asyncio tests when
+   no prior factory is provided.  On Python 3.14+, the legacy ``asyncio`` policy
+   fallback is not used because that API is deprecated.
+
+   When an earlier hook implementation already supplies loop factories, those are
+   preserved unchanged.  Tests that use a prior factory may show different loop
+   names in pytest IDs (for example ``test_example[custom]`` instead of
+   ``test_example[selector]``).
+
+   If you use an older ``pytest-asyncio`` (< 1.4) on Windows with Python < 3.14,
+   the plugin falls back to setting a global ``WindowsSelectorEventLoopPolicy`` for
+   the **entire test session** — not only for postgresql async tests.  That can change
+   event-loop behaviour for unrelated asyncio tests in the same run.  Install
+   ``pytest-postgresql[async]`` (which pulls ``pytest-asyncio`` >= 1.4) to avoid
+   that legacy path.
+
+   **pytest-asyncio configuration**
+
+   pytest-asyncio 1.x defaults to ``asyncio_mode = strict``, so each async test must
+   be marked with ``@pytest.mark.asyncio``.  If you set ``asyncio_mode = auto`` in
+   ``pytest.ini`` or ``pyproject.toml``, unmarked async test functions are detected
+   automatically — ``postgresql_async`` still requires the ``[async]`` extra.
+
+   .. code-block:: ini
+
+       [pytest]
+       asyncio_mode = strict
+
    .. note::
 
        While this plugin requires ``psycopg`` 3 to manage the database, your application code can still use ``psycopg`` 2.
@@ -54,6 +105,21 @@ Quick Start
                cur.execute("CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);")
                postgresql.commit()
 
+   For async code, use ``postgresql_async`` with ``pytest.mark.asyncio``:
+
+   .. code-block:: python
+
+       import pytest
+
+       @pytest.mark.asyncio
+       async def test_example_async(postgresql_async):
+           """Check main async postgresql fixture."""
+           async with postgresql_async.cursor() as cur:
+               await cur.execute(
+                   "CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);"
+               )
+               await postgresql_async.commit()
+
 How to use
 ==========
 
@@ -65,7 +131,11 @@ How does it work
 ----------------
 
 .. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/main/docs/images/architecture.svg
-    :alt: Project Architecture Diagram
+    :alt: Project Architecture Diagram (sync fixtures)
+    :align: center
+
+.. image:: https://raw.githubusercontent.com/dbfixtures/pytest-postgresql/main/docs/images/architecture_async.svg
+    :alt: Project Architecture Diagram (async fixtures)
     :align: center
 
 The plugin provides two main types of fixtures:
@@ -75,6 +145,42 @@ The plugin provides two main types of fixtures:
 
     * **postgresql** - A function-scoped fixture. It returns a connected ``psycopg.Connection``.
       After each test, it terminates leftover connections and drops the test database to ensure isolation.
+    * **postgresql_async** - The async counterpart. It returns a connected ``psycopg.AsyncConnection``.
+      Requires ``pytest-postgresql[async]`` (``pytest-asyncio`` >= 1.4), and each test must be
+      marked with ``@pytest.mark.asyncio``.
+
+**Async fixtures**
+    ``postgresql_async`` and custom factories created with ``factories.postgresql_async`` are
+    async generator fixtures using ``pytest_asyncio.fixture``.
+
+    Minimum versions when installing manually instead of via ``[async]``:
+
+    .. code-block:: text
+
+        pytest-asyncio >= 1.4
+        aiofiles >= 23.0        # only for async SQL file loading
+
+    If ``pytest-asyncio`` is missing, fixture setup raises ``ImportError``.
+
+    **Async SQL file loading**
+
+    Process and noproc fixtures always populate their template database
+    synchronously during session setup (via ``DatabaseJanitor.load()``), even when
+    you use ``postgresql_async`` as the client fixture.  SQL ``Path`` entries in a
+    process fixture ``load`` list are executed with the sync ``sql()`` loader.
+
+    Use ``sql_async`` (requires ``aiofiles`` from the ``[async]`` extra) when you
+    call ``AsyncDatabaseJanitor.load()`` directly with a ``Path``.  Callable loaders
+    passed to ``AsyncDatabaseJanitor.load()`` may be sync or async; return values
+    that are awaitable are awaited automatically.
+
+    .. code-block:: python
+
+        from pathlib import Path
+        from pytest_postgresql import factories
+
+        postgresql_my_proc = factories.postgresql_proc(load=[Path("schema.sql")])
+        postgresql_my_async = factories.postgresql_async("postgresql_my_proc")
 
 **2. Process Fixtures**
     These manage the PostgreSQL server lifecycle.
@@ -97,6 +203,9 @@ You can create additional fixtures using factories:
 
     # Create a client fixture that uses the custom process
     postgresql_my = factories.postgresql('postgresql_my_proc')
+
+    # Async client fixture (requires pytest-postgresql[async], pytest-asyncio >= 1.4)
+    postgresql_my_async = factories.postgresql_async('postgresql_my_proc')
 
 .. note::
 
@@ -133,12 +242,16 @@ Defining pre-population on the command line:
 
 .. code-block:: sh
 
-    pytest --postgresql-populate-template=path/to/file.sql --postgresql-populate-template=path.to.function
+    pytest --postgresql-load=path/to/file.sql --postgresql-load=path.to.function
 
 Connecting to an existing PostgreSQL database
 ----------------------------------------------
 
 To connect to an external server (e.g., running in Docker), use the ``postgresql_noproc`` fixture.
+
+For async tests against an external server, create a client fixture with
+``factories.postgresql_async("postgresql_noproc")`` (see
+``tests/examples/test_drop_test_database_async.py``).
 
 .. code-block:: python
 
@@ -250,7 +363,7 @@ You can define settings via fixture factory arguments, command line options, or 
      - --postgresql-dbname
      - postgresql_dbname
      - yes (handles xdist)
-     - test
+     - tests
    * - Default Schema (load list)
      - load
      - --postgresql-load
@@ -272,7 +385,7 @@ You can define settings via fixture factory arguments, command line options, or 
 
 .. note::
 
-    If the ``executable`` is not provided, the plugin attempts to find it by calling ``pg_config``. If that fails, it fallbacks to a common path like ``/usr/lib/postgresql/13/bin/pg_ctl``.
+    If the ``executable`` is not provided, the plugin attempts to find it by calling ``pg_config``. If that fails, it falls back to a common path like ``/usr/lib/postgresql/14/bin/pg_ctl``.
 
 Examples
 ========
@@ -339,6 +452,41 @@ Advanced Usage: DatabaseJanitor
                 password="secret_password",
             ) as conn:
                 # use connection
+                pass
+
+Advanced Usage: AsyncDatabaseJanitor
+------------------------------------
+
+``AsyncDatabaseJanitor`` is the async counterpart to ``DatabaseJanitor``.  Use it
+when managing database state with ``psycopg.AsyncConnection`` outside of standard
+fixtures.  It requires ``psycopg`` (a core dependency).  Install
+``pytest-postgresql[async]`` when you need ``aiofiles`` for SQL file loading via
+``sql_async``, or ``pytest-asyncio`` for pytest async tests.
+
+.. code-block:: python
+
+    import pytest
+    import psycopg
+    from pytest_postgresql.janitor import AsyncDatabaseJanitor
+
+    @pytest.mark.asyncio
+    async def test_manual_async_janitor(postgresql_proc):
+        async with AsyncDatabaseJanitor(
+            user=postgresql_proc.user,
+            host=postgresql_proc.host,
+            port=postgresql_proc.port,
+            dbname="my_custom_db",
+            version=postgresql_proc.version,
+            password="secret_password",
+        ):
+            async with await psycopg.AsyncConnection.connect(
+                dbname="my_custom_db",
+                user=postgresql_proc.user,
+                host=postgresql_proc.host,
+                port=postgresql_proc.port,
+                password="secret_password",
+            ) as conn:
+                # use async connection
                 pass
 
 Connecting to PostgreSQL in Docker

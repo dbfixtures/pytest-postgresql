@@ -17,11 +17,24 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Plugin module of pytest-postgresql."""
 
+import asyncio
+import platform
+import selectors
+from collections.abc import Callable, Generator
 from tempfile import gettempdir
+from typing import Any, cast
 
+import pytest
 from _pytest.config.argparsing import Parser
+from packaging.version import Version
 
 from pytest_postgresql import factories
+from pytest_postgresql._asyncio_compat import supports_loop_factories
+
+try:
+    import pytest_asyncio
+except ImportError:
+    pytest_asyncio = None  # type: ignore[assignment]
 
 _help_executable = "Path to PostgreSQL executable"
 _help_host = "Host at which PostgreSQL will accept connections"
@@ -41,10 +54,91 @@ _help_drop_test_database = (
     "Use cautiously and not on CI."
 )
 
+# psycopg async cannot use Windows' default ProactorEventLoop (the default since
+# Python 3.8).  libpq socket I/O relies on selector APIs (add_reader / fileno)
+# that Proactor does not support.  See:
+# https://www.psycopg.org/psycopg3/docs/advanced/async.html
+#
+# pytest-asyncio does not switch event loops for us, so without the hook below
+# ``postgresql_async`` tests fail on Windows with:
+# "Psycopg cannot use the 'ProactorEventLoop' to run in async mode".
+#
+# We register a SelectorEventLoop via pytest-asyncio's official
+# ``pytest_asyncio_loop_factories`` hook (pytest-asyncio >= 1.4).  A legacy
+# ``WindowsSelectorEventLoopPolicy`` fallback in ``pytest_configure`` remains for
+# Windows + Python < 3.14 when the loop-factory hook is unavailable.
+
+
+def _windows_selector_event_loop() -> asyncio.AbstractEventLoop:
+    """Create a SelectorEventLoop for psycopg async on Windows."""
+    return asyncio.SelectorEventLoop(selectors.SelectSelector())
+
+
+def _is_windows() -> bool:
+    return platform.system() == "Windows"
+
+
+def _uses_deprecated_asyncio_policy_on_windows() -> bool:
+    return Version(platform.python_version()) < Version("3.14") and not supports_loop_factories(pytest_asyncio)
+
+
+def _windows_selector_event_loop_policy_cls() -> type[asyncio.AbstractEventLoopPolicy] | None:
+    """Return WindowsSelectorEventLoopPolicy when available (removed in Python 3.14)."""
+    policy_cls = getattr(asyncio, "WindowsSelectorEventLoopPolicy", None)
+    if policy_cls is None:
+        return None
+    return cast(type[asyncio.AbstractEventLoopPolicy], policy_cls)
+
+
+def _resolve_windows_loop_factories(
+    item: pytest.Item,
+    prior_result: dict[str, Callable[[], asyncio.AbstractEventLoop]] | None,
+) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
+    """Choose loop factories for a test item on Windows."""
+    if prior_result is not None:
+        return prior_result
+    # psycopg async is incompatible with ProactorEventLoop on Windows.
+    return {"selector": _windows_selector_event_loop}
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Set legacy Windows selector policy when loop-factory hook is unavailable."""
+    if not _is_windows() or not config.pluginmanager.has_plugin("asyncio"):
+        return
+    if not _uses_deprecated_asyncio_policy_on_windows():
+        return
+    policy_cls = _windows_selector_event_loop_policy_cls()
+    if policy_cls is None:
+        return
+    asyncio.set_event_loop_policy(policy_cls())
+
+
+if _is_windows():
+
+    @pytest.hookimpl(hookwrapper=True, optionalhook=True)
+    def pytest_asyncio_loop_factories(
+        config: pytest.Config,
+        item: pytest.Item,
+    ) -> Generator[None, object, None]:
+        """Register a SelectorEventLoop factory for psycopg async on Windows.
+
+        psycopg async is incompatible with the default ProactorEventLoop; see
+        https://www.psycopg.org/psycopg3/docs/advanced/async.html .  pytest-asyncio
+        exposes this hook (>= 1.4) so plugins can supply a compatible loop without
+        requiring users to call ``asyncio.set_event_loop_policy`` themselves.
+
+        When no earlier hook implementation supplies loop factories, the selector
+        factory is used for all asyncio tests on Windows.  Tests that already have
+        factories from earlier hooks keep those unchanged (see README Windows notes).
+        """
+        outcome: Any = yield
+        result = outcome.get_result()
+        outcome.force_result(_resolve_windows_loop_factories(item, result))
+
 
 def pytest_addoption(parser: Parser) -> None:
     """Configure options for pytest-postgresql."""
-    parser.addini(name="postgresql_exec", help=_help_executable, default="/usr/lib/postgresql/13/bin/pg_ctl")
+    parser.addini(name="postgresql_exec", help=_help_executable, default="/usr/lib/postgresql/14/bin/pg_ctl")
 
     parser.addini(name="postgresql_host", help=_help_host, default="127.0.0.1")
 
@@ -135,3 +229,4 @@ def pytest_addoption(parser: Parser) -> None:
 postgresql_proc = factories.postgresql_proc()
 postgresql_noproc = factories.postgresql_noproc()
 postgresql = factories.postgresql("postgresql_proc")
+postgresql_async = factories.postgresql_async("postgresql_proc")

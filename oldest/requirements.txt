@@ -2,3 +2,6 @@ pytest == 9.0.3
 port-for == 0.7.3
 mirakuru == 2.6.0
 psycopg == 3.0.0
+packaging == 23.2
+pytest-asyncio == 1.4.0
+aiofiles == 23.2.1

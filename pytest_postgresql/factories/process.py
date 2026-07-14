@@ -17,11 +17,14 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql process."""
 
+import logging
+import os
 import os.path
 import platform
 import subprocess
+import tempfile
 from pathlib import Path
-from typing import Callable, Iterable, Iterator
+from typing import Callable, Iterable
 
 import port_for
 import pytest
@@ -32,6 +35,8 @@ from pytest_postgresql.config import PostgreSQLConfig, get_config
 from pytest_postgresql.exceptions import ExecutableMissingException
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
+
+logger = logging.getLogger(__name__)
 
 PortType = port_for.PortType  # mypy requires explicit export
 
@@ -57,13 +62,21 @@ def _pg_port(port: PortType | None, config: PostgreSQLConfig, excluded_ports: It
     return pg_port
 
 
-def _prepare_dir(tmpdir: Path, pg_port: PortType) -> tuple[Path, Path]:
+def _prepare_dir(tmpdir: Path, pg_port: PortType, session_token: str) -> tuple[Path, Path]:
     """Prepare a directory for the executor."""
-    datadir = tmpdir / f"data-{pg_port}"
-    datadir.mkdir()
-    logfile_path = tmpdir / f"postgresql.{pg_port}.log"
+    if platform.system() == "Windows":
+        # initdb on Windows cannot mkdir through existing pytest temp parents.
+        temp_dir = Path(tempfile.gettempdir())
+        datadir = temp_dir / f"pytest-postgresql-data-{session_token}-{pg_port}"
+        # Keep the logfile on the same drive as pgdata; pytest basetemp can be
+        # on a different volume and pg_ctl rejects the -l path with Access denied.
+        logfile_path = temp_dir / f"pytest-postgresql-{session_token}-{pg_port}.log"
+    else:
+        datadir = tmpdir / f"data-{pg_port}"
+        logfile_path = tmpdir / f"postgresql.{pg_port}.log"
 
     if platform.system() == "FreeBSD":
+        datadir.mkdir()
         with (datadir / "pg_hba.conf").open(mode="a") as conf_file:
             conf_file.write("host all all 0.0.0.0/0 trust\n")
     return datadir, logfile_path
@@ -81,7 +94,7 @@ def postgresql_proc(
     unixsocketdir: str | None = None,
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
-) -> Callable[[FixtureRequest, TempPathFactory], Iterator[PostgreSQLExecutor]]:
+) -> Callable[[FixtureRequest, TempPathFactory], PostgreSQLExecutor]:
     """Postgresql process factory.
 
     :param executable: path to postgresql_ctl
@@ -105,9 +118,7 @@ def postgresql_proc(
     """
 
     @pytest.fixture(scope="session")
-    def postgresql_proc_fixture(
-        request: FixtureRequest, tmp_path_factory: TempPathFactory
-    ) -> Iterator[PostgreSQLExecutor]:
+    def postgresql_proc_fixture(request: FixtureRequest, tmp_path_factory: TempPathFactory) -> PostgreSQLExecutor:
         """Process fixture for PostgreSQL.
 
         :param request: fixture request object
@@ -124,47 +135,82 @@ def postgresql_proc(
 
         n = 0
         used_ports: set[int] = set()
-        while True:
+        port_filename_path: Path | None = None
+        postgresql_executor: PostgreSQLExecutor | None = None
+        session_token = str(os.getpid())
+
+        def _unlink_port_sentinel() -> None:
+            if port_filename_path is not None:
+                port_filename_path.unlink(missing_ok=True)
+
+        def _stop_executor_best_effort() -> None:
+            if postgresql_executor is None:
+                return
             try:
-                pg_port = _pg_port(port, config, used_ports)
-                port_filename_path = port_path / f"postgresql-{pg_port}.port"
-                if pg_port in used_ports:
-                    raise PortForException(
-                        f"Port {pg_port} already in use, probably by other instances of the test. "
-                        f"{port_filename_path} is already used."
-                    )
-                used_ports.add(pg_port)
-                with (port_filename_path).open("x") as port_file:
-                    port_file.write(f"pg_port {pg_port}\n")
-                break
-            except FileExistsError:
-                if n >= config.port_search_count:
-                    raise PortForException(
-                        f"Attempted {n} times to select ports. "
-                        f"All attempted ports: {', '.join(map(str, used_ports))} are already "
-                        f"in use, probably by other instances of the test."
-                    )
-                n += 1
+                postgresql_executor.stop()
+            except Exception:
+                logger.exception("Failed to stop PostgreSQL executor during cleanup")
 
-        tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
-        datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port))
+        def _cleanup_executor_resources() -> None:
+            try:
+                _stop_executor_best_effort()
+            finally:
+                if postgresql_executor is not None:
+                    try:
+                        postgresql_executor.clean_directory()
+                    except Exception:
+                        logger.exception("Failed to clean PostgreSQL data directory during cleanup")
+                    try:
+                        logfile = Path(postgresql_executor.logfile)
+                        if logfile.is_file():
+                            logfile.unlink(missing_ok=True)
+                    except OSError:
+                        logger.exception("Failed to remove PostgreSQL log file during cleanup")
+                _unlink_port_sentinel()
 
-        postgresql_executor = PostgreSQLExecutor(
-            executable=postgresql_ctl,
-            host=host or config.host,
-            port=pg_port,
-            user=user or config.user,
-            password=password or config.password,
-            dbname=pg_dbname,
-            options=options or config.options,
-            datadir=str(datadir),
-            unixsocketdir=unixsocketdir or config.unixsocketdir,
-            logfile=str(logfile_path),
-            startparams=startparams or config.startparams,
-            postgres_options=postgres_options or config.postgres_options,
-        )
-        # start server
-        with postgresql_executor:
+        try:
+            while True:
+                try:
+                    pg_port = _pg_port(port, config, used_ports)
+                    candidate_port_file = port_path / f"postgresql-{pg_port}.port"
+                    if pg_port in used_ports:
+                        raise PortForException(
+                            f"Port {pg_port} already in use, probably by other instances of the test. "
+                            f"{candidate_port_file} is already used."
+                        )
+                    used_ports.add(pg_port)
+                    with candidate_port_file.open("x") as port_file:
+                        port_file.write(f"pg_port {pg_port}\n")
+                    port_filename_path = candidate_port_file
+                    break
+                except FileExistsError:
+                    if n >= config.port_search_count:
+                        raise PortForException(
+                            f"Attempted {n} times to select ports. "
+                            f"All attempted ports: {', '.join(map(str, used_ports))} are already "
+                            f"in use, probably by other instances of the test."
+                        ) from None
+                    n += 1
+
+            tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
+            assert tmpdir.is_dir()
+            datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port), session_token)
+
+            postgresql_executor = PostgreSQLExecutor(
+                executable=postgresql_ctl,
+                host=host or config.host,
+                port=pg_port,
+                user=user or config.user,
+                password=password or config.password,
+                dbname=pg_dbname,
+                options=options or config.options,
+                datadir=str(datadir.resolve()),
+                unixsocketdir=unixsocketdir or config.unixsocketdir,
+                logfile=str(logfile_path.resolve()),
+                startparams=startparams or config.startparams,
+                postgres_options=postgres_options or config.postgres_options,
+            )
+            postgresql_executor.start()
             postgresql_executor.wait_for_postgres()
             janitor = DatabaseJanitor(
                 user=postgresql_executor.user,
@@ -177,9 +223,20 @@ def postgresql_proc(
             )
             if config.drop_test_database:
                 janitor.drop()
-            with janitor:
-                for load_element in pg_load:
-                    janitor.load(load_element)
-                yield postgresql_executor
+            janitor.init()
+            for load_element in pg_load:
+                janitor.load(load_element)
+
+            def cleanup() -> None:
+                try:
+                    janitor.drop()
+                finally:
+                    _cleanup_executor_resources()
+
+            request.addfinalizer(cleanup)
+            return postgresql_executor
+        except Exception:
+            _cleanup_executor_resources()
+            raise
 
     return postgresql_proc_fixture

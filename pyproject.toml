@@ -4,7 +4,7 @@ version = "8.1.0"
 description = "Postgresql fixtures and fixture factories for Pytest."
 readme = "README.rst"
 keywords = ["tests", "pytest", "fixture", "postgresql"]
-license = {file = "LICENSE"}
+license = {file = "COPYING.lesser"}
 authors = [
     {name = "Grzegorz Śliwiński", email = "fizyk+pypi@fizyk.dev"}
 ]
@@ -35,6 +35,12 @@ dependencies = [
     "psycopg >= 3.0.0"
 ]
 requires-python = ">= 3.10"
+
+[project.optional-dependencies]
+async = [
+  "pytest-asyncio >= 1.4",
+  "aiofiles >= 23.0"
+]
 
 [project.urls]
 "Source" = "https://github.com/dbfixtures/pytest-postgresql"
@@ -132,7 +138,7 @@ showcontent = true
 
 [[tool.towncrier.type]]
 directory = "misc"
-name = "Miscellaneus"
+name = "Miscellaneous"
 showcontent = true
 
 [tool.tbump.version]

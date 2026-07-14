@@ -20,6 +20,7 @@ on:
 jobs:
   postgres:
     runs-on: windows-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -38,24 +39,9 @@ jobs:
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
-      - name: Detect PostgreSQL path on Windows
-        shell: pwsh
-        run: |
-          $pgPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql }}\bin\pg_ctl.exe"
-          if (Test-Path $pgPath) {
-            echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
-          } else {
-            $pgPath = (Get-Command pg_ctl -ErrorAction SilentlyContinue).Source
-            if ($pgPath) {
-              echo "POSTGRESQL_EXEC=$pgPath" >> $env:GITHUB_ENV
-            }
-          }
-
-          # Verify that PostgreSQL was found
-          if (-not $pgPath) {
-            Write-Error "Error: pg_ctl not found in expected locations. Checked hardcoded path and system PATH."
-            exit 1
-          }
+      - uses: ./.github/actions/detect-pg-ctl
+        with:
+          postgresql-version: ${{ inputs.postgresql }}
       - name: Run test
         id: run_serial_tests
         uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.7
