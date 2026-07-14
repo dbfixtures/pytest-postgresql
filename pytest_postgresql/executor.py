@@ -239,10 +239,30 @@ class PostgreSQLExecutor(TCPExecutor):
         merged_env.pop("PGDATA", None)
         return merged_env
 
+    def _format_initdb_options(self, initdb_options: list[str]) -> str:
+        """Format initdb options for pg_ctl -o, preserving argument boundaries."""
+        if platform.system() == "Windows":
+            return subprocess.list2cmdline(initdb_options)
+        return " ".join(shlex.quote(opt) for opt in initdb_options)
+
     def _build_initdb_command(self, initdb_options: list[str], pgdata: str | None = None) -> list[str]:
         """Build the initdb invocation for the current platform."""
         data_dir = pgdata or self.datadir
-        return [self.executable, "initdb", "--pgdata", data_dir, "-o", " ".join(initdb_options)]
+        return [
+            self.executable,
+            "initdb",
+            "--pgdata",
+            data_dir,
+            "-o",
+            self._format_initdb_options(initdb_options),
+        ]
+
+    def _run_initdb(self, command: list[str]) -> None:
+        """Run initdb via pg_ctl and translate subprocess timeouts."""
+        try:
+            subprocess.check_output(command, env=self._initdb_env(), timeout=self._timeout)
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutExpired(self, self._timeout) from exc
 
     def init_directory(self) -> None:
         """Initialize postgresql data directory.
@@ -268,11 +288,11 @@ class PostgreSQLExecutor(TCPExecutor):
                 password_file.write(password)
                 password_file.flush()
                 init_directory = self._build_initdb_command(options, pgdata=pgdata)
-                subprocess.check_output(init_directory, env=self._initdb_env())
+                self._run_initdb(init_directory)
         else:
             options += ["--auth=trust"]
             init_directory = self._build_initdb_command(options, pgdata=pgdata)
-            subprocess.check_output(init_directory, env=self._initdb_env())
+            self._run_initdb(init_directory)
 
         self._directory_initialised = True
 

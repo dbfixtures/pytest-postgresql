@@ -42,8 +42,6 @@ def _postgresql_available() -> bool:
     postgresql_exec = os.environ.get("POSTGRESQL_EXEC")
     if postgresql_exec and os.path.exists(postgresql_exec):
         return True
-    if shutil.which("pg_config") is not None:
-        return True
     return shutil.which("pg_ctl") is not None
 
 
@@ -193,7 +191,7 @@ def test_postgresql_async_windows_subprocess_smoke(
 ) -> None:
     """postgresql_async works in a subprocess on Windows without manual loop configuration."""
     pointed_pytester.copy_example("test_postgresql_async_windows_smoke.py")
-    ret = pointed_pytester.runpytest(
+    ret = pointed_pytester.runpytest_subprocess(
         f"--postgresql-port={postgresql_proc_to_override.port}",
         "--postgresql-drop-test-database",
         "test_postgresql_async_windows_smoke.py",

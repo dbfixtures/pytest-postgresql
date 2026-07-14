@@ -127,11 +127,9 @@ if _is_windows():
         exposes this hook (>= 1.4) so plugins can supply a compatible loop without
         requiring users to call ``asyncio.set_event_loop_policy`` themselves.
 
-        The selector factory is forced for tests that use a postgresql async client
-        fixture.  Other asyncio tests defer to earlier hook implementations; when
-        none are registered, a default factory is supplied because pytest-asyncio
-        rejects an empty mapping once this hook is present (see README Windows
-        notes for the resulting ``[default]`` test IDs).
+        When no earlier hook implementation supplies loop factories, the selector
+        factory is used for all asyncio tests on Windows.  Tests that already have
+        factories from earlier hooks keep those unchanged (see README Windows notes).
         """
         outcome: Any = yield
         result = outcome.get_result()

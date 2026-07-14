@@ -51,25 +51,24 @@ Quick Start
    * ``aiofiles`` (>= 23.0) — required only when loading SQL files via the
      async loader (``sql_async``).
 
-   On Windows, the plugin configures a ``SelectorEventLoop`` automatically for tests
-   that use ``postgresql_async`` (or custom factories created with
-   ``factories.postgresql_async``).  This is required because ``psycopg`` async is
-   incompatible with the default ``ProactorEventLoop`` on Windows (`documented by
+   On Windows, the plugin configures a ``SelectorEventLoop`` automatically for
+   asyncio tests when no earlier pytest-asyncio loop factory is registered.  This
+   is required because ``psycopg`` async is incompatible with the default
+   ``ProactorEventLoop`` on Windows (`documented by
    psycopg <https://www.psycopg.org/psycopg3/docs/advanced/async.html>`_).  Without
    it, ``postgresql_async`` tests fail with ``Psycopg cannot use the
    'ProactorEventLoop' to run in async mode``.  No extra configuration is needed
    when you install ``pytest-postgresql[async]``.
 
    With ``pytest-asyncio`` >= 1.4 on Windows, the plugin registers a selector loop
-   factory via pytest-asyncio's loop-factory hook for those postgresql async tests
-   only.  On Python 3.14+, the legacy ``asyncio`` policy fallback is not used
-   because that API is deprecated.
+   factory via pytest-asyncio's loop-factory hook for **all** asyncio tests when
+   no prior factory is provided.  On Python 3.14+, the legacy ``asyncio`` policy
+   fallback is not used because that API is deprecated.
 
-   Because pytest-asyncio requires a non-empty loop-factory mapping whenever this
-   hook is registered, other asyncio tests in the same run on Windows are assigned
-   a default ``asyncio.new_event_loop`` factory (you may see test IDs such as
-   ``test_example[default]``).  This does not change the loop type for unrelated
-   tests; only postgresql async fixtures receive the ``SelectorEventLoop``.
+   When an earlier hook implementation already supplies loop factories, those are
+   preserved unchanged.  Tests that use a prior factory may show different loop
+   names in pytest IDs (for example ``test_example[custom]`` instead of
+   ``test_example[selector]``).
 
    If you use an older ``pytest-asyncio`` (< 1.4) on Windows with Python < 3.14,
    the plugin falls back to setting a global ``WindowsSelectorEventLoopPolicy`` for

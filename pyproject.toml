@@ -68,9 +68,6 @@ addopts = ["--showlocals", "--verbose"]
 testpaths = ["tests"]
 pytester_example_dir = "tests/examples"
 norecursedirs = ["examples"]
-markers = [
-    "bootstrap: run before asyncio tests to initialize postgresql_proc on Windows CI",
-]
 
 [tool.ruff]
 line-length = 120

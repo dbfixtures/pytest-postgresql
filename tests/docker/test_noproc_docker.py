@@ -42,9 +42,11 @@ async def test_postgres_docker_load_async(async_postgres_with_schema: AsyncConne
     """Async check main postgres fixture."""
     async with async_postgres_with_schema.cursor() as cur:
         await cur.execute("select * from public.tokens")
-        print(await cur.fetchall())
+        rows = await cur.fetchall()
+        assert len(rows) > 0
 
 
+@pytest.mark.xdist_group(name="template_database")
 @pytest.mark.parametrize("_", range(5))
 def test_template_database(postgres_with_template: Connection, _: int) -> None:
     """Check that the database structure gets recreated out of a template."""
@@ -58,6 +60,7 @@ def test_template_database(postgres_with_template: Connection, _: int) -> None:
         assert len(res) == 0
 
 
+@pytest.mark.xdist_group(name="template_database")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("_", range(5))
 async def test_template_database_async(async_postgres_with_template: AsyncConnection, _: int) -> None:

@@ -13,7 +13,6 @@ MAKE_Q = "CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);"
 SELECT_Q = "SELECT * FROM test_load;"
 
 
-@pytest.mark.bootstrap
 def test_postgresql_proc(postgresql_proc: PostgreSQLExecutor) -> None:
     """Test different postgresql versions."""
     assert postgresql_proc.running() is True

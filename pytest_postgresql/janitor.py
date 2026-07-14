@@ -1,5 +1,6 @@
 """Database Janitor."""
 
+import asyncio
 import inspect
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
@@ -387,15 +388,20 @@ class AsyncDatabaseJanitor:
 
         """
         _loader = build_loader(load, sql_loader=sql_async)
-        result = _loader(
-            host=self.host,
-            port=self.port,
-            user=self.user,
-            dbname=self.dbname,
-            password=self.password,
-        )
-        if inspect.isawaitable(result):
-            await result
+        loader_kwargs = {
+            "host": self.host,
+            "port": self.port,
+            "user": self.user,
+            "dbname": self.dbname,
+            "password": self.password,
+        }
+        loader_func = getattr(_loader, "func", _loader)
+        if inspect.iscoroutinefunction(loader_func):
+            result = _loader(**loader_kwargs)
+            if inspect.isawaitable(result):
+                await result
+        else:
+            await asyncio.to_thread(_loader, **loader_kwargs)
 
     @asynccontextmanager
     async def cursor(self, dbname: str = "postgres") -> AsyncIterator[AsyncCursor]:

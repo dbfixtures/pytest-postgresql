@@ -17,6 +17,8 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql process."""
 
+import logging
+import os
 import os.path
 import platform
 import subprocess
@@ -33,6 +35,8 @@ from pytest_postgresql.config import PostgreSQLConfig, get_config
 from pytest_postgresql.exceptions import ExecutableMissingException
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
+
+logger = logging.getLogger(__name__)
 
 PortType = port_for.PortType  # mypy requires explicit export
 
@@ -58,13 +62,13 @@ def _pg_port(port: PortType | None, config: PostgreSQLConfig, excluded_ports: It
     return pg_port
 
 
-def _prepare_dir(tmpdir: Path, pg_port: PortType) -> tuple[Path, Path]:
+def _prepare_dir(tmpdir: Path, pg_port: PortType, session_token: str) -> tuple[Path, Path]:
     """Prepare a directory for the executor."""
     if platform.system() == "Windows":
         # initdb on Windows cannot mkdir through existing pytest temp parents.
         temp_dir = Path(tempfile.gettempdir())
-        datadir = temp_dir / f"pytest-postgresql-data-{pg_port}"
-        logfile_path = temp_dir / f"pytest-postgresql-{pg_port}.log"
+        datadir = temp_dir / f"pytest-postgresql-data-{session_token}-{pg_port}"
+        logfile_path = tmpdir / f"postgresql.{pg_port}.log"
     else:
         datadir = tmpdir / f"data-{pg_port}"
         logfile_path = tmpdir / f"postgresql.{pg_port}.log"
@@ -131,16 +135,30 @@ def postgresql_proc(
         used_ports: set[int] = set()
         port_filename_path: Path | None = None
         postgresql_executor: PostgreSQLExecutor | None = None
+        session_token = str(os.getpid())
 
-        def _release_executor_resources() -> None:
-            if postgresql_executor is not None:
-                try:
-                    postgresql_executor.stop()
-                finally:
-                    if port_filename_path is not None:
-                        port_filename_path.unlink(missing_ok=True)
-            elif port_filename_path is not None:
+        def _unlink_port_sentinel() -> None:
+            if port_filename_path is not None:
                 port_filename_path.unlink(missing_ok=True)
+
+        def _stop_executor_best_effort() -> None:
+            if postgresql_executor is None:
+                return
+            try:
+                postgresql_executor.stop()
+            except Exception:
+                logger.exception("Failed to stop PostgreSQL executor during cleanup")
+
+        def _cleanup_executor_resources() -> None:
+            try:
+                _stop_executor_best_effort()
+            finally:
+                if postgresql_executor is not None:
+                    postgresql_executor.clean_directory()
+                    logfile = Path(postgresql_executor.logfile)
+                    if logfile.is_file():
+                        logfile.unlink(missing_ok=True)
+                _unlink_port_sentinel()
 
         try:
             while True:
@@ -168,7 +186,7 @@ def postgresql_proc(
 
             tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
             assert tmpdir.is_dir()
-            datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port))
+            datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port), session_token)
 
             postgresql_executor = PostgreSQLExecutor(
                 executable=postgresql_ctl,
@@ -205,12 +223,15 @@ def postgresql_proc(
                 try:
                     janitor.drop()
                 finally:
-                    _release_executor_resources()
+                    _cleanup_executor_resources()
 
             request.addfinalizer(cleanup)
             return postgresql_executor
         except Exception:
-            _release_executor_resources()
+            try:
+                _stop_executor_best_effort()
+            finally:
+                _unlink_port_sentinel()
             raise
 
     return postgresql_proc_fixture

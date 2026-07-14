@@ -94,7 +94,7 @@ def test_executor_init_with_password(
     pg_exe = process._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
-    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
     executor = PostgreSQLExecutor(
         executable=pg_exe,
         host=config.host,
@@ -119,7 +119,7 @@ def test_executor_init_bad_tmp_path(
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / r"a bad\path/"
     tmpdir.mkdir(parents=True, exist_ok=True)
-    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
     executor = PostgreSQLExecutor(
         executable=pg_exe,
         host=config.host,
@@ -164,7 +164,7 @@ def test_executor_platform_template_selection(
     pg_exe = process._pg_exe(None, config)
     port = process._pg_port(-1, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
-    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
 
     with patch("pytest_postgresql.executor.platform.system", return_value=platform_name):
         executor = PostgreSQLExecutor(
@@ -205,7 +205,7 @@ def test_executor_with_special_chars_in_all_paths(
     # Create a tmpdir with spaces in the name
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / "my test dir"
     tmpdir.mkdir(exist_ok=True)
-    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
 
     # Create the socket directory for Unix systems.
     # Use basetemp to keep the path short: Unix domain sockets have a 108-char
@@ -567,24 +567,28 @@ def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
         foreign_lock.write_text(f"pg_port {pg_port}\n", encoding="utf-8")
         foreign_locks.append(foreign_lock)
 
-    with (
-        patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
-        patch("pytest_postgresql.factories.process._pg_port", side_effect=pg_ports),
-        patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
-    ):
-        config_mock = MagicMock()
-        config_mock.dbname = "tests"
-        config_mock.load = []
-        config_mock.drop_test_database = False
-        config_mock.port_search_count = 2
-        get_config_mock.return_value = config_mock
+    try:
+        with (
+            patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
+            patch("pytest_postgresql.factories.process._pg_port", side_effect=pg_ports),
+            patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+        ):
+            config_mock = MagicMock()
+            config_mock.dbname = "tests"
+            config_mock.load = []
+            config_mock.drop_test_database = False
+            config_mock.port_search_count = 2
+            get_config_mock.return_value = config_mock
 
-        with pytest.raises(PortForException, match="Attempted"):
-            raw_func(request, tmp_path_factory)
+            with pytest.raises(PortForException, match="Attempted"):
+                raw_func(request, tmp_path_factory)
 
-    for pg_port, foreign_lock in zip(pg_ports, foreign_locks, strict=True):
-        assert foreign_lock.exists()
-        assert foreign_lock.read_text(encoding="utf-8") == f"pg_port {pg_port}\n"
+        for pg_port, foreign_lock in zip(pg_ports, foreign_locks, strict=True):
+            assert foreign_lock.exists()
+            assert foreign_lock.read_text(encoding="utf-8") == f"pg_port {pg_port}\n"
+    finally:
+        for foreign_lock in foreign_locks:
+            foreign_lock.unlink(missing_ok=True)
 
 
 @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
@@ -601,7 +605,7 @@ def test_actual_postgresql_start_windows(
     pg_exe = process._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
-    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
 
     executor = PostgreSQLExecutor(
         executable=pg_exe,
@@ -640,7 +644,7 @@ def test_actual_postgresql_start_unix(
     pg_exe = process._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
-    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
 
     executor = PostgreSQLExecutor(
         executable=pg_exe,
@@ -676,7 +680,7 @@ def test_actual_postgresql_start_darwin(
     pg_exe = process._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
-    datadir, logfile_path = process._prepare_dir(tmpdir, port)
+    datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
 
     executor = PostgreSQLExecutor(
         executable=pg_exe,
@@ -707,7 +711,7 @@ def test_actual_postgresql_start_darwin(
 def test_prepare_dir_does_not_create_datadir_on_non_freebsd(tmp_path: Path, platform_name: str) -> None:
     """Non-FreeBSD platforms defer data directory creation to initdb."""
     with patch("pytest_postgresql.factories.process.platform.system", return_value=platform_name):
-        datadir, logfile_path = process._prepare_dir(tmp_path, 5432)
+        datadir, logfile_path = process._prepare_dir(tmp_path, 5432, "test")
 
     assert datadir == tmp_path / "data-5432"
     assert logfile_path == tmp_path / "postgresql.5432.log"
@@ -716,18 +720,19 @@ def test_prepare_dir_does_not_create_datadir_on_non_freebsd(tmp_path: Path, plat
 
 def test_prepare_dir_uses_flat_temp_datadir_on_windows(tmp_path: Path) -> None:
     """Windows keeps pgdata outside pytest temp parents for initdb compatibility."""
+    session_token = "12345"
     with patch("pytest_postgresql.factories.process.platform.system", return_value="Windows"):
-        datadir, logfile_path = process._prepare_dir(tmp_path, 5432)
+        datadir, logfile_path = process._prepare_dir(tmp_path, 5432, session_token)
 
-    assert datadir == Path(tempfile.gettempdir()) / "pytest-postgresql-data-5432"
-    assert logfile_path == Path(tempfile.gettempdir()) / "pytest-postgresql-5432.log"
+    assert datadir == Path(tempfile.gettempdir()) / f"pytest-postgresql-data-{session_token}-5432"
+    assert logfile_path == tmp_path / "postgresql.5432.log"
     assert not datadir.exists()
 
 
 def test_prepare_dir_creates_datadir_on_freebsd(tmp_path: Path) -> None:
     """FreeBSD needs pg_hba.conf appended before initdb runs."""
     with patch("pytest_postgresql.factories.process.platform.system", return_value="FreeBSD"):
-        datadir, _ = process._prepare_dir(tmp_path, 5432)
+        datadir, _ = process._prepare_dir(tmp_path, 5432, "test")
 
     assert datadir.exists()
     assert (datadir / "pg_hba.conf").read_text(encoding="utf-8").endswith("host all all 0.0.0.0/0 trust\n")

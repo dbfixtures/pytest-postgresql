@@ -256,10 +256,13 @@ async def test_async_janitor_init_and_drop(postgresql_proc: PostgreSQLExecutor) 
         password=postgresql_proc.password,
         connection_timeout=5,
     )
-    await janitor.init()
-    assert await _database_exists(postgresql_proc, dbname)
-    await janitor.drop()
-    assert not await _database_exists(postgresql_proc, dbname)
+    try:
+        await janitor.init()
+        assert await _database_exists(postgresql_proc, dbname)
+        await janitor.drop()
+        assert not await _database_exists(postgresql_proc, dbname)
+    finally:
+        await janitor.drop()
 
 
 @pytest.mark.asyncio
@@ -322,8 +325,10 @@ async def test_async_janitor_creates_database_from_template(postgresql_proc: Pos
                 rows = await cur.fetchall()
                 assert len(rows) == 1
     finally:
-        await clone_janitor.drop()
-        await base_janitor.drop()
+        try:
+            await clone_janitor.drop()
+        finally:
+            await base_janitor.drop()
 
     assert not await _database_exists(postgresql_proc, clone_dbname)
     assert not await _database_exists(postgresql_proc, base_dbname)
