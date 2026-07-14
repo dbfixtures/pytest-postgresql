@@ -105,9 +105,7 @@ def postgresql_proc(
     """
 
     @pytest.fixture(scope="session")
-    def postgresql_proc_fixture(
-        request: FixtureRequest, tmp_path_factory: TempPathFactory
-    ) -> PostgreSQLExecutor:
+    def postgresql_proc_fixture(request: FixtureRequest, tmp_path_factory: TempPathFactory) -> PostgreSQLExecutor:
         """Process fixture for PostgreSQL.
 
         :param request: fixture request object
