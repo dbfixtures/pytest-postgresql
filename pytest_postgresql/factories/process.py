@@ -148,6 +148,7 @@ def postgresql_proc(
                     n += 1
 
             tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.fixturename}")
+            assert tmpdir.is_dir()
             datadir, logfile_path = _prepare_dir(tmpdir, str(pg_port))
 
             postgresql_executor = PostgreSQLExecutor(
