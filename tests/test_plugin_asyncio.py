@@ -96,6 +96,7 @@ def test_pytest_configure_sets_legacy_policy_on_old_pytest_asyncio() -> None:
     with (
         patch("pytest_postgresql.plugin.platform.system", return_value="Windows"),
         patch("pytest_postgresql.plugin.pytest_asyncio", old_pytest_asyncio),
+        patch("pytest_postgresql.plugin.supports_loop_factories", return_value=False),
         patch.object(old_pytest_asyncio, "__version__", "1.3.0"),
         patch.object(asyncio, "set_event_loop_policy") as set_policy,
     ):
@@ -193,6 +194,7 @@ def test_postgresql_async_windows_subprocess_smoke(
     pointed_pytester.copy_example("test_postgresql_async_windows_smoke.py")
     ret = pointed_pytester.runpytest(
         f"--postgresql-port={postgresql_proc_to_override.port}",
+        "--postgresql-drop-test-database",
         "test_postgresql_async_windows_smoke.py",
     )
     ret.assert_outcomes(passed=1)

@@ -339,7 +339,6 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
     janitor_mock.drop = MagicMock()
 
     finalizers: list[Callable[[], None]] = []
-    request.addfinalizer = finalizers.append  # type: ignore[method-assign]
 
     with (
         patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
@@ -347,6 +346,7 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
         patch("pytest_postgresql.factories.process.PostgreSQLExecutor", return_value=executor_mock),
         patch("pytest_postgresql.factories.process.DatabaseJanitor", return_value=janitor_mock),
         patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
+        patch.object(request, "addfinalizer", side_effect=finalizers.append),
     ):
         config_mock = MagicMock()
         config_mock.dbname = "tests"
