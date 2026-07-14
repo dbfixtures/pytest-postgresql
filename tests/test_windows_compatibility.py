@@ -997,7 +997,12 @@ class TestInitdbEnvironment:
             dbname="test",
         )
 
-        command = executor._build_initdb_command(["--username=postgres", "--auth=trust"])
+        initdb_options = [
+            "--username=postgres",
+            "--auth=trust",
+            "--locale=C:\\Program Files\\locale",
+        ]
+        command = executor._build_initdb_command(initdb_options)
 
         assert command == [
             "C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
@@ -1005,5 +1010,5 @@ class TestInitdbEnvironment:
             "--pgdata",
             "D:/data/cluster",
             "-o",
-            "--username=postgres --auth=trust",
+            subprocess.list2cmdline(initdb_options),
         ]
