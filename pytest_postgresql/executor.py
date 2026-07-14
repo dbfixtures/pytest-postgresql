@@ -231,6 +231,12 @@ class PostgreSQLExecutor(TCPExecutor):
             shutil.rmtree(self.datadir)
         self._directory_initialised = False
 
+    def _initdb_env(self) -> dict[str, str]:
+        """Build subprocess environment for initdb."""
+        env = {**os.environ, **self.envvars}
+        env.pop("PGDATA", None)
+        return env
+
     def init_directory(self) -> None:
         """Initialize postgresql data directory.
 
@@ -255,13 +261,11 @@ class PostgreSQLExecutor(TCPExecutor):
                 password_file.write(password)
                 password_file.flush()
                 init_directory += ["-o", " ".join(options)]
-                # Passing envvars to command to avoid weird MacOs error.
-                subprocess.check_output(init_directory, env=self.envvars)
+                subprocess.check_output(init_directory, env=self._initdb_env())
         else:
             options += ["--auth=trust"]
             init_directory += ["-o", " ".join(options)]
-            # Passing envvars to command to avoid weird MacOs error.
-            subprocess.check_output(init_directory, env=self.envvars)
+            subprocess.check_output(init_directory, env=self._initdb_env())
 
         self._directory_initialised = True
 

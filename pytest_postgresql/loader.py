@@ -4,12 +4,14 @@ import importlib
 import re
 from functools import partial
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Callable
 
 import psycopg
 
+aiofiles: ModuleType | None
 try:
-    import aiofiles  # type: ignore[import-untyped]
+    import aiofiles
 except ImportError:
     aiofiles = None
 

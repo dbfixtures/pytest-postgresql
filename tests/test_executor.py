@@ -1,6 +1,7 @@
 """Test various executor behaviours."""
 
 import platform
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -405,6 +406,8 @@ def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
     if hasattr(request.config, "workerinput"):
         port_path = tmp_path_factory.getbasetemp().parent
 
+    existing_ports = set(port_path.glob("postgresql-*.port"))
+
     with (
         patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
         patch(
@@ -424,7 +427,7 @@ def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
         with pytest.raises(PortForException, match="no free ports"):
             next(gen)
 
-    assert not list(port_path.glob("postgresql-*.port"))
+    assert set(port_path.glob("postgresql-*.port")) == existing_ports
 
 
 def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
@@ -581,3 +584,23 @@ def test_actual_postgresql_start_darwin(
 
     # Start and stop PostgreSQL to verify it works
     assert_executor_start_stop(executor)
+
+
+@pytest.mark.parametrize("platform_name", ["Linux", "Windows", "Darwin"])
+def test_prepare_dir_does_not_create_datadir_on_non_freebsd(tmp_path: Path, platform_name: str) -> None:
+    """Non-FreeBSD platforms defer data directory creation to initdb."""
+    with patch("pytest_postgresql.factories.process.platform.system", return_value=platform_name):
+        datadir, logfile_path = process._prepare_dir(tmp_path, 5432)
+
+    assert datadir == tmp_path / "data-5432"
+    assert logfile_path == tmp_path / "postgresql.5432.log"
+    assert not datadir.exists()
+
+
+def test_prepare_dir_creates_datadir_on_freebsd(tmp_path: Path) -> None:
+    """FreeBSD needs pg_hba.conf appended before initdb runs."""
+    with patch("pytest_postgresql.factories.process.platform.system", return_value="FreeBSD"):
+        datadir, _ = process._prepare_dir(tmp_path, 5432)
+
+    assert datadir.exists()
+    assert (datadir / "pg_hba.conf").read_text(encoding="utf-8").endswith("host all all 0.0.0.0/0 trust\n")

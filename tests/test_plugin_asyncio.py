@@ -17,7 +17,12 @@ from pytest_postgresql._asyncio_compat import item_uses_postgresql_async_fixture
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.factories import postgresql_proc
 from pytest_postgresql.factories.client import postgresql_async
-from pytest_postgresql.plugin import _resolve_windows_loop_factories, _windows_selector_event_loop, pytest_configure
+from pytest_postgresql.plugin import (
+    _resolve_windows_loop_factories,
+    _windows_selector_event_loop,
+    _windows_selector_event_loop_policy_cls,
+    pytest_configure,
+)
 
 
 @pytest.fixture
@@ -76,9 +81,14 @@ def test_pytest_configure_skips_deprecated_policy_on_python_314() -> None:
     set_policy.assert_not_called()
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="WindowsSelectorEventLoopPolicy only exists on Windows")
 @pytest.mark.skipif(sys.version_info >= (3, 14), reason="Legacy policy only applies before Python 3.14")
 def test_pytest_configure_sets_legacy_policy_on_old_pytest_asyncio() -> None:
     """pytest_configure sets WindowsSelectorEventLoopPolicy when loop factories are unavailable."""
+    policy_cls = _windows_selector_event_loop_policy_cls()
+    if policy_cls is None:
+        pytest.skip("WindowsSelectorEventLoopPolicy is unavailable on this platform")
+
     config = MagicMock()
     config.pluginmanager.has_plugin.return_value = True
     old_pytest_asyncio = pytest.importorskip("pytest_asyncio")
@@ -91,7 +101,7 @@ def test_pytest_configure_sets_legacy_policy_on_old_pytest_asyncio() -> None:
     ):
         pytest_configure(config)
 
-    set_policy.assert_called_once_with(asyncio.WindowsSelectorEventLoopPolicy())
+    set_policy.assert_called_once_with(policy_cls())
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory")

@@ -22,7 +22,7 @@ import platform
 import selectors
 from collections.abc import Callable, Generator
 from tempfile import gettempdir
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from _pytest.config.argparsing import Parser
@@ -82,6 +82,14 @@ def _uses_deprecated_asyncio_policy_on_windows() -> bool:
     return Version(platform.python_version()) < Version("3.14") and not supports_loop_factories(pytest_asyncio)
 
 
+def _windows_selector_event_loop_policy_cls() -> type[asyncio.AbstractEventLoopPolicy] | None:
+    """Return WindowsSelectorEventLoopPolicy when available (removed in Python 3.14)."""
+    policy_cls = getattr(asyncio, "WindowsSelectorEventLoopPolicy", None)
+    if policy_cls is None:
+        return None
+    return cast(type[asyncio.AbstractEventLoopPolicy], policy_cls)
+
+
 def _resolve_windows_loop_factories(
     item: pytest.Item,
     prior_result: dict[str, Callable[[], asyncio.AbstractEventLoop]] | None,
@@ -102,7 +110,10 @@ def pytest_configure(config: pytest.Config) -> None:
         return
     if not _uses_deprecated_asyncio_policy_on_windows():
         return
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    policy_cls = _windows_selector_event_loop_policy_cls()
+    if policy_cls is None:
+        return
+    asyncio.set_event_loop_policy(policy_cls())
 
 
 if _is_windows():

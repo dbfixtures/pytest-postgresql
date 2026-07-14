@@ -4,6 +4,8 @@ import os
 import subprocess
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from pytest_postgresql.executor import PostgreSQLExecutor
 
 
@@ -896,3 +898,33 @@ class TestRunningMethod:
 
             args = mock_run.call_args[0][0]
             assert args[3] == "/tmp/my data dir", f"Datadir not passed as argv element: {args!r}"
+
+
+class TestInitdbEnvironment:
+    """Test initdb subprocess environment construction."""
+
+    def test_initdb_env_unsets_pgdata_and_preserves_locale_overrides(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """initdb must not inherit CI PGDATA while keeping locale overrides."""
+        monkeypatch.setenv("PGDATA", "/system/pgdata")
+        monkeypatch.setenv("HOME", "/home/user")
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+        )
+
+        env = executor._initdb_env()
+
+        assert "PGDATA" not in env
+        assert env["HOME"] == "/home/user"
+        assert env["LC_ALL"] == executor.envvars["LC_ALL"]
+        assert env["LC_CTYPE"] == executor.envvars["LC_CTYPE"]
+        assert env["LANG"] == executor.envvars["LANG"]

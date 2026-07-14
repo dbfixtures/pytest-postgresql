@@ -60,10 +60,10 @@ def _pg_port(port: PortType | None, config: PostgreSQLConfig, excluded_ports: It
 def _prepare_dir(tmpdir: Path, pg_port: PortType) -> tuple[Path, Path]:
     """Prepare a directory for the executor."""
     datadir = tmpdir / f"data-{pg_port}"
-    datadir.mkdir()
     logfile_path = tmpdir / f"postgresql.{pg_port}.log"
 
     if platform.system() == "FreeBSD":
+        datadir.mkdir()
         with (datadir / "pg_hba.conf").open(mode="a") as conf_file:
             conf_file.write("host all all 0.0.0.0/0 trust\n")
     return datadir, logfile_path
