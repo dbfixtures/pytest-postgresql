@@ -156,10 +156,16 @@ def postgresql_proc(
                 _stop_executor_best_effort()
             finally:
                 if postgresql_executor is not None:
-                    postgresql_executor.clean_directory()
-                    logfile = Path(postgresql_executor.logfile)
-                    if logfile.is_file():
-                        logfile.unlink(missing_ok=True)
+                    try:
+                        postgresql_executor.clean_directory()
+                    except Exception:
+                        logger.exception("Failed to clean PostgreSQL data directory during cleanup")
+                    try:
+                        logfile = Path(postgresql_executor.logfile)
+                        if logfile.is_file():
+                            logfile.unlink(missing_ok=True)
+                    except OSError:
+                        logger.exception("Failed to remove PostgreSQL log file during cleanup")
                 _unlink_port_sentinel()
 
         try:

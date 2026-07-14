@@ -228,8 +228,19 @@ class PostgreSQLExecutor(TCPExecutor):
 
     def clean_directory(self) -> None:
         """Remove directory created for postgresql run."""
-        if os.path.isdir(self.datadir):
+        if not os.path.isdir(self.datadir):
+            self._directory_initialised = False
+            return
+        if self.running():
+            logger.warning(
+                "Skipping removal of %s because PostgreSQL is still running",
+                self.datadir,
+            )
+            return
+        try:
             shutil.rmtree(self.datadir)
+        except OSError:
+            logger.exception("Failed to remove PostgreSQL data directory %s", self.datadir)
         self._directory_initialised = False
 
     def _initdb_env(self) -> dict[str, str]:
