@@ -2,7 +2,7 @@
 
 import platform
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from unittest.mock import MagicMock, patch
 
 import psycopg
@@ -323,8 +323,8 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
     assert pg_port is not None
 
     executor_mock = MagicMock()
-    executor_mock.__enter__ = MagicMock(return_value=executor_mock)
-    executor_mock.__exit__ = MagicMock(return_value=False)
+    executor_mock.start = MagicMock(return_value=executor_mock)
+    executor_mock.stop = MagicMock(return_value=executor_mock)
     executor_mock.user = "postgres"
     executor_mock.host = "127.0.0.1"
     executor_mock.port = pg_port
@@ -334,8 +334,11 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
     executor_mock.wait_for_postgres = MagicMock()
 
     janitor_mock = MagicMock()
-    janitor_mock.__enter__ = MagicMock(return_value=janitor_mock)
-    janitor_mock.__exit__ = MagicMock(return_value=False)
+    janitor_mock.init = MagicMock()
+    janitor_mock.drop = MagicMock()
+
+    finalizers: list[Callable[[], None]] = []
+    request.addfinalizer = finalizers.append  # type: ignore[method-assign]
 
     with (
         patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
@@ -351,12 +354,11 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
         config_mock.port_search_count = 5
         get_config_mock.return_value = config_mock
 
-        gen = raw_func(request, tmp_path_factory)
-        next(gen)
+        raw_func(request, tmp_path_factory)
         port_file = port_path / f"postgresql-{pg_port}.port"
         assert port_file.exists()
-        with pytest.raises(StopIteration):
-            next(gen)
+        for finalizer in finalizers:
+            finalizer()
 
     assert not port_file.exists()
 
@@ -388,9 +390,8 @@ def test_postgresql_proc_removes_port_lock_on_setup_failure(
         config_mock.port_search_count = 5
         get_config_mock.return_value = config_mock
 
-        gen = raw_func(request, tmp_path_factory)
         with pytest.raises(OSError, match="setup failed"):
-            next(gen)
+            raw_func(request, tmp_path_factory)
 
     port_file = port_path / f"postgresql-{pg_port}.port"
     assert not port_file.exists()
@@ -425,9 +426,8 @@ def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
         config_mock.port_search_count = 5
         get_config_mock.return_value = config_mock
 
-        gen = raw_func(request, tmp_path_factory)
         with pytest.raises(PortForException, match="no free ports"):
-            next(gen)
+            raw_func(request, tmp_path_factory)
 
     assert set(port_path.glob("postgresql-*.port")) == existing_ports
 
@@ -470,9 +470,8 @@ def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
         config_mock.port_search_count = 2
         get_config_mock.return_value = config_mock
 
-        gen = raw_func(request, tmp_path_factory)
         with pytest.raises(PortForException, match="Attempted"):
-            next(gen)
+            raw_func(request, tmp_path_factory)
 
     for pg_port, foreign_lock in zip(pg_ports, foreign_locks, strict=True):
         assert foreign_lock.exists()

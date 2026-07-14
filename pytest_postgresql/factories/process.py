@@ -21,7 +21,7 @@ import os.path
 import platform
 import subprocess
 from pathlib import Path
-from typing import Callable, Iterable, Iterator
+from typing import Callable, Iterable
 
 import port_for
 import pytest
@@ -81,7 +81,7 @@ def postgresql_proc(
     unixsocketdir: str | None = None,
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
-) -> Callable[[FixtureRequest, TempPathFactory], Iterator[PostgreSQLExecutor]]:
+) -> Callable[[FixtureRequest, TempPathFactory], PostgreSQLExecutor]:
     """Postgresql process factory.
 
     :param executable: path to postgresql_ctl
@@ -107,7 +107,7 @@ def postgresql_proc(
     @pytest.fixture(scope="session")
     def postgresql_proc_fixture(
         request: FixtureRequest, tmp_path_factory: TempPathFactory
-    ) -> Iterator[PostgreSQLExecutor]:
+    ) -> PostgreSQLExecutor:
         """Process fixture for PostgreSQL.
 
         :param request: fixture request object
@@ -166,26 +166,34 @@ def postgresql_proc(
                 startparams=startparams or config.startparams,
                 postgres_options=postgres_options or config.postgres_options,
             )
-            # start server
-            with postgresql_executor:
-                postgresql_executor.wait_for_postgres()
-                janitor = DatabaseJanitor(
-                    user=postgresql_executor.user,
-                    host=postgresql_executor.host,
-                    port=postgresql_executor.port,
-                    dbname=postgresql_executor.template_dbname,
-                    as_template=True,
-                    version=postgresql_executor.version,
-                    password=postgresql_executor.password,
-                )
-                if config.drop_test_database:
-                    janitor.drop()
-                with janitor:
-                    for load_element in pg_load:
-                        janitor.load(load_element)
-                    yield postgresql_executor
-        finally:
+            postgresql_executor.start()
+            postgresql_executor.wait_for_postgres()
+            janitor = DatabaseJanitor(
+                user=postgresql_executor.user,
+                host=postgresql_executor.host,
+                port=postgresql_executor.port,
+                dbname=postgresql_executor.template_dbname,
+                as_template=True,
+                version=postgresql_executor.version,
+                password=postgresql_executor.password,
+            )
+            if config.drop_test_database:
+                janitor.drop()
+            janitor.init()
+            for load_element in pg_load:
+                janitor.load(load_element)
+
+            def cleanup() -> None:
+                janitor.drop()
+                postgresql_executor.stop()
+                if port_filename_path is not None:
+                    port_filename_path.unlink(missing_ok=True)
+
+            request.addfinalizer(cleanup)
+            return postgresql_executor
+        except Exception:
             if port_filename_path is not None:
                 port_filename_path.unlink(missing_ok=True)
+            raise
 
     return postgresql_proc_fixture
