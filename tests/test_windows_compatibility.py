@@ -928,3 +928,27 @@ class TestInitdbEnvironment:
         assert env["LC_ALL"] == executor.envvars["LC_ALL"]
         assert env["LC_CTYPE"] == executor.envvars["LC_CTYPE"]
         assert env["LANG"] == executor.envvars["LANG"]
+
+    def test_build_initdb_command_uses_initdb_exe_on_windows(self) -> None:
+        """Windows must invoke initdb.exe directly with unwrapped options."""
+        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+            executor = PostgreSQLExecutor(
+                executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
+                host="localhost",
+                port=5432,
+                datadir="D:/data/cluster",
+                unixsocketdir="D:/tmp",
+                logfile="D:/tmp/log",
+                startparams="-w",
+                dbname="test",
+            )
+
+            command = executor._build_initdb_command(["--username=postgres", "--auth=trust"])
+
+        assert command == [
+            os.path.join("C:/Program Files/PostgreSQL/17/bin", "initdb.exe"),
+            "--pgdata",
+            "D:/data/cluster",
+            "--username=postgres",
+            "--auth=trust",
+        ]

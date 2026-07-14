@@ -27,6 +27,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from pathlib import Path
 from typing import Any, Optional, TypeVar
 
 from mirakuru import TCPExecutor
@@ -237,6 +238,18 @@ class PostgreSQLExecutor(TCPExecutor):
         env.pop("PGDATA", None)
         return env
 
+    def _initdb_executable(self) -> str:
+        """Return the initdb executable for the current platform."""
+        if platform.system() == "Windows":
+            return os.path.join(os.path.dirname(self.executable), "initdb.exe")
+        return self.executable
+
+    def _build_initdb_command(self, initdb_options: list[str]) -> list[str]:
+        """Build the initdb invocation for the current platform."""
+        if platform.system() == "Windows":
+            return [self._initdb_executable(), "--pgdata", self.datadir, *initdb_options]
+        return [self.executable, "initdb", "--pgdata", self.datadir, "-o", " ".join(initdb_options)]
+
     def init_directory(self) -> None:
         """Initialize postgresql data directory.
 
@@ -248,7 +261,8 @@ class PostgreSQLExecutor(TCPExecutor):
             return
         # remove old one if exists first.
         self.clean_directory()
-        init_directory = [self.executable, "initdb", "--pgdata", self.datadir]
+        if platform.system() == "Windows":
+            Path(self.datadir).mkdir(parents=True, exist_ok=False)
         options = ["--username=%s" % self.user]
 
         if self.password:
@@ -260,11 +274,11 @@ class PostgreSQLExecutor(TCPExecutor):
                     password = self.password  # type: ignore[assignment]
                 password_file.write(password)
                 password_file.flush()
-                init_directory += ["-o", " ".join(options)]
+                init_directory = self._build_initdb_command(options)
                 subprocess.check_output(init_directory, env=self._initdb_env())
         else:
             options += ["--auth=trust"]
-            init_directory += ["-o", " ".join(options)]
+            init_directory = self._build_initdb_command(options)
             subprocess.check_output(init_directory, env=self._initdb_env())
 
         self._directory_initialised = True

@@ -319,7 +319,8 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
     port_path = tmp_path_factory.getbasetemp()
     if hasattr(request.config, "workerinput"):
         port_path = tmp_path_factory.getbasetemp().parent
-    pg_port = 54321
+    pg_port = get_port(None)
+    assert pg_port is not None
 
     executor_mock = MagicMock()
     executor_mock.__enter__ = MagicMock(return_value=executor_mock)
