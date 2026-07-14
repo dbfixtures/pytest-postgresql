@@ -907,7 +907,7 @@ class TestInitdbEnvironment:
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """initdb must not inherit CI PGDATA while keeping locale overrides."""
+        """Initdb must not inherit CI PGDATA while keeping locale overrides."""
         monkeypatch.setenv("PGDATA", "/system/pgdata")
         monkeypatch.setenv("HOME", "/home/user")
         executor = PostgreSQLExecutor(
