@@ -903,11 +903,11 @@ class TestRunningMethod:
 class TestInitdbEnvironment:
     """Test initdb subprocess environment construction."""
 
-    def test_initdb_env_unsets_pgdata_and_preserves_locale_overrides(
+    def test_initdb_env_uses_locale_overrides_only(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """Initdb must not inherit CI PGDATA while keeping locale overrides."""
+        """Initdb must not inherit CI environment variables such as PGDATA."""
         monkeypatch.setenv("PGDATA", "/system/pgdata")
         monkeypatch.setenv("HOME", "/home/user")
         with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
@@ -924,15 +924,15 @@ class TestInitdbEnvironment:
 
             env = executor._initdb_env()
 
+        assert env == {
+            "LC_ALL": executor.envvars["LC_ALL"],
+            "LC_CTYPE": executor.envvars["LC_CTYPE"],
+            "LANG": executor.envvars["LANG"],
+        }
         assert "PGDATA" not in env
-        assert env["HOME"] == "/home/user"
-        assert env["LC_ALL"] == executor.envvars["LC_ALL"]
-        assert env["LC_CTYPE"] == executor.envvars["LC_CTYPE"]
-        assert env["LANG"] == executor.envvars["LANG"]
 
-    def test_initdb_env_does_not_set_pgdata_on_windows(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Windows initdb must rely on --pgdata rather than inherited PGDATA."""
-        monkeypatch.setenv("PGDATA", "D:/system/pgdata")
+    def test_initdb_env_uses_locale_overrides_only_on_windows(self) -> None:
+        """Windows initdb must use the same minimal locale environment as Unix."""
         with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
@@ -947,6 +947,11 @@ class TestInitdbEnvironment:
 
             env = executor._initdb_env()
 
+        assert env == {
+            "LC_ALL": executor.envvars["LC_ALL"],
+            "LC_CTYPE": executor.envvars["LC_CTYPE"],
+            "LANG": executor.envvars["LANG"],
+        }
         assert "PGDATA" not in env
 
     def test_build_initdb_command_uses_pg_ctl_on_windows(self) -> None:
