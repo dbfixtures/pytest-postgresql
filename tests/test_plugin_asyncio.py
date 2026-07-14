@@ -136,29 +136,28 @@ def test_pytest_asyncio_loop_factories_on_windows_for_postgresql_async() -> None
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory hook")
-def test_pytest_asyncio_loop_factories_skips_unrelated_async_tests() -> None:
-    """Unrelated asyncio tests defer to other hooks or receive a default factory."""
+def test_pytest_asyncio_loop_factories_uses_selector_for_unrelated_async_tests() -> None:
+    """All asyncio tests on Windows need SelectorEventLoop for psycopg compatibility."""
     item = _make_item_with_fixtures("event_loop")
     assert item_uses_postgresql_async_fixture(item) is False
 
     factories = _resolve_windows_loop_factories(item, None)
     assert factories is not None
-    assert "selector" not in factories
-    assert set(factories) == {"default"}
-    loop = factories["default"]()
+    assert set(factories) == {"selector"}
+    loop = factories["selector"]()
     try:
-        assert isinstance(loop, asyncio.AbstractEventLoop)
+        assert isinstance(loop, asyncio.SelectorEventLoop)
     finally:
         loop.close()
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory hook")
-def test_pytest_asyncio_loop_factories_never_injects_selector_for_sync_tests() -> None:
-    """Sync tests that do not request postgresql async fixtures are not detected."""
+def test_pytest_asyncio_loop_factories_uses_selector_by_default_on_windows() -> None:
+    """Windows defaults to selector loops because ProactorEventLoop breaks psycopg."""
     item = _make_item_with_fixtures("postgresql")
     assert item_uses_postgresql_async_fixture(item) is False
     factories = _resolve_windows_loop_factories(item, None)
-    assert "selector" not in factories
+    assert set(factories) == {"selector"}
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory hook")

@@ -95,13 +95,10 @@ def _resolve_windows_loop_factories(
     prior_result: dict[str, Callable[[], asyncio.AbstractEventLoop]] | None,
 ) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
     """Choose loop factories for a test item on Windows."""
-    if item_uses_postgresql_async_fixture(item):
-        return {"selector": _windows_selector_event_loop}
     if prior_result is not None:
         return prior_result
-    # pytest-asyncio requires a non-empty mapping when this hook is registered.
-    # Use the stdlib factory so unrelated asyncio tests keep default loop behaviour.
-    return {"default": asyncio.new_event_loop}
+    # psycopg async is incompatible with ProactorEventLoop on Windows.
+    return {"selector": _windows_selector_event_loop}
 
 
 def pytest_configure(config: pytest.Config) -> None:
