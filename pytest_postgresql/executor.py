@@ -238,17 +238,9 @@ class PostgreSQLExecutor(TCPExecutor):
         env.pop("PGDATA", None)
         return env
 
-    def _initdb_executable(self) -> str:
-        """Return the initdb executable for the current platform."""
-        if platform.system() == "Windows":
-            return os.path.join(os.path.dirname(self.executable), "initdb.exe")
-        return self.executable
-
     def _build_initdb_command(self, initdb_options: list[str], pgdata: str | None = None) -> list[str]:
         """Build the initdb invocation for the current platform."""
         data_dir = pgdata or self.datadir
-        if platform.system() == "Windows":
-            return [self._initdb_executable(), "--pgdata", data_dir, *initdb_options]
         return [self.executable, "initdb", "--pgdata", data_dir, "-o", " ".join(initdb_options)]
 
     def init_directory(self) -> None:
@@ -263,10 +255,6 @@ class PostgreSQLExecutor(TCPExecutor):
         # remove old one if exists first.
         self.clean_directory()
         pgdata = str(Path(self.datadir).resolve())
-        if platform.system() == "Windows":
-            # initdb on Windows cannot create intermediate directories that already
-            # exist (e.g. pytest basetemp); ensure only the parent exists.
-            Path(pgdata).parent.mkdir(parents=True, exist_ok=True)
         options = ["--username=%s" % self.user]
 
         if self.password:

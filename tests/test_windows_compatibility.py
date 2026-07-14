@@ -950,36 +950,8 @@ class TestInitdbEnvironment:
 
         assert "PGDATA" not in env
 
-    def test_init_directory_prepares_parent_without_creating_pgdata_on_windows(
-        self,
-        tmp_path: Path,
-    ) -> None:
-        """Windows initdb needs the parent directory but not the pgdata leaf."""
-        basetemp = tmp_path / "pytest-basetemp"
-        basetemp.mkdir()
-        parent = basetemp / "pytest-postgresql-postgresql_proc0"
-        pgdata = parent / "data-1234"
-
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
-            executor = PostgreSQLExecutor(
-                executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
-                host="localhost",
-                port=5432,
-                datadir=str(pgdata),
-                unixsocketdir=str(basetemp),
-                logfile=str(basetemp / "postgresql.log"),
-                startparams="-w",
-                dbname="test",
-            )
-            with patch("pytest_postgresql.executor.subprocess.check_output") as check_output:
-                executor.init_directory()
-
-        assert parent.is_dir()
-        assert not pgdata.exists()
-        check_output.assert_called_once()
-
-    def test_build_initdb_command_uses_initdb_exe_on_windows(self) -> None:
-        """Windows must invoke initdb.exe directly with unwrapped options."""
+    def test_build_initdb_command_uses_pg_ctl_on_windows(self) -> None:
+        """Windows must invoke initdb through pg_ctl with wrapped options."""
         with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
@@ -995,9 +967,10 @@ class TestInitdbEnvironment:
             command = executor._build_initdb_command(["--username=postgres", "--auth=trust"])
 
         assert command == [
-            os.path.join("C:/Program Files/PostgreSQL/17/bin", "initdb.exe"),
+            "C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
+            "initdb",
             "--pgdata",
             "D:/data/cluster",
-            "--username=postgres",
-            "--auth=trust",
+            "-o",
+            "--username=postgres --auth=trust",
         ]
