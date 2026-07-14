@@ -290,16 +290,25 @@ class PostgreSQLExecutor(TCPExecutor):
         options = ["--username=%s" % self.user]
 
         if self.password:
-            with tempfile.NamedTemporaryFile() as password_file:
-                options += ["--auth=password", "--pwfile=%s" % password_file.name]
+            password_file = tempfile.NamedTemporaryFile(delete=False)
+            password_path = password_file.name
+            try:
+                options += ["--auth=password", "--pwfile=%s" % password_path]
                 if hasattr(self.password, "encode"):
                     password = self.password.encode("utf-8")
                 else:
                     password = self.password  # type: ignore[assignment]
                 password_file.write(password)
                 password_file.flush()
+                password_file.close()
                 init_directory = self._build_initdb_command(options, pgdata=pgdata)
                 self._run_initdb(init_directory)
+            finally:
+                password_file.close()
+                try:
+                    os.unlink(password_path)
+                except OSError:
+                    pass
         else:
             options += ["--auth=trust"]
             init_directory = self._build_initdb_command(options, pgdata=pgdata)
