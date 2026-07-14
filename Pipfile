@@ -17,9 +17,9 @@ psycopg-binary = {version = "==3.3.4", markers="implementation_name == 'cpython'
 pytest-asyncio = ">=1.4"
 aiofiles = ">=23.0"
 types-aiofiles = ">=23.0"
-coverage = ">=7.15.0"
+coverage = ">=7.15.1"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"
-mypy = {version = "==2.1.0", markers="implementation_name == 'cpython'"}
-types-setuptools = "==82.0.0.20260518"
+mypy = {version = "==2.3.0", markers="implementation_name == 'cpython'"}
+types-setuptools = "==83.0.0.20260706"
 tbump = "==6.11.0"
