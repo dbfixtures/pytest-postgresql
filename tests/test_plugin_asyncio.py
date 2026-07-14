@@ -102,7 +102,9 @@ def test_pytest_configure_sets_legacy_policy_on_old_pytest_asyncio() -> None:
     ):
         pytest_configure(config)
 
-    set_policy.assert_called_once_with(policy_cls())
+    set_policy.assert_called_once()
+    (called_policy,) = set_policy.call_args[0]
+    assert isinstance(called_policy, policy_cls)
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows-specific loop factory")

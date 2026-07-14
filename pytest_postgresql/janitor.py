@@ -182,11 +182,18 @@ class DatabaseJanitor:
         """Determine whether the DatabaseJanitor maintains template or database."""
         return self.as_template
 
+    @staticmethod
+    def _database_exists(cur: Cursor, dbname: str) -> bool:
+        cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
+        return cur.fetchone() is not None
+
     def drop(self) -> None:
         """Drop database in postgresql."""
         # We cannot drop the database while there are connections to it, so we
         # terminate all connections first while not allowing new connections.
         with self.cursor() as cur:
+            if not self._database_exists(cur, self.dbname):
+                return
             self._dont_datallowconn(cur, self.dbname)
             self._terminate_connection(cur, self.dbname)
             if self.as_template:
@@ -336,11 +343,18 @@ class AsyncDatabaseJanitor:
         """Determine whether the AsyncDatabaseJanitor maintains template or database."""
         return self.as_template
 
+    @staticmethod
+    async def _database_exists(cur: AsyncCursor, dbname: str) -> bool:
+        await cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
+        return await cur.fetchone() is not None
+
     async def drop(self) -> None:
         """Drop database in postgresql."""
         # We cannot drop the database while there are connections to it, so we
         # terminate all connections first while not allowing new connections.
         async with self.cursor() as cur:
+            if not await self._database_exists(cur, self.dbname):
+                return
             await self._dont_datallowconn(cur, self.dbname)
             await self._terminate_connection(cur, self.dbname)
             if self.as_template:

@@ -372,6 +372,31 @@ async def test_async_janitor_terminate_connection_sql() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_janitor_drop_noop_when_database_missing() -> None:
+    """drop() is a no-op when the target database does not exist."""
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="missing_db", version=10)
+    cur = AsyncMock(spec=AsyncCursor)
+    cur.fetchone.return_value = None
+    with patch.object(janitor, "cursor") as cursor_ctx:
+        cursor_ctx.return_value.__aenter__.return_value = cur
+        await janitor.drop()
+    cur.execute.assert_called_once()
+    assert cur.execute.call_args.args[0] == "SELECT 1 FROM pg_database WHERE datname = %s"
+
+
+def test_janitor_drop_noop_when_database_missing() -> None:
+    """drop() is a no-op when the target database does not exist."""
+    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="missing_db", version=10)
+    cur = MagicMock()
+    cur.fetchone.return_value = None
+    with patch.object(janitor, "cursor") as cursor_ctx:
+        cursor_ctx.return_value.__enter__.return_value = cur
+        janitor.drop()
+    cur.execute.assert_called_once()
+    assert cur.execute.call_args.args[0] == "SELECT 1 FROM pg_database WHERE datname = %s"
+
+
+@pytest.mark.asyncio
 async def test_async_janitor_load_sql_path_raises_without_aiofiles() -> None:
     """AsyncDatabaseJanitor.load() surfaces aiofiles ImportError for SQL file paths."""
     janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", version=10)
