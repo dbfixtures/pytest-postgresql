@@ -62,10 +62,12 @@ def _prepare_dir(tmpdir: Path, pg_port: PortType) -> tuple[Path, Path]:
     """Prepare a directory for the executor."""
     if platform.system() == "Windows":
         # initdb on Windows cannot mkdir through existing pytest temp parents.
-        datadir = Path(tempfile.gettempdir()) / f"pytest-postgresql-data-{pg_port}"
+        temp_dir = Path(tempfile.gettempdir())
+        datadir = temp_dir / f"pytest-postgresql-data-{pg_port}"
+        logfile_path = temp_dir / f"pytest-postgresql-{pg_port}.log"
     else:
         datadir = tmpdir / f"data-{pg_port}"
-    logfile_path = tmpdir / f"postgresql.{pg_port}.log"
+        logfile_path = tmpdir / f"postgresql.{pg_port}.log"
 
     if platform.system() == "FreeBSD":
         datadir.mkdir()
@@ -164,9 +166,9 @@ def postgresql_proc(
                 password=password or config.password,
                 dbname=pg_dbname,
                 options=options or config.options,
-                datadir=str(datadir),
+                datadir=str(datadir.resolve()),
                 unixsocketdir=unixsocketdir or config.unixsocketdir,
-                logfile=str(logfile_path),
+                logfile=str(logfile_path.resolve()),
                 startparams=startparams or config.startparams,
                 postgres_options=postgres_options or config.postgres_options,
             )

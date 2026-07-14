@@ -612,7 +612,7 @@ def test_prepare_dir_uses_flat_temp_datadir_on_windows(tmp_path: Path) -> None:
         datadir, logfile_path = process._prepare_dir(tmp_path, 5432)
 
     assert datadir == Path(tempfile.gettempdir()) / "pytest-postgresql-data-5432"
-    assert logfile_path == tmp_path / "postgresql.5432.log"
+    assert logfile_path == Path(tempfile.gettempdir()) / "pytest-postgresql-5432.log"
     assert not datadir.exists()
 
 
