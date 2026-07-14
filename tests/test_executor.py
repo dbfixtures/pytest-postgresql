@@ -372,7 +372,8 @@ def test_postgresql_proc_removes_port_lock_on_setup_failure(
     port_path = tmp_path_factory.getbasetemp()
     if hasattr(request.config, "workerinput"):
         port_path = tmp_path_factory.getbasetemp().parent
-    pg_port = 54322
+    pg_port = get_port(None)
+    assert pg_port is not None
 
     with (
         patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
@@ -443,7 +444,14 @@ def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
     if hasattr(request.config, "workerinput"):
         port_path = tmp_path_factory.getbasetemp().parent
 
-    pg_ports = [54321, 54322, 54323]
+    excluded_ports: set[int] = set()
+    pg_ports: list[int] = []
+    for _ in range(3):
+        pg_port = get_port(None, excluded_ports)
+        assert pg_port is not None
+        excluded_ports.add(pg_port)
+        pg_ports.append(pg_port)
+
     foreign_locks = []
     for pg_port in pg_ports:
         foreign_lock = port_path / f"postgresql-{pg_port}.port"

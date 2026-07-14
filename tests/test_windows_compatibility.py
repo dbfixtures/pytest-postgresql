@@ -910,24 +910,43 @@ class TestInitdbEnvironment:
         """Initdb must not inherit CI PGDATA while keeping locale overrides."""
         monkeypatch.setenv("PGDATA", "/system/pgdata")
         monkeypatch.setenv("HOME", "/home/user")
-        executor = PostgreSQLExecutor(
-            executable="/usr/lib/postgresql/17/bin/pg_ctl",
-            host="localhost",
-            port=5432,
-            datadir="/tmp/data",
-            unixsocketdir="/tmp/socket",
-            logfile="/tmp/log",
-            startparams="-w",
-            dbname="test",
-        )
+        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+            executor = PostgreSQLExecutor(
+                executable="/usr/lib/postgresql/17/bin/pg_ctl",
+                host="localhost",
+                port=5432,
+                datadir="/tmp/data",
+                unixsocketdir="/tmp/socket",
+                logfile="/tmp/log",
+                startparams="-w",
+                dbname="test",
+            )
 
-        env = executor._initdb_env()
+            env = executor._initdb_env()
 
         assert "PGDATA" not in env
         assert env["HOME"] == "/home/user"
         assert env["LC_ALL"] == executor.envvars["LC_ALL"]
         assert env["LC_CTYPE"] == executor.envvars["LC_CTYPE"]
         assert env["LANG"] == executor.envvars["LANG"]
+
+    def test_initdb_env_sets_pgdata_on_windows(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Windows initdb must target the fixture data directory explicitly."""
+        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+            executor = PostgreSQLExecutor(
+                executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
+                host="localhost",
+                port=5432,
+                datadir="D:/data/cluster",
+                unixsocketdir="D:/tmp",
+                logfile="D:/tmp/log",
+                startparams="-w",
+                dbname="test",
+            )
+
+            env = executor._initdb_env()
+
+        assert env["PGDATA"] == os.path.abspath("D:/data/cluster")
 
     def test_build_initdb_command_uses_initdb_exe_on_windows(self) -> None:
         """Windows must invoke initdb.exe directly with unwrapped options."""
