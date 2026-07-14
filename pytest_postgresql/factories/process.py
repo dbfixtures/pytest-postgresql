@@ -20,6 +20,7 @@
 import os.path
 import platform
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -59,7 +60,11 @@ def _pg_port(port: PortType | None, config: PostgreSQLConfig, excluded_ports: It
 
 def _prepare_dir(tmpdir: Path, pg_port: PortType) -> tuple[Path, Path]:
     """Prepare a directory for the executor."""
-    datadir = tmpdir / f"data-{pg_port}"
+    if platform.system() == "Windows":
+        # initdb on Windows cannot mkdir through existing pytest temp parents.
+        datadir = Path(tempfile.gettempdir()) / f"pytest-postgresql-data-{pg_port}"
+    else:
+        datadir = tmpdir / f"data-{pg_port}"
     logfile_path = tmpdir / f"postgresql.{pg_port}.log"
 
     if platform.system() == "FreeBSD":

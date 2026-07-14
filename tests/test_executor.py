@@ -1,6 +1,7 @@
 """Test various executor behaviours."""
 
 import platform
+import tempfile
 from pathlib import Path
 from typing import Any, Callable
 from unittest.mock import MagicMock, patch
@@ -594,13 +595,23 @@ def test_actual_postgresql_start_darwin(
     assert_executor_start_stop(executor)
 
 
-@pytest.mark.parametrize("platform_name", ["Linux", "Windows", "Darwin"])
+@pytest.mark.parametrize("platform_name", ["Linux", "Darwin"])
 def test_prepare_dir_does_not_create_datadir_on_non_freebsd(tmp_path: Path, platform_name: str) -> None:
     """Non-FreeBSD platforms defer data directory creation to initdb."""
     with patch("pytest_postgresql.factories.process.platform.system", return_value=platform_name):
         datadir, logfile_path = process._prepare_dir(tmp_path, 5432)
 
     assert datadir == tmp_path / "data-5432"
+    assert logfile_path == tmp_path / "postgresql.5432.log"
+    assert not datadir.exists()
+
+
+def test_prepare_dir_uses_flat_temp_datadir_on_windows(tmp_path: Path) -> None:
+    """Windows keeps pgdata outside pytest temp parents for initdb compatibility."""
+    with patch("pytest_postgresql.factories.process.platform.system", return_value="Windows"):
+        datadir, logfile_path = process._prepare_dir(tmp_path, 5432)
+
+    assert datadir == Path(tempfile.gettempdir()) / "pytest-postgresql-data-5432"
     assert logfile_path == tmp_path / "postgresql.5432.log"
     assert not datadir.exists()
 
