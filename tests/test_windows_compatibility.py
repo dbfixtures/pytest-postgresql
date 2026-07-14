@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -930,8 +931,9 @@ class TestInitdbEnvironment:
         assert env["LC_CTYPE"] == executor.envvars["LC_CTYPE"]
         assert env["LANG"] == executor.envvars["LANG"]
 
-    def test_initdb_env_sets_pgdata_on_windows(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Windows initdb must target the fixture data directory explicitly."""
+    def test_initdb_env_does_not_set_pgdata_on_windows(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Windows initdb must rely on --pgdata rather than inherited PGDATA."""
+        monkeypatch.setenv("PGDATA", "D:/system/pgdata")
         with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
@@ -946,7 +948,35 @@ class TestInitdbEnvironment:
 
             env = executor._initdb_env()
 
-        assert env["PGDATA"] == os.path.abspath("D:/data/cluster")
+        assert "PGDATA" not in env
+
+    def test_init_directory_prepares_parent_without_creating_pgdata_on_windows(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Windows initdb needs the parent directory but not the pgdata leaf."""
+        basetemp = tmp_path / "pytest-basetemp"
+        basetemp.mkdir()
+        parent = basetemp / "pytest-postgresql-postgresql_proc0"
+        pgdata = parent / "data-1234"
+
+        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+            executor = PostgreSQLExecutor(
+                executable="C:/Program Files/PostgreSQL/17/bin/pg_ctl.exe",
+                host="localhost",
+                port=5432,
+                datadir=str(pgdata),
+                unixsocketdir=str(basetemp),
+                logfile=str(basetemp / "postgresql.log"),
+                startparams="-w",
+                dbname="test",
+            )
+            with patch("pytest_postgresql.executor.subprocess.check_output") as check_output:
+                executor.init_directory()
+
+        assert parent.is_dir()
+        assert not pgdata.exists()
+        check_output.assert_called_once()
 
     def test_build_initdb_command_uses_initdb_exe_on_windows(self) -> None:
         """Windows must invoke initdb.exe directly with unwrapped options."""

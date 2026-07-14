@@ -236,8 +236,6 @@ class PostgreSQLExecutor(TCPExecutor):
         """Build subprocess environment for initdb."""
         env = {**os.environ, **self.envvars}
         env.pop("PGDATA", None)
-        if platform.system() == "Windows":
-            env["PGDATA"] = os.path.abspath(self.datadir)
         return env
 
     def _initdb_executable(self) -> str:
@@ -264,9 +262,11 @@ class PostgreSQLExecutor(TCPExecutor):
             return
         # remove old one if exists first.
         self.clean_directory()
-        pgdata = os.path.abspath(self.datadir)
+        pgdata = str(Path(self.datadir).resolve())
         if platform.system() == "Windows":
-            Path(pgdata).mkdir(parents=True, exist_ok=True)
+            # initdb on Windows cannot create intermediate directories that already
+            # exist (e.g. pytest basetemp); ensure only the parent exists.
+            Path(pgdata).parent.mkdir(parents=True, exist_ok=True)
         options = ["--username=%s" % self.user]
 
         if self.password:
