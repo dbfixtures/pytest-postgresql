@@ -1,12 +1,13 @@
 """Test various executor behaviours."""
 
+import logging
 import platform
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import psycopg
 import pytest
@@ -21,6 +22,28 @@ from pytest_postgresql.exceptions import PostgreSQLUnsupported
 from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.factories import postgresql, postgresql_async, postgresql_proc
 from pytest_postgresql.retry import retry
+
+
+class UnitTestPostgreSQLExecutor(PostgreSQLExecutor):
+    """PostgreSQLExecutor variant that skips __del__ cleanup in unit tests."""
+
+    def __del__(self) -> None:
+        """Skip teardown that would invoke pg_ctl during garbage collection."""
+
+
+def _minimal_executor(datadir: str, **kwargs: Any) -> UnitTestPostgreSQLExecutor:
+    """Build a PostgreSQLExecutor for unit tests without starting PostgreSQL."""
+    return UnitTestPostgreSQLExecutor(
+        executable="/usr/bin/pg_ctl",
+        host="127.0.0.1",
+        port=5432,
+        datadir=datadir,
+        unixsocketdir="/tmp/socket",
+        logfile="/tmp/log",
+        startparams="-w",
+        dbname="test",
+        **kwargs,
+    )
 
 
 def assert_executor_start_stop(executor: PostgreSQLExecutor) -> None:
@@ -80,6 +103,140 @@ def test_unsupported_version(request: FixtureRequest) -> None:
 
     with pytest.raises(PostgreSQLUnsupported):
         executor.start()
+
+
+def test_clean_directory_retains_directory_initialised_on_rmtree_failure(tmp_path: Path) -> None:
+    """Failed rmtree must not clear _directory_initialised."""
+    datadir = tmp_path / "data"
+    datadir.mkdir()
+    executor = _minimal_executor(str(datadir))
+    executor._directory_initialised = True
+
+    with (
+        patch.object(executor, "running", return_value=False),
+        patch("pytest_postgresql.executor.shutil.rmtree", side_effect=OSError("permission denied")),
+    ):
+        executor.clean_directory()
+
+    assert executor._directory_initialised is True
+
+
+def test_clean_directory_clears_directory_initialised_on_success(tmp_path: Path) -> None:
+    """Successful rmtree must clear _directory_initialised."""
+    datadir = tmp_path / "data"
+    datadir.mkdir()
+    executor = _minimal_executor(str(datadir))
+    executor._directory_initialised = True
+
+    with (
+        patch.object(executor, "running", return_value=False),
+        patch("pytest_postgresql.executor.shutil.rmtree") as rmtree_mock,
+    ):
+        executor.clean_directory()
+
+    rmtree_mock.assert_called_once_with(str(datadir))
+    assert executor._directory_initialised is False
+
+
+def test_init_directory_logs_password_file_cleanup_failure(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Password file cleanup failures are logged without masking init errors."""
+    datadir = tmp_path / "data"
+    executor = _minimal_executor(str(datadir), password="secret")
+
+    with (
+        patch.object(executor, "clean_directory"),
+        patch.object(executor, "_run_initdb"),
+        patch("pytest_postgresql.executor.os.unlink", side_effect=OSError("busy")),
+        caplog.at_level(logging.WARNING, logger="pytest_postgresql.executor"),
+    ):
+        executor.init_directory()
+
+    assert any("Failed to remove password file" in record.message for record in caplog.records)
+    assert executor._directory_initialised is True
+
+
+def test_postgresql_client_closes_on_pre_yield_failure() -> None:
+    """Sync client fixture closes the connection when setup fails before yield."""
+    fixture_func = postgresql("postgresql_proc", isolation_level=psycopg.IsolationLevel.SERIALIZABLE)
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    conn_mock = MagicMock()
+    type(conn_mock).isolation_level = property(
+        lambda self: psycopg.IsolationLevel.READ_COMMITTED,
+        lambda self, value: (_ for _ in ()).throw(RuntimeError("level failed")),
+    )
+
+    proc_mock = MagicMock()
+    proc_mock.host = "127.0.0.1"
+    proc_mock.port = 5432
+    proc_mock.user = "postgres"
+    proc_mock.password = None
+    proc_mock.options = ""
+    proc_mock.dbname = "tests"
+    proc_mock.template_dbname = "tests_tmpl"
+    proc_mock.version = 14
+
+    request_mock = MagicMock()
+    request_mock.getfixturevalue.return_value = proc_mock
+
+    janitor_mock = MagicMock()
+    janitor_mock.__enter__ = MagicMock(return_value=janitor_mock)
+    janitor_mock.__exit__ = MagicMock(return_value=False)
+
+    with (
+        patch("pytest_postgresql.factories.client.get_config") as get_config_mock,
+        patch("pytest_postgresql.factories.client.DatabaseJanitor", return_value=janitor_mock),
+        patch("pytest_postgresql.factories.client.psycopg.connect", return_value=conn_mock),
+    ):
+        get_config_mock.return_value = MagicMock(drop_test_database=False)
+        generator = raw_func(request_mock)
+        with pytest.raises(RuntimeError, match="level failed"):
+            next(generator)
+
+    conn_mock.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_postgresql_async_client_closes_on_pre_yield_failure() -> None:
+    """Async client fixture closes the connection when setup fails before yield."""
+    fixture_func = postgresql_async("postgresql_proc", isolation_level=psycopg.IsolationLevel.SERIALIZABLE)
+    raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
+
+    conn_mock = MagicMock()
+    conn_mock.set_isolation_level = AsyncMock(side_effect=RuntimeError("level failed"))
+    conn_mock.close = AsyncMock()
+
+    proc_mock = MagicMock()
+    proc_mock.host = "127.0.0.1"
+    proc_mock.port = 5432
+    proc_mock.user = "postgres"
+    proc_mock.password = None
+    proc_mock.options = ""
+    proc_mock.dbname = "tests"
+    proc_mock.template_dbname = "tests_tmpl"
+    proc_mock.version = 14
+
+    request_mock = MagicMock()
+    request_mock.getfixturevalue.return_value = proc_mock
+
+    janitor_mock = MagicMock()
+    janitor_mock.__aenter__ = AsyncMock(return_value=janitor_mock)
+    janitor_mock.__aexit__ = AsyncMock(return_value=False)
+
+    with (
+        patch("pytest_postgresql.factories.client.get_config") as get_config_mock,
+        patch("pytest_postgresql.factories.client.AsyncDatabaseJanitor", return_value=janitor_mock),
+        patch("pytest_postgresql.factories.client.AsyncConnection.connect", new=AsyncMock(return_value=conn_mock)),
+    ):
+        get_config_mock.return_value = MagicMock(drop_test_database=False)
+        generator = raw_func(request_mock)
+        with pytest.raises(RuntimeError, match="level failed"):
+            await generator.__anext__()
+
+    conn_mock.close.assert_awaited_once()
 
 
 @pytest.mark.xdist_group(name="executor_no_xdist_guard")

@@ -107,10 +107,12 @@ def postgresql(
                 port=pg_port,
                 options=pg_options,
             )
-            if isolation_level is not None:
-                db_connection.isolation_level = isolation_level
-            yield db_connection
-            db_connection.close()
+            try:
+                if isolation_level is not None:
+                    db_connection.isolation_level = isolation_level
+                yield db_connection
+            finally:
+                db_connection.close()
 
     return postgresql_factory
 
@@ -170,10 +172,12 @@ def postgresql_async(
                 port=pg_port,
                 options=pg_options,
             )
-            if isolation_level is not None:
-                await db_connection.set_isolation_level(isolation_level)
-            yield db_connection
-            await db_connection.close()
+            try:
+                if isolation_level is not None:
+                    await db_connection.set_isolation_level(isolation_level)
+                yield db_connection
+            finally:
+                await db_connection.close()
 
     mark_postgresql_async_fixture(postgresql_async_factory)
     return cast(

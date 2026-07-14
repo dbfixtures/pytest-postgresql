@@ -899,6 +899,53 @@ class TestRunningMethod:
             args = mock_run.call_args[0][0]
             assert args[3] == "/tmp/my data dir", f"Datadir not passed as argv element: {args!r}"
 
+    def test_running_uses_timeout(self) -> None:
+        """Test that running() passes self._timeout to subprocess.run."""
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+            timeout=42,
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+        ):
+            mock_run.return_value = MagicMock(returncode=0)
+            executor.running()
+
+            kwargs = mock_run.call_args[1]
+            assert kwargs.get("timeout") == 42
+
+    def test_running_returns_true_on_timeout(self) -> None:
+        """Test that running() treats pg_ctl status timeout as still running."""
+        executor = PostgreSQLExecutor(
+            executable="/usr/lib/postgresql/17/bin/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+            timeout=30,
+        )
+
+        with (
+            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch(
+                "pytest_postgresql.executor.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(cmd="pg_ctl status", timeout=30),
+            ),
+        ):
+            assert executor.running() is True
+
 
 class TestInitdbEnvironment:
     """Test initdb subprocess environment construction."""

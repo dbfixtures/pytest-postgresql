@@ -10,7 +10,6 @@ jobs:
   postgresql_18:
     permissions:
       contents: read
-      actions: write
     uses: ./.github/workflows/single-postgres.yml
     with:
       postgresql: 18

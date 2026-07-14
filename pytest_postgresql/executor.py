@@ -241,6 +241,7 @@ class PostgreSQLExecutor(TCPExecutor):
             shutil.rmtree(self.datadir)
         except OSError:
             logger.exception("Failed to remove PostgreSQL data directory %s", self.datadir)
+            return
         self._directory_initialised = False
 
     def _initdb_env(self) -> dict[str, str]:
@@ -307,8 +308,8 @@ class PostgreSQLExecutor(TCPExecutor):
                 password_file.close()
                 try:
                     os.unlink(password_path)
-                except OSError:
-                    pass
+                except OSError as exc:
+                    logger.warning("Failed to remove password file %s: %s", password_path, exc)
         else:
             options += ["--auth=trust"]
             init_directory = self._build_initdb_command(options, pgdata=pgdata)
@@ -345,11 +346,20 @@ class PostgreSQLExecutor(TCPExecutor):
         """Check if server is running."""
         if not os.path.exists(self.datadir):
             return False
-        result = subprocess.run(
-            [self.executable, "status", "-D", self.datadir],
-            check=False,
-            capture_output=True,
-        )
+        try:
+            result = subprocess.run(
+                [self.executable, "status", "-D", self.datadir],
+                check=False,
+                capture_output=True,
+                timeout=self._timeout,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning(
+                "pg_ctl status timed out after %s seconds for datadir %s",
+                self._timeout,
+                self.datadir,
+            )
+            return True
         return result.returncode == 0
 
     def check_subprocess(self) -> bool:
