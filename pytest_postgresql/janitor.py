@@ -88,7 +88,7 @@ class BaseDatabaseJanitor:
         query = sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.dbname))
         if self.template_dbname:
             query = query + sql.SQL(" TEMPLATE {}").format(sql.Identifier(self.template_dbname))
-        if self.as_template:
+        if self.is_template():
             query = query + sql.SQL(" IS_TEMPLATE = true")
         return query
 
@@ -120,7 +120,7 @@ class DatabaseJanitor(BaseDatabaseJanitor):
                 return
             self._dont_datallowconn(cur, self.dbname)
             self._terminate_connection(cur, self.dbname)
-            if self.as_template:
+            if self.is_template():
                 cur.execute(sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname)))
             cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(self.dbname)))
 
@@ -223,7 +223,7 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
                 return
             await self._dont_datallowconn(cur, self.dbname)
             await self._terminate_connection(cur, self.dbname)
-            if self.as_template:
+            if self.is_template():
                 await cur.execute(
                     sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname))
                 )
