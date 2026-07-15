@@ -16,7 +16,7 @@ towncrier = "==25.8.0"
 psycopg-binary = {version = "==3.3.4", markers="implementation_name == 'cpython'"}
 pytest-asyncio = ">=1.4"
 aiofiles = ">=23.0"
-types-aiofiles = ">=23.0"
+types-aiofiles = ">=25.1.0.20260518"
 coverage = ">=7.15.1"
 pytest-xdist = "==3.8.0"
 mock = "==5.2.0"
