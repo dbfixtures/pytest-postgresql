@@ -1,0 +1,1 @@
+Add pyproject-fmt to pre-commit tools.
