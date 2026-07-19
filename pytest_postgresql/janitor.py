@@ -3,10 +3,9 @@
 import asyncio
 import inspect
 from contextlib import asynccontextmanager, contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import AsyncIterator, Callable, Iterator, Protocol, Type, TypeVar
+from typing import AsyncIterator, Callable, Iterator, Type, TypeVar
 
 import psycopg
 import psycopg.sql as sql
@@ -23,97 +22,8 @@ DatabaseJanitorType = TypeVar("DatabaseJanitorType", bound="DatabaseJanitor")
 AsyncDatabaseJanitorType = TypeVar("AsyncDatabaseJanitorType", bound="AsyncDatabaseJanitor")
 
 
-@dataclass
-class _JanitorConfig:
-    """Shared configuration for sync and async database janitors."""
-
-    user: str
-    password: str | None
-    host: str
-    port: str | int
-    dbname: str
-    template_dbname: str | None
-    as_template: bool
-    isolation_level: "psycopg.IsolationLevel | None"
-    connection_timeout: int
-    version: Version  # type: ignore[valid-type]
-
-
-def _build_create_database_sql(
-    dbname: str,
-    template_dbname: str | None,
-    as_template: bool,
-) -> sql.Composed:
-    """Build the CREATE DATABASE statement for janitor init."""
-    query = sql.SQL("CREATE DATABASE {}").format(sql.Identifier(dbname))
-    if template_dbname:
-        query = query + sql.SQL(" TEMPLATE {}").format(sql.Identifier(template_dbname))
-    if as_template:
-        query = query + sql.SQL(" IS_TEMPLATE = true")
-    return query
-
-
-def _init_janitor_config(
-    *,
-    user: str,
-    host: str,
-    port: str | int,
-    version: str | float | Version,  # type: ignore[valid-type]
-    dbname: str,
-    template_dbname: str | None = None,
-    as_template: bool = False,
-    password: str | None = None,
-    isolation_level: "psycopg.IsolationLevel | None" = None,
-    connection_timeout: int = 60,
-) -> _JanitorConfig:
-    """Create shared janitor configuration from constructor arguments."""
-    if not isinstance(version, Version):
-        parsed_version = parse(str(version))
-    else:
-        parsed_version = version
-    return _JanitorConfig(
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        dbname=dbname,
-        template_dbname=template_dbname,
-        as_template=as_template,
-        isolation_level=isolation_level,
-        connection_timeout=connection_timeout,
-        version=parsed_version,
-    )
-
-
-class _JanitorConfigTarget(Protocol):
-    user: str
-    password: str | None
-    host: str
-    port: str | int
-    dbname: str
-    template_dbname: str | None
-    as_template: bool
-    _connection_timeout: int
-    isolation_level: "psycopg.IsolationLevel | None"
-    version: Version  # type: ignore[valid-type]
-
-
-def _apply_janitor_config(target: _JanitorConfigTarget, config: _JanitorConfig) -> None:
-    """Copy shared janitor configuration onto a janitor instance."""
-    target.user = config.user
-    target.password = config.password
-    target.host = config.host
-    target.port = config.port
-    target.dbname = config.dbname
-    target.template_dbname = config.template_dbname
-    target.as_template = config.as_template
-    target._connection_timeout = config.connection_timeout
-    target.isolation_level = config.isolation_level
-    target.version = config.version
-
-
-class DatabaseJanitor:
-    """Manage database state for specific tasks."""
+class BaseDatabaseJanitor:
+    """Common base class for database janitors."""
 
     user: str
     password: str | None
@@ -155,19 +65,36 @@ class DatabaseJanitor:
         :param connection_timeout: how long to retry connection before
             raising a TimeoutError
         """
-        config = _init_janitor_config(
-            user=user,
-            host=host,
-            port=port,
-            version=version,
-            dbname=dbname,
-            template_dbname=template_dbname,
-            as_template=as_template,
-            password=password,
-            isolation_level=isolation_level,
-            connection_timeout=connection_timeout,
-        )
-        _apply_janitor_config(self, config)
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
+        self.dbname = dbname
+        self.template_dbname = template_dbname
+        self.as_template = as_template
+        self._connection_timeout = connection_timeout
+        self.isolation_level = isolation_level
+        if not isinstance(version, Version):
+            self.version = parse(str(version))
+        else:
+            self.version = version
+
+    def is_template(self) -> bool:
+        """Determine whether the janitor maintains template or database."""
+        return self.as_template
+
+    def _build_create_database_sql(self) -> sql.Composed:
+        """Build the CREATE DATABASE statement for janitor init."""
+        query = sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.dbname))
+        if self.template_dbname:
+            query = query + sql.SQL(" TEMPLATE {}").format(sql.Identifier(self.template_dbname))
+        if self.is_template():
+            query = query + sql.SQL(" IS_TEMPLATE = true")
+        return query
+
+
+class DatabaseJanitor(BaseDatabaseJanitor):
+    """Manage database state for specific tasks."""
 
     def init(self) -> None:
         """Create database in postgresql."""
@@ -176,12 +103,8 @@ class DatabaseJanitor:
                 # And make sure no-one is left connected to the template database.
                 # Otherwise, Creating database from template will fail
                 self._terminate_connection(cur, self.template_dbname)
-            query = _build_create_database_sql(self.dbname, self.template_dbname, self.as_template)
+            query = self._build_create_database_sql()
             cur.execute(query)
-
-    def is_template(self) -> bool:
-        """Determine whether the DatabaseJanitor maintains template or database."""
-        return self.as_template
 
     @staticmethod
     def _database_exists(cur: Cursor, dbname: str) -> bool:
@@ -197,7 +120,7 @@ class DatabaseJanitor:
                 return
             self._dont_datallowconn(cur, self.dbname)
             self._terminate_connection(cur, self.dbname)
-            if self.as_template:
+            if self.is_template():
                 cur.execute(sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname)))
             cur.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(self.dbname)))
 
@@ -273,62 +196,8 @@ class DatabaseJanitor:
         self.drop()
 
 
-class AsyncDatabaseJanitor:
+class AsyncDatabaseJanitor(BaseDatabaseJanitor):
     """Manage database state asynchronously for specific tasks."""
-
-    user: str
-    password: str | None
-    host: str
-    port: str | int
-    dbname: str
-    template_dbname: str | None
-    as_template: bool
-    _connection_timeout: int
-    isolation_level: "psycopg.IsolationLevel | None"
-    version: Version  # type: ignore[valid-type]
-
-    def __init__(
-        self,
-        *,
-        user: str,
-        host: str,
-        port: str | int,
-        version: str | float | Version,  # type: ignore[valid-type]
-        dbname: str,
-        template_dbname: str | None = None,
-        as_template: bool = False,
-        password: str | None = None,
-        isolation_level: "psycopg.IsolationLevel | None" = None,
-        connection_timeout: int = 60,
-    ) -> None:
-        """Initialize async janitor.
-
-        :param user: postgresql username
-        :param host: postgresql host
-        :param port: postgresql port
-        :param dbname: database name
-        :param template_dbname: template database name to clone from
-        :param as_template: whether to mark the database as a template
-        :param version: postgresql version number
-        :param password: optional postgresql password
-        :param isolation_level: optional postgresql isolation level
-            defaults to server's default
-        :param connection_timeout: how long to retry connection before
-            raising a TimeoutError
-        """
-        config = _init_janitor_config(
-            user=user,
-            host=host,
-            port=port,
-            version=version,
-            dbname=dbname,
-            template_dbname=template_dbname,
-            as_template=as_template,
-            password=password,
-            isolation_level=isolation_level,
-            connection_timeout=connection_timeout,
-        )
-        _apply_janitor_config(self, config)
 
     async def init(self) -> None:
         """Create database in postgresql."""
@@ -337,12 +206,8 @@ class AsyncDatabaseJanitor:
                 # And make sure no-one is left connected to the template database.
                 # Otherwise, Creating database from template will fail
                 await self._terminate_connection(cur, self.template_dbname)
-            query = _build_create_database_sql(self.dbname, self.template_dbname, self.as_template)
+            query = self._build_create_database_sql()
             await cur.execute(query)
-
-    def is_template(self) -> bool:
-        """Determine whether the AsyncDatabaseJanitor maintains template or database."""
-        return self.as_template
 
     @staticmethod
     async def _database_exists(cur: AsyncCursor, dbname: str) -> bool:
@@ -358,7 +223,7 @@ class AsyncDatabaseJanitor:
                 return
             await self._dont_datallowconn(cur, self.dbname)
             await self._terminate_connection(cur, self.dbname)
-            if self.as_template:
+            if self.is_template():
                 await cur.execute(
                     sql.SQL("ALTER DATABASE {} WITH is_template false").format(sql.Identifier(self.dbname))
                 )
