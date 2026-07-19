@@ -7,13 +7,15 @@ on:
     workflows:
       # List all required workflow names here.
       - 'Run tests'
-      - 'Run tests on macos'
       - 'Run linters'
       - 'Test build package'
+  check_suite:
+    types:
+      - completed
 
 jobs:
   automerge:
-    uses: fizyk/actions-reuse/.github/workflows/shared-automerge.yml@v4.4.7
+    uses: fizyk/actions-reuse/.github/workflows/shared-automerge.yml@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
     secrets:
-      app_id: ${{ secrets.MERGE_APP_ID }}
+      client_id: ${{ secrets.MERGE_APP_CLIENT_ID }}
       private_key: ${{ secrets.MERGE_APP_PRIVATE_KEY }}

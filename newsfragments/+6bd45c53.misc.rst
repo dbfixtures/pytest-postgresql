@@ -1,0 +1,1 @@
+Update automerge to new 5.x version and change app id to client id
