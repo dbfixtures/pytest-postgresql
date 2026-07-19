@@ -542,12 +542,3 @@ You can define a ``load`` function and pass it to your process fixture factory:
             assert cur.fetchone()[0] == 2
 
 The process fixture populates the **template database** once, and the client fixture clones it for every test. This is fast, clean, and ensures no dangling transactions. This approach works with both ``postgresql_proc`` and ``postgresql_noproc``.
-
-Release
-=======
-
-Install ``pipenv`` and dev dependencies, then run:
-
-.. code-block:: sh
-
-    pipenv run tbump [NEW_VERSION]

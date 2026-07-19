@@ -1,6 +1,6 @@
 ---
 ci:
-  skip: [pipenv, mypy]
+  skip: [uv-sync, mypy]
 
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
@@ -49,21 +49,21 @@ repos:
 
   - repo: local
     hooks:
-      - id: pipenv
+      - id: uv-sync
         stages: [pre-commit, manual]
         language: system
         name: Install dependencies for the local linters
-        entry: bash -c "pip install pipenv && pipenv install --dev"
+        entry: uv sync
         types_or:
           - python
-          - toml  # Pipfile
+          - toml  # pyproject.toml
         pass_filenames: false
       - id: mypy
         stages: [pre-commit, manual]
         name: mypy
-        entry: pipenv run mypy .
+        entry: uv run mypy .
         language: system
         types_or:
           - python
-          - toml  # Pipfile
+          - toml  # pyproject.toml
         pass_filenames: false

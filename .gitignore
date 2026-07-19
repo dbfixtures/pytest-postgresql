@@ -21,9 +21,6 @@ lib64
 .pytest_cache
 venv/
 
-# Pipenv
-Pipfile.lock
-
 # Installer logs
 pip-log.txt
 

@@ -1,6 +1,6 @@
 [build-system]
-build-backend = "setuptools.build_meta"
-requires = [ "setuptools>=61.0.0" ]
+build-backend = "uv_build"
+requires = [ "uv-build>=0.11" ]
 
 [project]
 name = "pytest-postgresql"
@@ -8,14 +8,14 @@ version = "8.1.0"
 description = "Postgresql fixtures and fixture factories for Pytest."
 readme = "README.rst"
 keywords = [ "fixture", "postgresql", "pytest", "tests" ]
-license = { file = "COPYING.lesser" }
+license = "LGPL-3.0-or-later"
+license-files = [ "COPYING.lesser" ]
 requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
     "Framework :: Pytest",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
@@ -46,13 +46,29 @@ Source = "https://github.com/dbfixtures/pytest-postgresql"
 "Bug Tracker" = "https://github.com/dbfixtures/pytest-postgresql/issues"
 Changelog = "https://github.com/dbfixtures/pytest-postgresql/blob/v8.1.0/CHANGES.rst"
 
-[tool.setuptools]
-zip-safe = true
+[dependency-groups]
+dev = [
+    "aiofiles==23.1.0",
+    "coverage==7.15.0",
+    "mirakuru==3.0.2",
+    "mock==5.2.0",
+    "mypy==2.2.0; implementation_name=='cpython'",
+    "packaging==26.2",
+    "port-for==1.0.0",
+    "psycopg==3.3.4",
+    "psycopg-binary==3.3.4; implementation_name=='cpython'",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "pytest-xdist==3.8.0",
+    "tbump==6.11.0",
+    "towncrier==25.8.0",
+    "types-aiofiles==25.1.0.20260518",
+]
 
-[tool.setuptools.packages.find]
-include = [ "pytest_postgresql*" ]
-exclude = [ "tests*" ]
-namespaces = false
+[tool.uv.build-backend]
+module-name = "pytest_postgresql"
+module-root = ""
+source-include = [ "CHANGES.rst" ]
 
 [tool.ruff]
 target-version = "py310"
@@ -104,7 +120,7 @@ testpaths = [ "tests" ]
 
 [[tool.tbump.before_commit]]
 name = "Build changelog"
-cmd = "pipenv run towncrier build --version {new_version} --yes"
+cmd = "uv run towncrier build --version {new_version} --yes"
 
 [[tool.tbump.field]]
 name = "extra"
