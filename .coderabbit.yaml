@@ -23,5 +23,5 @@ reviews:
           Read the towncrier configuration from pyproject.toml to determine valid newsfragment types.
           If no newsfragment is present, suggest which type should be added based on the PR changes.
           Suggest the filename format: [issue_or_pr_number].[type].rst (or +[hash].[type].rst for orphan fragments)
-          Remind contributors to use: `pipenv run towncrier create [number].[type].rst` (or `pipenv run towncrier create +.[type]` for orphan fragments)
+          Remind contributors to use: `uv run towncrier create [number].[type].rst` (or `uv run towncrier create +.[type]` for orphan fragments)
           Skip the check if the PR only updates existing newsfragments or is a trivial change.

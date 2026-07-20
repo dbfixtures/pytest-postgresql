@@ -4,22 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pytest = "==9.1.1"
-port-for = "==1.0.0"
-mirakuru = "==3.0.2"
-packaging = "==26.2"
-psycopg = "==3.3.4"
-pytest-postgresql = {path = ".", editable = true}
 
 [dev-packages]
-towncrier = "==25.8.0"
-psycopg-binary = {version = "==3.3.4", markers="implementation_name == 'cpython'"}
-pytest-asyncio = ">=1.4"
-aiofiles = ">=23.0"
-types-aiofiles = ">=25.1.0.20260518"
-coverage = ">=7.15.2"
-pytest-xdist = "==3.8.0"
-mock = "==5.2.0"
-mypy = {version = "==2.3.0", markers="implementation_name == 'cpython'"}
-types-setuptools = "==83.0.0.20260716"
-tbump = "==6.11.0"
+
+[requires]
+python_version = "3.14"

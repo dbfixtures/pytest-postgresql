@@ -34,15 +34,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v6
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
         with:
           python-version: ${{ inputs.python-version }}
-          allow-prereleases: true
-      - name: Install package with async extra
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pytest
-          python -m pip install -e ".[async]"
       - uses: ankane/setup-postgres@v1
         with:
           postgres-version: ${{ inputs.postgresql }}
@@ -72,8 +66,9 @@ jobs:
         run: |
           sudo locale-gen de_DE.UTF-8
       - name: Run async tests
-        run: |
-          python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+        uses: fizyk/actions-reuse/.github/actions/uv-run@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
+        with:
+          command: python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

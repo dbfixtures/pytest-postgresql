@@ -25,7 +25,7 @@ Development
 
 #. Fork the repository
 #. Clone the repository
-#. Create a virtual environment with ``pipenv install --dev``
+#. Create a virtual environment with ``uv sync --all-groups``
 
 Pull requests
 -------------
@@ -56,7 +56,7 @@ Testing
 #. PR tests run on Github Actions.
 #. Run a PostgreSQL server [#]_, and create a default super user ``createuser --superuser postgres``
 #. Set envvar named ``POSTGRES`` with used version number
-#. Run tests with ``pipenv run pytest``
+#. Run tests with ``uv run pytest``
 #. If you encounter any test failures due to locale issues, make sure that both ``en_US.UTF-8`` and ``de_DE.UTF-8`` are enabled in ``/etc/locale.gen`` and then run ``sudo locale-gen``.
 
 .. [#] Installing and configuring a PostgreSQL server is out of scope of this document. Please refer to `PostgreSQL documentation <https://www.postgresql.org/docs/>`_ for more information.

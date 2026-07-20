@@ -1,14 +1,18 @@
 version: 2
 updates:
-- package-ecosystem: pip
+- package-ecosystem: uv
   directories:
     - "/"
   exclude-paths:
     - "oldest/*"
   schedule:
     interval: daily
-    time: "02:00"
+    time: "02:10"
   open-pull-requests-limit: 1
+  cooldown:
+    default-days: 7
+  commit-message:
+    prefix: " "
 - package-ecosystem: github-actions
   directory: "/"
   schedule:
@@ -16,3 +20,7 @@ updates:
     time: "06:00"
     day: "sunday"
   open-pull-requests-limit: 2
+  cooldown:
+    default-days: 7
+  commit-message:
+    prefix: " "

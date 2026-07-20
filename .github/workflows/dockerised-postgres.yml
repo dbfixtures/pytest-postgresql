@@ -51,19 +51,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Set up Pipenv on python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/pipenv-setup@v4.4.7
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
         with:
           python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
       - name: Run test noproc fixture on docker
         id: run_docker_tests
-        uses: fizyk/actions-reuse/.github/actions/pipenv-run@v4.4.7
+        uses: fizyk/actions-reuse/.github/actions/uv-run@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
         with:
           command: python -m coverage run --data-file=.coverage.docker -m pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres
           env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.docker"}'
       - name: Combine and export docker coverage
         if: ${{ always() && (steps.run_docker_tests.conclusion == 'success' || steps.run_docker_tests.conclusion == 'failure') }}
-        uses: fizyk/actions-reuse/.github/actions/coverage-combine-export@v4.4.7
+        uses: fizyk/actions-reuse/.github/actions/coverage-combine-export-uv@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
         with:
           data-file: .coverage.docker
           output-file: coverage-docker.xml
