@@ -6,6 +6,6 @@ on:
 
 jobs:
   pr-check:
-    uses: fizyk/actions-reuse/.github/workflows/shared-pr-check.yml@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
+    uses: fizyk/actions-reuse/.github/workflows/shared-pr-check.yml@5e3ff7b4d544d6b3b8336cdc9c029cff9ab7abb3 # v5.2.7
     with:
       dependency-manager: 'uv'
