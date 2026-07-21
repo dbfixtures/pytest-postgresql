@@ -48,7 +48,7 @@ Changelog = "https://github.com/dbfixtures/pytest-postgresql/blob/v8.1.0/CHANGES
 
 [dependency-groups]
 dev = [
-    "aiofiles==23.1.0",
+    "aiofiles==25.1.0",
     "coverage==7.15.1",
     "mirakuru==3.0.2",
     "mock==5.2.0",
