@@ -1,0 +1,1 @@
+Pin GitHub Actions to immutable commit SHAs
