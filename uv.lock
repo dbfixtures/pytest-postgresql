@@ -8,11 +8,11 @@ resolution-markers = [
 
 [[package]]
 name = "aiofiles"
-version = "23.1.0"
+version = "25.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/40/a0/07be94aecba162ed5147359f9883e82afd2ac13aed33678a008fc8c36f8b/aiofiles-23.1.0.tar.gz", hash = "sha256:edd247df9a19e0db16534d4baaf536d6609a43e1de5401d7a4c1c148753a1635", size = 15614, upload-time = "2023-02-09T01:15:10.244Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/c3/534eac40372d8ee36ef40df62ec129bee4fdb5ad9706e58a29be53b2c970/aiofiles-25.1.0.tar.gz", hash = "sha256:a8d728f0a29de45dc521f18f07297428d56992a742f0cd2701ba86e44d23d5b2", size = 46354, upload-time = "2025-10-09T20:51:04.358Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a8/76/635aa4f210d46ca105bfedd42d41f649b91d3e58422912726fc5e7965442/aiofiles-23.1.0-py3-none-any.whl", hash = "sha256:9312414ae06472eb6f1d163f555e466a23aed1c8f60c30cccf7121dba2e53eb2", size = 14855, upload-time = "2023-02-09T01:15:07.842Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/8a/340a1555ae33d7354dbca4faa54948d76d89a27ceef032c8c3bc661d003e/aiofiles-25.1.0-py3-none-any.whl", hash = "sha256:abe311e527c862958650f9438e859c1fa7568a141b22abcd015e120e86a85695", size = 14668, upload-time = "2025-10-09T20:51:03.174Z" },
 ]
 
 [[package]]
@@ -739,7 +739,7 @@ provides-extras = ["async"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "aiofiles", specifier = "==23.1.0" },
+    { name = "aiofiles", specifier = "==25.1.0" },
     { name = "coverage", specifier = "==7.15.1" },
     { name = "mirakuru", specifier = "==3.0.2" },
     { name = "mock", specifier = "==5.2.0" },
