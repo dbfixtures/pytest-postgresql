@@ -52,7 +52,7 @@ dev = [
     "coverage==7.15.1",
     "mirakuru==3.0.2",
     "mock==5.2.0",
-    "mypy==2.2.0; implementation_name=='cpython'",
+    "mypy==2.3.0; implementation_name=='cpython'",
     "packaging==26.2",
     "port-for==1.0.0",
     "psycopg==3.3.4",
