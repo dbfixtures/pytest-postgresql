@@ -8,9 +8,11 @@ runs:
   using: composite
   steps:
     - shell: pwsh
-      run: |
+      env:
+        POSTGRESQL_VERSION: ${{ inputs.postgresql-version }}
+      run: | # zizmor: ignore[github-env]
         $pgFound = $false
-        $hardcodedPath = "C:\Program Files\PostgreSQL\${{ inputs.postgresql-version }}\bin\pg_ctl.exe"
+        $hardcodedPath = "C:\Program Files\PostgreSQL\$env:POSTGRESQL_VERSION\bin\pg_ctl.exe"
         if (Test-Path $hardcodedPath) {
           echo "POSTGRESQL_EXEC=$hardcodedPath" >> $env:GITHUB_ENV
           $pgFound = $true

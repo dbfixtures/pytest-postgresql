@@ -3,11 +3,13 @@ on:
   push:
     tags:
       - v*
+permissions: {}
+
 jobs:
   build:
-    uses: fizyk/actions-reuse/.github/workflows/shared-pypi.yml@v4.4.7
-    with:
-      publish: false
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build.yml
 
   publish:
     name: Publish Python 🐍 distributions 📦 to PyPI

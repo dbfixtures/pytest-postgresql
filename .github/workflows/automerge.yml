@@ -1,6 +1,6 @@
 name: Merge me test dependencies!
 
-on:
+on: # zizmor: ignore[dangerous-triggers]
   workflow_run:
     types:
       - completed
@@ -12,6 +12,8 @@ on:
   check_suite:
     types:
       - completed
+
+permissions: {}
 
 jobs:
   automerge:
