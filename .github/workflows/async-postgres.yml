@@ -37,7 +37,10 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/uv-setup@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
         with:
           python-version: ${{ inputs.python-version }}
-      - uses: ankane/setup-postgres@v1
+      # ankane/setup-postgres publishes no tags/releases; v1 is a branch. Pinning
+      # to a SHA gains nothing (Dependabot can't track a branch). Revisit if the
+      # maintainer adds releases. See https://docs.zizmor.sh/audits/#unpinned-uses
+      - uses: ankane/setup-postgres@v1 # zizmor: ignore[unpinned-uses]
         with:
           postgres-version: ${{ inputs.postgresql }}
       - name: Set PostgreSQL path on Linux
