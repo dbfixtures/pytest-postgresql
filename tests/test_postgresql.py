@@ -63,7 +63,9 @@ def test_postgres_terminate_connection(postgresql2: Connection, _: int) -> None:
     with postgresql2.cursor() as cur:
 
         def check_if_one_connection() -> None:
-            cur.execute("SELECT * FROM pg_stat_activity WHERE backend_type = 'client backend';")
+            cur.execute(
+                "SELECT * FROM pg_stat_activity WHERE backend_type = 'client backend' AND datname = current_database();"
+            )
             existing_connections = cur.fetchall()
             assert len(existing_connections) == 1, f"there is always only one connection, {existing_connections}"
 
@@ -120,7 +122,9 @@ async def test_postgres_terminate_connection_async(postgresql2_async: AsyncConne
     async with postgresql2_async.cursor() as cur:
 
         async def check_if_one_connection() -> None:
-            await cur.execute("SELECT * FROM pg_stat_activity WHERE backend_type = 'client backend';")
+            await cur.execute(
+                "SELECT * FROM pg_stat_activity WHERE backend_type = 'client backend' AND datname = current_database();"
+            )
             existing_connections = await cur.fetchall()
             assert len(existing_connections) == 1, f"there is always only one connection, {existing_connections}"
 
