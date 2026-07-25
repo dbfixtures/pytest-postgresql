@@ -34,6 +34,7 @@ class BaseDatabaseJanitor:
     as_template: bool
     _connection_timeout: int
     isolation_level: "psycopg.IsolationLevel | None"
+    autocommit: bool
     version: Version  # type: ignore[valid-type]
 
     def __init__(
@@ -48,6 +49,7 @@ class BaseDatabaseJanitor:
         as_template: bool = False,
         password: str | None = None,
         isolation_level: "psycopg.IsolationLevel | None" = None,
+        autocommit: bool = False,
         connection_timeout: int = 60,
     ) -> None:
         """Initialize janitor.
@@ -62,6 +64,10 @@ class BaseDatabaseJanitor:
         :param password: optional postgresql password
         :param isolation_level: optional postgresql isolation level
             defaults to server's default
+        :param autocommit: run the SQL loader connection with autocommit on.
+            Required for statements that cannot run inside a transaction
+            block, e.g. ``CREATE DATABASE`` in a loaded ``.sql`` file. Only
+            affects the loader connection, not the janitor's admin cursor.
         :param connection_timeout: how long to retry connection before
             raising a TimeoutError
         """
@@ -74,6 +80,7 @@ class BaseDatabaseJanitor:
         self.as_template = as_template
         self._connection_timeout = connection_timeout
         self.isolation_level = isolation_level
+        self.autocommit = autocommit
         if not isinstance(version, Version):
             self.version = parse(str(version))
         else:
@@ -154,6 +161,7 @@ class DatabaseJanitor(BaseDatabaseJanitor):
             user=self.user,
             dbname=self.dbname,
             password=self.password,
+            autocommit=self.autocommit,
         )
 
     @contextmanager
@@ -259,6 +267,7 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
             "user": self.user,
             "dbname": self.dbname,
             "password": self.password,
+            "autocommit": self.autocommit,
         }
         loader_func = getattr(_loader, "func", _loader)
         if inspect.iscoroutinefunction(loader_func):

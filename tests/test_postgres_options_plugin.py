@@ -57,6 +57,21 @@ def test_postgres_loader_in_ini(pointed_pytester: Pytester) -> None:
     ret.assert_outcomes(passed=1)
 
 
+def test_postgres_load_autocommit_in_cli(pointed_pytester: Pytester) -> None:
+    """Check that the --postgresql-load-autocommit command line flag is honored."""
+    pointed_pytester.copy_example("test_assert_load_autocommit_is_true.py")
+    ret = pointed_pytester.runpytest("--postgresql-load-autocommit", "test_assert_load_autocommit_is_true.py")
+    ret.assert_outcomes(passed=1)
+
+
+def test_postgres_load_autocommit_in_ini(pointed_pytester: Pytester) -> None:
+    """Check that pytest.ini postgresql_load_autocommit is honored and parsed as a bool."""
+    pointed_pytester.copy_example("test_assert_load_autocommit_is_true.py")
+    pointed_pytester.makefile(".ini", pytest="[pytest]\npostgresql_load_autocommit = True\n")
+    ret = pointed_pytester.runpytest("test_assert_load_autocommit_is_true.py")
+    ret.assert_outcomes(passed=1)
+
+
 def test_postgres_port_search_count_in_cli_is_int(pointed_pytester: Pytester) -> None:
     """Check that the --postgresql-port-search-count command line argument is parsed as an int."""
     pointed_pytester.copy_example("test_assert_port_search_count_is_ten.py")

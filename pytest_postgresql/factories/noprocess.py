@@ -45,6 +45,7 @@ def postgresql_noproc(
     dbname: str | None = None,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
+    load_autocommit: bool = False,
     depends_on: str | None = None,
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
@@ -56,6 +57,9 @@ def postgresql_noproc(
     :param dbname: postgresql database name
     :param options: Postgresql connection options
     :param load: List of functions used to initialize database's template.
+    :param load_autocommit: run the SQL loader connection with autocommit on.
+        Required for statements that cannot run inside a transaction block,
+        e.g. ``CREATE DATABASE`` in a loaded ``.sql`` file.
     :param depends_on: Optional name of the fixture to depend on.
     :returns: function which makes a postgresql process
     """
@@ -113,6 +117,7 @@ def postgresql_noproc(
             as_template=True,
             version=noop_exec.version,
             password=noop_exec.password,
+            autocommit=load_autocommit or config.load_autocommit,
         )
         if drop_test_database:
             janitor.drop()
