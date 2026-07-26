@@ -60,12 +60,12 @@ jobs:
         if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
         run: sudo apt install libpq5
       - name: Install oldest supported versions
-        uses: fizyk/actions-reuse/.github/actions/uv-run@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
+        uses: fizyk/actions-reuse/.github/actions/uv-run@5e3ff7b4d544d6b3b8336cdc9c029cff9ab7abb3 # v5.2.7
         with:
           command: pip install -r oldest/requirements.txt
       - name: Run tests without xdist
         id: run_serial_tests
-        uses: fizyk/actions-reuse/.github/actions/uv-run@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
+        uses: fizyk/actions-reuse/.github/actions/uv-run@5e3ff7b4d544d6b3b8336cdc9c029cff9ab7abb3 # v5.2.7
         with:
           command: python -m coverage run --data-file=.coverage.serial -m pytest -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.serial"}'
@@ -77,7 +77,7 @@ jobs:
           output-file: coverage-serial.xml
       - name: Run xdist test
         id: run_xdist_tests
-        uses: fizyk/actions-reuse/.github/actions/uv-run@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
+        uses: fizyk/actions-reuse/.github/actions/uv-run@5e3ff7b4d544d6b3b8336cdc9c029cff9ab7abb3 # v5.2.7
         with:
           command: python -m coverage run --data-file=.coverage.xdist -m pytest -n auto -c pyproject.oldest.toml --dist loadgroup --max-worker-restart 0 --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.xdist"}'
