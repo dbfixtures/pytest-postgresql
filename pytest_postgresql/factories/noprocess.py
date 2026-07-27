@@ -45,7 +45,7 @@ def postgresql_noproc(
     dbname: str | None = None,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
-    load_autocommit: bool = False,
+    load_autocommit: bool | None = None,
     depends_on: str | None = None,
 ) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
