@@ -387,7 +387,7 @@ You can define settings via fixture factory arguments, command line options, or 
      - load_autocommit
      - --postgresql-load-autocommit
      - postgresql_load_autocommit
-     - -
+     - yes
      - False
    * - PostgreSQL connection options
      - options

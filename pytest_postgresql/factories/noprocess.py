@@ -100,6 +100,10 @@ def postgresql_noproc(
         else:
             noop_exec_dbname = pg_dbname
 
+        janitor_load_autocommit = config.load_autocommit
+        if load_autocommit is not None:
+            janitor_load_autocommit = load_autocommit
+
         noop_exec = NoopExecutor(
             host=pg_host,
             port=pg_port,
@@ -117,7 +121,7 @@ def postgresql_noproc(
             as_template=True,
             version=noop_exec.version,
             password=noop_exec.password,
-            autocommit=load_autocommit or config.load_autocommit,
+            autocommit=janitor_load_autocommit,
         )
         if drop_test_database:
             janitor.drop()

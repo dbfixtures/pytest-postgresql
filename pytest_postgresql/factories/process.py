@@ -94,7 +94,7 @@ def postgresql_proc(
     unixsocketdir: str | None = None,
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
-    load_autocommit: bool = False,
+    load_autocommit: bool | None = None,
 ) -> Callable[[FixtureRequest, TempPathFactory], PostgreSQLExecutor]:
     """Postgresql process factory.
 
@@ -216,6 +216,9 @@ def postgresql_proc(
             )
             postgresql_executor.start()
             postgresql_executor.wait_for_postgres()
+            janitor_load_autocommit = config.load_autocommit
+            if load_autocommit is not None:
+                janitor_load_autocommit = load_autocommit
             janitor = DatabaseJanitor(
                 user=postgresql_executor.user,
                 host=postgresql_executor.host,
@@ -224,7 +227,7 @@ def postgresql_proc(
                 as_template=True,
                 version=postgresql_executor.version,
                 password=postgresql_executor.password,
-                autocommit=load_autocommit or config.load_autocommit,
+                autocommit=janitor_load_autocommit,
             )
             if config.drop_test_database:
                 janitor.drop()
