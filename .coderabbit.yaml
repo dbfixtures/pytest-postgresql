@@ -1,5 +1,6 @@
 language: en-GB
 reviews:
+  profile: assertive
   path_instructions:
     - path: "newsfragments/*.rst"
       instructions: |
