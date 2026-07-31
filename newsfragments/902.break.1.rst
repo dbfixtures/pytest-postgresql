@@ -1,0 +1,1 @@
+Load functions passed to proc/noproc fixtures have to accept new `autocommit` argument.

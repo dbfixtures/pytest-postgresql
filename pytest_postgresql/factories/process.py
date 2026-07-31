@@ -94,6 +94,7 @@ def postgresql_proc(
     unixsocketdir: str | None = None,
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
+    load_autocommit: bool | None = None,
 ) -> Callable[[FixtureRequest, TempPathFactory], PostgreSQLExecutor]:
     """Postgresql process factory.
 
@@ -114,6 +115,9 @@ def postgresql_proc(
     :param unixsocketdir: directory to create postgresql's unixsockets
     :param postgres_options: Postgres executable options for use by pg_ctl
     :param load: List of functions used to initialize database's template.
+    :param load_autocommit: run the SQL loader connection with autocommit on.
+        Required for statements that cannot run inside a transaction block,
+        e.g. ``CREATE DATABASE`` in a loaded ``.sql`` file.
     :returns: function which makes a postgresql process
     """
 
@@ -212,6 +216,9 @@ def postgresql_proc(
             )
             postgresql_executor.start()
             postgresql_executor.wait_for_postgres()
+            janitor_load_autocommit = config.load_autocommit
+            if load_autocommit is not None:
+                janitor_load_autocommit = load_autocommit
             janitor = DatabaseJanitor(
                 user=postgresql_executor.user,
                 host=postgresql_executor.host,
@@ -220,6 +227,7 @@ def postgresql_proc(
                 as_template=True,
                 version=postgresql_executor.version,
                 password=postgresql_executor.password,
+                autocommit=janitor_load_autocommit,
             )
             if config.drop_test_database:
                 janitor.drop()

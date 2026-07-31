@@ -134,6 +134,7 @@ def test_janitor_populate(connect_mock: MagicMock, load_database: str) -> None:
         "user": "user",
         "dbname": "database_name",
         "password": TEST_PASSWORD,
+        "autocommit": False,
     }
     janitor = DatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
     janitor.load(load_database)
@@ -156,11 +157,45 @@ async def test_janitor_populate_async(connect_mock: MagicMock, load_database: st
         "user": "user",
         "dbname": "database_name",
         "password": TEST_PASSWORD,
+        "autocommit": False,
     }
     janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
     await janitor.load(load_database)
     assert connect_mock.called
     assert connect_mock.call_args.kwargs == call_kwargs
+
+
+@patch("pytest_postgresql.janitor.psycopg.connect")
+def test_janitor_load_forwards_autocommit(connect_mock: MagicMock) -> None:
+    """DatabaseJanitor.load forwards the autocommit flag to the loader connection."""
+    janitor = DatabaseJanitor(
+        version=10,
+        host="host",
+        port="1234",
+        user="user",
+        dbname="database_name",
+        password=TEST_PASSWORD,
+        autocommit=True,
+    )
+    janitor.load("tests.loader.load_database")
+    assert connect_mock.call_args.kwargs["autocommit"] is True
+
+
+@pytest.mark.asyncio
+@patch("tests.loader.psycopg.connect")
+async def test_janitor_load_forwards_autocommit_async(connect_mock: MagicMock) -> None:
+    """AsyncDatabaseJanitor.load forwards the autocommit flag to the loader connection."""
+    janitor = AsyncDatabaseJanitor(
+        version=10,
+        host="host",
+        port="1234",
+        user="user",
+        dbname="database_name",
+        password=TEST_PASSWORD,
+        autocommit=True,
+    )
+    await janitor.load("tests.loader.load_database")
+    assert connect_mock.call_args.kwargs["autocommit"] is True
 
 
 @pytest.mark.asyncio
@@ -172,6 +207,7 @@ async def test_janitor_populate_async_awaitable_loader() -> None:
         "user": "user",
         "dbname": "database_name",
         "password": TEST_PASSWORD,
+        "autocommit": False,
     }
     loader_mock = AsyncMock()
 
@@ -192,6 +228,7 @@ async def test_janitor_populate_async_sync_loader_returns_awaitable() -> None:
         "user": "user",
         "dbname": "database_name",
         "password": TEST_PASSWORD,
+        "autocommit": False,
     }
     loader_mock = AsyncMock()
 

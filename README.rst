@@ -244,6 +244,19 @@ Defining pre-population on the command line:
 
     pytest --postgresql-load=path/to/file.sql --postgresql-load=path.to.function
 
+If a loaded ``.sql`` file contains statements that cannot run inside a transaction
+block (for example ``CREATE DATABASE``), enable autocommit on the loader connection.
+This can be set without writing a custom loader, via the factory argument, the command
+line, or ``pytest.ini``:
+
+.. code-block:: python
+
+    postgresql_my_proc = factories.postgresql_proc(load=[Path("with_create_db.sql")], load_autocommit=True)
+
+.. code-block:: sh
+
+    pytest --postgresql-load-autocommit
+
 Connecting to an existing PostgreSQL database
 ----------------------------------------------
 
@@ -370,6 +383,12 @@ You can define settings via fixture factory arguments, command line options, or 
      - postgresql_load
      - yes
      -
+   * - Autocommit for the SQL loader connection
+     - load_autocommit
+     - --postgresql-load-autocommit
+     - postgresql_load_autocommit
+     - yes
+     - False
    * - PostgreSQL connection options
      - options
      - --postgresql-options

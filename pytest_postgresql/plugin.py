@@ -53,6 +53,11 @@ _help_drop_test_database = (
     "when database was not cleared due to errors in previous test runs. "
     "Use cautiously and not on CI."
 )
+_help_load_autocommit = (
+    "Run the SQL loader connection with autocommit enabled. "
+    "Required for statements that cannot run inside a transaction block, "
+    "e.g. CREATE DATABASE in a loaded .sql file."
+)
 
 # psycopg async cannot use Windows' default ProactorEventLoop (the default since
 # Python 3.8).  libpq socket I/O relies on selector APIs (add_reader / fileno)
@@ -163,6 +168,7 @@ def pytest_addoption(parser: Parser) -> None:
 
     parser.addini(name="postgresql_load", type="pathlist", help=_help_load)
     parser.addini(name="postgresql_postgres_options", help=_help_postgres_options, default="")
+    parser.addini(name="postgresql_load_autocommit", type="bool", default=False, help=_help_load_autocommit)
 
     parser.addoption(
         "--postgresql-exec",
@@ -223,6 +229,13 @@ def pytest_addoption(parser: Parser) -> None:
         action="store_true",
         dest="postgresql_drop_test_database",
         help=_help_drop_test_database,
+    )
+
+    parser.addoption(
+        "--postgresql-load-autocommit",
+        action="store_true",
+        dest="postgresql_load_autocommit",
+        help=_help_load_autocommit,
     )
 
 
