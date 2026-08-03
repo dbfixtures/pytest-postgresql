@@ -1,0 +1,3 @@
+Arguments after `dbname` in `PostgreSQLExecutor`. Update callers that pass
++`shell`, `timeout`, `sleep`, `user`, `password`,
++`options`, or `postgres_options` positionally.

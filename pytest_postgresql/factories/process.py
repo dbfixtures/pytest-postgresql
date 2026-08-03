@@ -89,6 +89,7 @@ def postgresql_proc(
     user: str | None = None,
     password: str | None = None,
     dbname: str | None = None,
+    *,
     options: str = "",
     startparams: str | None = None,
     unixsocketdir: str | None = None,

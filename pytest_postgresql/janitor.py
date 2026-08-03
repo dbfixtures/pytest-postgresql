@@ -296,7 +296,7 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
         try:
             if self.isolation_level is not None:
                 await conn.set_isolation_level(self.isolation_level)
-            await conn.set_autocommit(True)
+            await conn.set_autocommit(value=True)
             # We must not run a transaction since we create a database.
             async with conn.cursor() as cur:
                 yield cur

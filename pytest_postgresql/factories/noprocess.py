@@ -43,6 +43,7 @@ def postgresql_noproc(
     user: str | None = None,
     password: str | None = None,
     dbname: str | None = None,
+    *,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
     load_autocommit: bool | None = None,

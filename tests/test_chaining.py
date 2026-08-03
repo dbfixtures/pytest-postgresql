@@ -7,7 +7,7 @@ from pytest_postgresql.executor import PostgreSQLExecutor
 from pytest_postgresql.executor_noop import NoopExecutor
 
 
-def load_schema(host: str, port: int, user: str, dbname: str, password: str | None, autocommit: bool) -> None:
+def load_schema(*, host: str, port: int, user: str, dbname: str, password: str | None, autocommit: bool) -> None:
     """Load schema into the database."""
     with psycopg.connect(host=host, port=port, user=user, dbname=dbname, password=password) as conn:
         conn.autocommit = autocommit
@@ -16,7 +16,7 @@ def load_schema(host: str, port: int, user: str, dbname: str, password: str | No
             conn.commit()
 
 
-def load_data(host: str, port: int, user: str, dbname: str, password: str | None, autocommit: bool) -> None:
+def load_data(*, host: str, port: int, user: str, dbname: str, password: str | None, autocommit: bool) -> None:
     """Load the first layer of data into the database."""
     with psycopg.connect(host=host, port=port, user=user, dbname=dbname, password=password) as conn:
         conn.autocommit = autocommit
@@ -26,7 +26,7 @@ def load_data(host: str, port: int, user: str, dbname: str, password: str | None
             conn.commit()
 
 
-def load_more_data(host: str, port: int, user: str, dbname: str, password: str | None, autocommit: bool) -> None:
+def load_more_data(*, host: str, port: int, user: str, dbname: str, password: str | None, autocommit: bool) -> None:
     """Load the second layer of data into the database."""
     with psycopg.connect(host=host, port=port, user=user, dbname=dbname, password=password) as conn:
         conn.autocommit = autocommit
