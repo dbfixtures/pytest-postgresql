@@ -46,6 +46,7 @@ _help_options = "PostgreSQL connection options"
 _help_startparams = "Starting parameters for the PostgreSQL"
 _help_unixsocketdir = "Location of the socket directory"
 _help_dbname = "Default database name"
+_help_maintenance_dbname = "Database used to create/drop test databases and read server version. Noproc fixture only"
 _help_load = "Dotted-style or entrypoint-style path to callable or path to SQL File"
 _help_postgres_options = "Postgres executable extra parameters. Passed via the -o option to pg_ctl"
 _help_drop_test_database = (
@@ -166,6 +167,12 @@ def pytest_addoption(parser: Parser) -> None:
 
     parser.addini(name="postgresql_dbname", help=_help_dbname, default="tests")
 
+    parser.addini(
+        name="postgresql_maintenance_dbname",
+        help=_help_maintenance_dbname,
+        default="postgres",
+    )
+
     parser.addini(name="postgresql_load", type="pathlist", help=_help_load)
     parser.addini(name="postgresql_postgres_options", help=_help_postgres_options, default="")
     parser.addini(name="postgresql_load_autocommit", type="bool", default=False, help=_help_load_autocommit)
@@ -214,6 +221,13 @@ def pytest_addoption(parser: Parser) -> None:
     )
 
     parser.addoption("--postgresql-dbname", action="store", dest="postgresql_dbname", help=_help_dbname)
+
+    parser.addoption(
+        "--postgresql-maintenance-dbname",
+        action="store",
+        dest="postgresql_maintenance_dbname",
+        help=_help_maintenance_dbname,
+    )
 
     parser.addoption("--postgresql-load", action="append", dest="postgresql_load", help=_help_load)
 

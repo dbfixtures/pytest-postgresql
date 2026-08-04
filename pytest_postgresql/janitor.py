@@ -31,6 +31,7 @@ class BaseDatabaseJanitor:
     port: str | int
     dbname: str
     template_dbname: str | None
+    maintenance_dbname: str
     as_template: bool
     _connection_timeout: int
     isolation_level: "psycopg.IsolationLevel | None"
@@ -46,6 +47,7 @@ class BaseDatabaseJanitor:
         version: str | float | Version,  # type: ignore[valid-type]
         dbname: str,
         template_dbname: str | None = None,
+        maintenance_dbname: str = "postgres",
         as_template: bool = False,
         password: str | None = None,
         isolation_level: "psycopg.IsolationLevel | None" = None,
@@ -59,6 +61,10 @@ class BaseDatabaseJanitor:
         :param port: postgresql port
         :param dbname: database name
         :param template_dbname: template database name to clone from
+        :param maintenance_dbname: database to connect to in order to create and
+            drop ``dbname``. Defaults to ``postgres``. A database cannot be
+            created or dropped from a connection to itself, so this has to be a
+            database that already exists and that ``user`` can connect to.
         :param as_template: whether to mark the database as a template
         :param version: postgresql version number
         :param password: optional postgresql password
@@ -77,6 +83,7 @@ class BaseDatabaseJanitor:
         self.port = port
         self.dbname = dbname
         self.template_dbname = template_dbname
+        self.maintenance_dbname = maintenance_dbname
         self.as_template = as_template
         self._connection_timeout = connection_timeout
         self.isolation_level = isolation_level
@@ -165,12 +172,16 @@ class DatabaseJanitor(BaseDatabaseJanitor):
         )
 
     @contextmanager
-    def cursor(self, dbname: str = "postgres") -> Iterator[Cursor]:
-        """Return postgresql cursor."""
+    def cursor(self, dbname: str | None = None) -> Iterator[Cursor]:
+        """Return postgresql cursor.
+
+        :param dbname: database to connect to. Defaults to the janitor's
+            ``maintenance_dbname``.
+        """
 
         def connect() -> Connection:
             return psycopg.connect(
-                dbname=dbname,
+                dbname=dbname or self.maintenance_dbname,
                 user=self.user,
                 password=self.password,
                 host=self.host,
@@ -280,12 +291,16 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
                 await result
 
     @asynccontextmanager
-    async def cursor(self, dbname: str = "postgres") -> AsyncIterator[AsyncCursor]:
-        """Return postgresql async cursor."""
+    async def cursor(self, dbname: str | None = None) -> AsyncIterator[AsyncCursor]:
+        """Return postgresql async cursor.
+
+        :param dbname: database to connect to. Defaults to the janitor's
+            ``maintenance_dbname``.
+        """
 
         async def connect() -> psycopg.AsyncConnection:
             return await psycopg.AsyncConnection.connect(
-                dbname=dbname,
+                dbname=dbname or self.maintenance_dbname,
                 user=self.user,
                 password=self.password,
                 host=self.host,

@@ -1,6 +1,7 @@
 """Test behavior of postgres_options passed in different ways."""
 
 from pathlib import Path
+from typing import Iterator
 
 import pytest
 from pytest import Pytester
@@ -88,6 +89,78 @@ def test_postgres_port_search_count_in_ini_is_int(pointed_pytester: Pytester) ->
 
 
 postgresql_proc_to_override = postgresql_proc()
+
+
+@pytest.fixture
+def maintenance_dbname(postgresql_proc_to_override: PostgreSQLExecutor) -> Iterator[str]:
+    """Create a database usable as a maintenance database, other than postgres."""
+    dbname = xdistify_dbname("maintenance")
+    with DatabaseJanitor(
+        user=postgresql_proc_to_override.user,
+        host=postgresql_proc_to_override.host,
+        port=postgresql_proc_to_override.port,
+        dbname=dbname,
+        version=postgresql_proc_to_override.version,
+        password=postgresql_proc_to_override.password,
+        connection_timeout=5,
+    ):
+        yield dbname
+
+
+def test_postgres_maintenance_dbname_in_cli(
+    postgresql_proc_to_override: PostgreSQLExecutor,
+    pointed_pytester: Pytester,
+    maintenance_dbname: str,
+) -> None:
+    """Check that noproc fixtures work off a maintenance database other than postgres."""
+    pointed_pytester.copy_example("test_maintenance_dbname.py")
+    ret = pointed_pytester.runpytest(
+        f"--postgresql-port={postgresql_proc_to_override.port}",
+        f"--postgresql-maintenance-dbname={maintenance_dbname}",
+        "--postgresql-dbname=maintenance_client",
+        "--postgresql-drop-test-database",
+        "test_maintenance_dbname.py",
+    )
+    ret.assert_outcomes(passed=1)
+
+
+def test_postgres_maintenance_dbname_in_ini(
+    postgresql_proc_to_override: PostgreSQLExecutor,
+    pointed_pytester: Pytester,
+    maintenance_dbname: str,
+) -> None:
+    """Check that pytest.ini postgresql_maintenance_dbname is honored."""
+    pointed_pytester.copy_example("test_maintenance_dbname.py")
+    pointed_pytester.makefile(
+        ".ini",
+        pytest=(
+            "[pytest]\n"
+            f"postgresql_port = {postgresql_proc_to_override.port}\n"
+            f"postgresql_maintenance_dbname = {maintenance_dbname}\n"
+            "postgresql_dbname = maintenance_client\n"
+        ),
+    )
+    ret = pointed_pytester.runpytest("--postgresql-drop-test-database", "test_maintenance_dbname.py")
+    ret.assert_outcomes(passed=1)
+
+
+def test_postgres_maintenance_dbname_is_used(
+    postgresql_proc_to_override: PostgreSQLExecutor,
+    pointed_pytester: Pytester,
+) -> None:
+    """Check the maintenance database is the one connected to, and not just accepted.
+
+    Points the option at a database that does not exist: the noproc fixture must
+    fail on it, rather than silently falling back to postgres.
+    """
+    pointed_pytester.copy_example("test_maintenance_dbname.py")
+    ret = pointed_pytester.runpytest(
+        f"--postgresql-port={postgresql_proc_to_override.port}",
+        "--postgresql-maintenance-dbname=maintenance_that_does_not_exist",
+        "test_maintenance_dbname.py",
+    )
+    ret.assert_outcomes(errors=1)
+    ret.stdout.fnmatch_lines(['*database "maintenance_that_does_not_exist" does not exist*'])
 
 
 def _run_drop_test_database_case(

@@ -272,6 +272,27 @@ For async tests against an external server, create a client fixture with
 
 By default, it connects to ``127.0.0.1:5432``.
 
+Using a maintenance database other than ``postgres``
+----------------------------------------------------
+
+Creating and dropping the test databases requires a connection to a database that already
+exists - by default ``postgres``. If the test role merely lacks the privilege,
+``GRANT CONNECT ON DATABASE postgres TO myuser`` is the simpler fix. When ``postgres`` is
+not reachable at all - behind a connection pooler with a fixed database list, or on a
+managed server that does not expose it - point the noproc fixture at another database:
+
+.. code-block:: sh
+
+    pytest --postgresql-maintenance-dbname=my_existing_db
+
+.. code-block:: python
+
+    postgresql_external = factories.postgresql_noproc(maintenance_dbname="my_existing_db")
+
+The database is only connected to, never created, modified or dropped. Avoid ``template1``:
+``CREATE DATABASE`` clones it when no template is given, and PostgreSQL does not expect the
+source database to be in use while it is being copied.
+
 Chaining fixtures
 -----------------
 
@@ -311,96 +332,111 @@ You can define settings via fixture factory arguments, command line options, or 
 .. list-table:: Configuration options
    :header-rows: 1
 
-   * - PostgreSQL option
-     - Fixture factory argument
+   * - Setting
+     - ``postgresql_proc`` argument
+     - ``postgresql_noproc`` argument
      - Command line option
      - pytest.ini option
-     - Noop process fixture
      - Default
    * - Path to executable
      - executable
+     - n/a
      - --postgresql-exec
      - postgresql_exec
-     - -
      - ``pg_config --bindir`` + ``pg_ctl``
    * - host
      - host
+     - host
      - --postgresql-host
      - postgresql_host
-     - yes
      - 127.0.0.1
    * - port
      - port
+     - port
      - --postgresql-port
      - postgresql_port
-     - yes (5432)
-     - random
+     - random (proc), 5432 (noproc)
    * - Port search count
-     -
+     - —
+     - n/a
      - --postgresql-port-search-count
      - postgresql_port_search_count
-     - -
      - 5
    * - postgresql user
      - user
+     - user
      - --postgresql-user
      - postgresql_user
-     - yes
      - postgres
    * - password
      - password
+     - password
      - --postgresql-password
      - postgresql_password
-     - yes
      -
    * - Starting parameters (extra pg_ctl arguments)
      - startparams
+     - n/a
      - --postgresql-startparams
      - postgresql_startparams
-     - -
      - -w
    * - Postgres exe extra arguments (passed via pg_ctl's -o argument)
      - postgres_options
+     - n/a
      - --postgresql-postgres-options
      - postgresql_postgres_options
-     - -
      -
    * - Location for unixsockets
      - unixsocket
+     - n/a
      - --postgresql-unixsocketdir
      - postgresql_unixsocketdir
-     - -
      - $TMPDIR
    * - Database name
      - dbname
+     - dbname (handles xdist)
      - --postgresql-dbname
      - postgresql_dbname
-     - yes (handles xdist)
      - tests
+   * - Maintenance database name
+     - n/a
+     - maintenance_dbname
+     - --postgresql-maintenance-dbname
+     - postgresql_maintenance_dbname
+     - postgres
    * - Default Schema (load list)
+     - load
      - load
      - --postgresql-load
      - postgresql_load
-     - yes
      -
    * - Autocommit for the SQL loader connection
      - load_autocommit
+     - load_autocommit
      - --postgresql-load-autocommit
      - postgresql_load_autocommit
-     - yes
      - False
    * - PostgreSQL connection options
      - options
+     - options
      - --postgresql-options
      - postgresql_options
-     - yes
      -
    * - Drop test database on start
-     -
+     - —
+     - —
      - --postgresql-drop-test-database
      -
-     - -
      - false
+   * - Fixture to layer the template database on
+     - n/a
+     - depends_on
+     -
+     -
+     -
+
+``—`` means the setting applies to that fixture but has no factory argument;
+``n/a`` means the setting does not apply to that fixture at all.
 
 .. note::
 

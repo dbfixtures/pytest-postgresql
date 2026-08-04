@@ -44,6 +44,7 @@ def postgresql_noproc(
     password: str | None = None,
     dbname: str | None = None,
     *,
+    maintenance_dbname: str | None = None,
     options: str = "",
     load: list[Callable | str | Path] | None = None,
     load_autocommit: bool | None = None,
@@ -56,6 +57,11 @@ def postgresql_noproc(
     :param user: postgresql username
     :param password: postgresql password
     :param dbname: postgresql database name
+    :param maintenance_dbname: database to connect to in order to read the server
+        version and to create/drop the test databases. Defaults to the
+        ``postgresql_maintenance_dbname`` setting, which itself defaults to
+        ``postgres``. Set it when ``postgres`` is unreachable, e.g. behind a
+        connection pooler with a fixed database list.
     :param options: Postgresql connection options
     :param load: List of functions used to initialize database's template.
     :param load_autocommit: run the SQL loader connection with autocommit on.
@@ -81,6 +87,7 @@ def postgresql_noproc(
             pg_user = user or base.user
             pg_password = password or base.password
             pg_options = options or base.options
+            pg_maintenance_dbname = maintenance_dbname or base.maintenance_dbname
             base_template_dbname = base.template_dbname
         else:
             pg_host = host or config.host
@@ -88,6 +95,7 @@ def postgresql_noproc(
             pg_user = user or config.user
             pg_password = password or config.password
             pg_options = options or config.options
+            pg_maintenance_dbname = maintenance_dbname or config.maintenance_dbname
             base_template_dbname = None
 
         pg_dbname = xdistify_dbname(dbname or config.dbname)
@@ -112,6 +120,7 @@ def postgresql_noproc(
             password=pg_password,
             dbname=noop_exec_dbname,
             options=pg_options,
+            maintenance_dbname=pg_maintenance_dbname,
         )
         janitor = DatabaseJanitor(
             user=noop_exec.user,
@@ -119,6 +128,7 @@ def postgresql_noproc(
             port=noop_exec.port,
             dbname=noop_exec.template_dbname,
             template_dbname=base_template_dbname,
+            maintenance_dbname=noop_exec.maintenance_dbname,
             as_template=True,
             version=noop_exec.version,
             password=noop_exec.password,
