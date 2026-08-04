@@ -117,7 +117,7 @@ async def test_cursor_skips_isolation_level_when_none_async() -> None:
             pass
 
     conn_mock.set_isolation_level.assert_not_called()
-    conn_mock.set_autocommit.assert_called_once_with(True)
+    conn_mock.set_autocommit.assert_called_once_with(value=True)
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="Unittest call_args.kwargs was introduced since python 3.8")

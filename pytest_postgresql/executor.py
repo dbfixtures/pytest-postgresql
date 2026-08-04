@@ -99,6 +99,7 @@ class PostgreSQLExecutor(TCPExecutor):
         logfile: str,
         startparams: str,
         dbname: str,
+        *,
         shell: bool = False,
         timeout: Optional[int] = 60,
         sleep: float = 0.1,
