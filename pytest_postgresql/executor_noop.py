@@ -39,6 +39,7 @@ class NoopExecutor:
         options: str,
         dbname: str,
         password: str | None = None,
+        maintenance_dbname: str = "postgres",
     ):
         """Initialize nooperator executor mock.
 
@@ -48,6 +49,9 @@ class NoopExecutor:
         :param options: Additional connection options
         :param password: postgresql password
         :param dbname: postgresql database name
+        :param maintenance_dbname: database to connect to for server-level work,
+            i.e. reading the server version. Defaults to ``postgres``. Point it at
+            a database the user can reach when ``postgres`` is unavailable.
         """
         self.host = host
         self.port = int(port)
@@ -55,6 +59,7 @@ class NoopExecutor:
         self.options = options
         self.password = password
         self.dbname = dbname
+        self.maintenance_dbname = maintenance_dbname
         self._version: Any = None
 
     @property
@@ -66,10 +71,10 @@ class NoopExecutor:
     def version(self) -> Any:
         """Get postgresql's version."""
         if not self._version:
-            # could be called before self.dbname will be created.
-            # Use default postgres database
+            # could be called before self.dbname will be created,
+            # so connect to the maintenance database instead.
             with psycopg.connect(
-                dbname="postgres",
+                dbname=self.maintenance_dbname,
                 user=self.user,
                 host=self.host,
                 port=self.port,

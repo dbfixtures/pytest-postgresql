@@ -225,6 +225,7 @@ def postgresql_proc(
                 host=postgresql_executor.host,
                 port=postgresql_executor.port,
                 dbname=postgresql_executor.template_dbname,
+                maintenance_dbname=postgresql_executor.maintenance_dbname,
                 as_template=True,
                 version=postgresql_executor.version,
                 password=postgresql_executor.password,

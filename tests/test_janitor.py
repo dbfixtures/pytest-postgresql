@@ -93,6 +93,58 @@ async def test_cursor_connects_with_password_async() -> None:
             )
 
 
+@patch("pytest_postgresql.janitor.psycopg.connect")
+def test_cursor_selects_maintenance_database(connect_mock: MagicMock) -> None:
+    """Test that the cursor connects to the configured maintenance database."""
+    janitor = DatabaseJanitor(
+        user="user",
+        host="host",
+        port="1234",
+        dbname="database_name",
+        maintenance_dbname="maintenance_db",
+        version=10,
+    )
+    with janitor.cursor():
+        connect_mock.assert_called_once_with(
+            dbname="maintenance_db", user="user", password=None, host="host", port="1234"
+        )
+
+
+@pytest.mark.asyncio
+async def test_cursor_selects_maintenance_database_async() -> None:
+    """Async test that the cursor connects to the configured maintenance database."""
+    conn_mock = _make_async_conn_mock()
+    connect_mock = AsyncMock(return_value=conn_mock)
+    with patch("pytest_postgresql.janitor.psycopg.AsyncConnection.connect", connect_mock):
+        janitor = AsyncDatabaseJanitor(
+            user="user",
+            host="host",
+            port="1234",
+            dbname="database_name",
+            maintenance_dbname="maintenance_db",
+            version=10,
+        )
+        async with janitor.cursor():
+            connect_mock.assert_called_once_with(
+                dbname="maintenance_db", user="user", password=None, host="host", port="1234"
+            )
+
+
+@patch("pytest_postgresql.janitor.psycopg.connect")
+def test_cursor_dbname_overrides_maintenance_database(connect_mock: MagicMock) -> None:
+    """An explicit cursor dbname still wins over the maintenance database."""
+    janitor = DatabaseJanitor(
+        user="user",
+        host="host",
+        port="1234",
+        dbname="database_name",
+        maintenance_dbname="maintenance_db",
+        version=10,
+    )
+    with janitor.cursor(dbname="custom_db"):
+        connect_mock.assert_called_once_with(dbname="custom_db", user="user", password=None, host="host", port="1234")
+
+
 @pytest.mark.asyncio
 async def test_cursor_custom_dbname_async() -> None:
     """Test that a custom dbname is forwarded to the connection in AsyncDatabaseJanitor.cursor."""

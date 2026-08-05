@@ -180,6 +180,15 @@ class PostgreSQLExecutor(TCPExecutor):
         """Return the template database name."""
         return f"{self.dbname}_tmpl"
 
+    @property
+    def maintenance_dbname(self) -> str:
+        """Return the database used for server-level work.
+
+        This executor initialises the cluster it manages, so ``postgres`` is
+        always present and reachable by the superuser it starts it with.
+        """
+        return "postgres"
+
     def start(self: T) -> T:
         """Add check for postgresql version before starting process."""
         if self.version < self.MIN_SUPPORTED_VERSION:

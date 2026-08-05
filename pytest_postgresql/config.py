@@ -22,6 +22,7 @@ class PostgreSQLConfig:
     startparams: str
     unixsocketdir: str
     dbname: str
+    maintenance_dbname: str
     load: list[Path | str]
     load_autocommit: bool
     postgres_options: str
@@ -49,6 +50,7 @@ def get_config(request: FixtureRequest) -> PostgreSQLConfig:
         startparams=get_postgresql_option("startparams"),
         unixsocketdir=get_postgresql_option("unixsocketdir"),
         dbname=get_postgresql_option("dbname"),
+        maintenance_dbname=get_postgresql_option("maintenance_dbname"),
         load=load_paths,
         load_autocommit=bool(get_postgresql_option("load_autocommit")),
         postgres_options=get_postgresql_option("postgres_options"),
