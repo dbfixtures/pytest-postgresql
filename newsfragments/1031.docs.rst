@@ -1,0 +1,3 @@
+Corrected the README's description of how ``pg_ctl`` is located — it listed the discovery steps in
+the wrong order — and spelled out that ``postgresql_proc`` needs a local PostgreSQL server, pointing
+at ``postgresql_noproc`` for dockerised or otherwise externally managed servers.

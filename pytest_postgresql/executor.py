@@ -342,11 +342,12 @@ class PostgreSQLExecutor(TCPExecutor):
         """Detect postgresql version."""
         try:
             version_string = subprocess.check_output([self.executable, "--version"]).decode("utf-8")
-        except FileNotFoundError as ex:
+        except OSError as ex:
             raise ExecutableMissingException(
-                f"Could not find {self.executable}. Is PostgreSQL server installed? "
-                f"Alternatively pg_config installed might be from different "
-                f"version that postgresql-server."
+                f"Could not run {self.executable} to read the PostgreSQL version: {ex}. "
+                f"Is the PostgreSQL server installed at that location? "
+                f"Point the plugin at a working pg_ctl with the --postgresql-exec command line option, "
+                f"the postgresql_exec ini option, or the executable factory argument."
             ) from ex
         matches = self.VERSION_RE.search(version_string)
         assert matches is not None

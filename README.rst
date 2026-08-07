@@ -440,7 +440,22 @@ You can define settings via fixture factory arguments, command line options, or 
 
 .. note::
 
-    If the ``executable`` is not provided, the plugin attempts to find it by calling ``pg_config``. If that fails, it falls back to a common path like ``/usr/lib/postgresql/14/bin/pg_ctl``.
+    If the ``executable`` factory argument is not provided, the plugin looks for ``pg_ctl`` first at
+    the configured path (``--postgresql-exec`` / the ``postgresql_exec`` ini option,
+    ``/usr/lib/postgresql/14/bin/pg_ctl`` by default), then in the directory reported by
+    ``pg_config --bindir``.
+
+    Only the ``executable`` factory argument is taken at face value; the other two are
+    verified to exist before being used. If neither is there, an ``ExecutableMissingException``
+    is raised listing the locations that were checked.
+
+.. note::
+
+    ``postgresql_proc`` starts and manages a PostgreSQL server for you, so it needs the
+    PostgreSQL **server** installed locally. Installing only the client libraries
+    (``libpq-dev`` on Debian/Ubuntu) provides ``pg_config`` but no ``pg_ctl``, and the plugin
+    will refuse to start. To test against a server you run yourself — a dockerised one, for
+    instance — use the ``postgresql_noproc`` fixture instead.
 
 Examples
 ========

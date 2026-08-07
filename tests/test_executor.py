@@ -320,7 +320,9 @@ def test_executor_platform_template_selection(
     command template based on the platform.
     """
     config = get_config(request)
-    pg_exe = process._pg_exe(None, config)
+    # The executor is never started here, only its command inspected, so an arbitrary
+    # path will do - discovering a real pg_ctl would tie this to an installed server.
+    pg_exe = "/usr/bin/pg_ctl"
     port = process._pg_port(-1, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
