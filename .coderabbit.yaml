@@ -23,6 +23,10 @@ reviews:
           Check if a newsfragment file has been added to the newsfragments/ directory.
           Read the towncrier configuration from pyproject.toml to determine valid newsfragment types.
           If no newsfragment is present, suggest which type should be added based on the PR changes.
-          Suggest the filename format: [issue_or_pr_number].[type].rst (or +[hash].[type].rst for orphan fragments)
-          Remind contributors to use: `uv run towncrier create [number].[type].rst` (or `uv run towncrier create +.[type]` for orphan fragments)
+          Suggest the filename format: [issue_number].[type].rst (or +[hash].[type].rst for orphan fragments)
+          Remind contributors to use: `uv run towncrier create [issue_number].[type].rst` (or `uv run towncrier create +.[type]` for orphan fragments)
           Skip the check if the PR only updates existing newsfragments or is a trivial change.
+  auto_review:
+    auto_pause_after_reviewed_commits: 0
+    labels: ["!no code rabbit"]
+    drafts: true
