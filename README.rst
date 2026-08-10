@@ -496,7 +496,6 @@ Advanced Usage: DatabaseJanitor
             host=postgresql_proc.host,
             port=postgresql_proc.port,
             dbname="my_custom_db",
-            version=postgresql_proc.version,
             password="secret_password",
         ):
             with psycopg.connect(
@@ -531,7 +530,6 @@ fixtures.  It requires ``psycopg`` (a core dependency).  Install
             host=postgresql_proc.host,
             port=postgresql_proc.port,
             dbname="my_custom_db",
-            version=postgresql_proc.version,
             password="secret_password",
         ):
             async with await psycopg.AsyncConnection.connect(

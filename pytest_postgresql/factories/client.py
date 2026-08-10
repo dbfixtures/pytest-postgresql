@@ -93,7 +93,6 @@ def postgresql(
             dbname=pg_db,
             template_dbname=proc_fixture.template_dbname,
             maintenance_dbname=proc_fixture.maintenance_dbname,
-            version=proc_fixture.version,
             password=pg_password,
             isolation_level=isolation_level,
         )
@@ -159,7 +158,6 @@ def postgresql_async(
             dbname=pg_db,
             template_dbname=proc_fixture.template_dbname,
             maintenance_dbname=proc_fixture.maintenance_dbname,
-            version=proc_fixture.version,
             password=pg_password,
             isolation_level=isolation_level,
         )

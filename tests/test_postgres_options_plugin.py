@@ -100,7 +100,6 @@ def maintenance_dbname(postgresql_proc_to_override: PostgreSQLExecutor) -> Itera
         host=postgresql_proc_to_override.host,
         port=postgresql_proc_to_override.port,
         dbname=dbname,
-        version=postgresql_proc_to_override.version,
         password=postgresql_proc_to_override.password,
         connection_timeout=5,
     ):
@@ -176,7 +175,6 @@ def _run_drop_test_database_case(
         port=postgresql_proc_to_override.port,
         dbname=template_dbname,
         as_template=True,
-        version=postgresql_proc_to_override.version,
         password=postgresql_proc_to_override.password,
         connection_timeout=5,
     )
@@ -189,7 +187,6 @@ def _run_drop_test_database_case(
         port=postgresql_proc_to_override.port,
         dbname=dbname,
         template_dbname=template_janitor.dbname,
-        version=postgresql_proc_to_override.version,
         password=postgresql_proc_to_override.password,
         connection_timeout=5,
     )
