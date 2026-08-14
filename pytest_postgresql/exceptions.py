@@ -2,19 +2,19 @@
 
 from typing import Iterable
 
-_REMEDIES = (
-    "To fix this, either:\n"
-    "  - install the PostgreSQL server package "
-    "(apt install postgresql, dnf install postgresql-server, brew install postgresql),\n"
-    "  - point the plugin at an existing pg_ctl with the --postgresql-exec command line option, "
-    "the postgresql_exec ini option, or the executable factory argument,\n"
-    "  - or use the postgresql_noproc fixture to connect to a server you run yourself, "
-    "a dockerised one for instance."
-)
-
 
 class ExecutableMissingException(FileNotFoundError):
     """Exception raised when pg_ctl, needed to start a PostgreSQL server, was not found."""
+
+    _REMEDIES = (
+        "To fix this, either:\n"
+        "  - install the PostgreSQL server package "
+        "(apt install postgresql, dnf install postgresql-server, brew install postgresql),\n"
+        "  - point the plugin at an existing pg_ctl with the --postgresql-exec command line option, "
+        "the postgresql_exec ini option, or the executable factory argument,\n"
+        "  - or use the postgresql_noproc fixture to connect to a server you run yourself, "
+        "a dockerised one for instance."
+    )
 
     @classmethod
     def _no_pg_ctl(cls, cause: str, checked: Iterable[str]) -> "ExecutableMissingException":
@@ -24,7 +24,7 @@ class ExecutableMissingException(FileNotFoundError):
             f"Could not find pg_ctl, which is needed to start a PostgreSQL server.\n"
             f"{cause}\n"
             f"Checked:\n{locations}\n"
-            f"{_REMEDIES}"
+            f"{cls._REMEDIES}"
         )
 
     @classmethod
