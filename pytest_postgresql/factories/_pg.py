@@ -42,7 +42,7 @@ def _pg_bindir(checked: Iterable[str]) -> str:
         ).strip()
     except (OSError, subprocess.SubprocessError) as ex:
         logger.debug("Could not read the binaries directory from pg_config: %s", ex)
-        raise ExecutableMissingException.pg_config_unusable(checked) from ex
+        raise ExecutableMissingException.pg_config_unusable(f"{type(ex).__name__}: {ex}", checked) from ex
 
 
 def _is_executable(path: str) -> bool:

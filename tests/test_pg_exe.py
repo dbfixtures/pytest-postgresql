@@ -149,6 +149,8 @@ def test_broken_pg_config_surfaces_as_executable_missing(config: PostgreSQLConfi
     assert "Could not find pg_ctl" in message
     # the configured path is still reported as somewhere we looked
     assert config.exec in message
+    # how pg_config failed is what separates "not installed" from "not executable"
+    assert type(error).__name__ in message
 
 
 def test_pg_bindir_returns_stripped_output() -> None:

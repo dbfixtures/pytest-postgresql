@@ -28,10 +28,15 @@ class ExecutableMissingException(FileNotFoundError):
         )
 
     @classmethod
-    def pg_config_unusable(cls, checked: Iterable[str]) -> "ExecutableMissingException":
-        """pg_config is missing, not executable, hanging or failing, so it cannot be asked."""
+    def pg_config_unusable(cls, reason: str, checked: Iterable[str]) -> "ExecutableMissingException":
+        """pg_config is missing, not executable, hanging or failing, so it cannot be asked.
+
+        :param reason: concise description of how running pg_config failed, so the reader
+            can tell "not installed" from "not executable" from "timed out"
+        :param checked: locations probed so far
+        """
         return cls._no_pg_ctl(
-            "pg_config could not be run either, so it could not be used to locate the PostgreSQL binaries.",
+            f"pg_config could not be run either ({reason}), so it could not be used to locate the PostgreSQL binaries.",
             checked,
         )
 
