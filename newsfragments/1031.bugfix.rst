@@ -1,0 +1,10 @@
+``pg_ctl`` discovery no longer hands back a path that does not exist. A client-only PostgreSQL
+install (Debian/Ubuntu's ``libpq-dev`` without the matching server package) makes
+``pg_config --bindir`` point at a directory holding no ``pg_ctl``; that path used to be returned
+unchecked, and the failure only surfaced later as ``Could not found ...`` when the executor read the
+server version. The path is now verified up front, and the ``ExecutableMissingException`` names the
+locations that were checked along with the ways to fix it: install the server package, point at a
+``pg_ctl`` with ``--postgresql-exec``, or use ``postgresql_noproc`` against a server you run yourself.
+
+A broken ``pg_config`` is reported the same way. Only ``FileNotFoundError`` used to be handled, so a
+non-executable or failing ``pg_config`` escaped as a raw ``PermissionError``/``CalledProcessError``.

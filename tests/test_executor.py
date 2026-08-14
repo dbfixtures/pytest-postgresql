@@ -20,7 +20,7 @@ import pytest_postgresql.factories.process as process
 from pytest_postgresql.config import get_config
 from pytest_postgresql.exceptions import PostgreSQLUnsupported
 from pytest_postgresql.executor import PostgreSQLExecutor
-from pytest_postgresql.factories import postgresql, postgresql_async, postgresql_proc
+from pytest_postgresql.factories import _pg, postgresql, postgresql_async, postgresql_proc
 from pytest_postgresql.retry import retry
 
 
@@ -250,7 +250,7 @@ def test_executor_init_with_password(
     """Test whether the executor initializes properly."""
     config = get_config(request)
     monkeypatch.setenv("LC_ALL", locale)
-    pg_exe = process._pg_exe(None, config)
+    pg_exe = _pg._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
@@ -274,7 +274,7 @@ def test_executor_init_bad_tmp_path(
 ) -> None:
     r"""Test init with \ and space chars in the path."""
     config = get_config(request)
-    pg_exe = process._pg_exe(None, config)
+    pg_exe = _pg._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / r"a bad\path/"
     tmpdir.mkdir(parents=True, exist_ok=True)
@@ -320,7 +320,9 @@ def test_executor_platform_template_selection(
     command template based on the platform.
     """
     config = get_config(request)
-    pg_exe = process._pg_exe(None, config)
+    # The executor is never started here, only its command inspected, so an arbitrary
+    # path will do - discovering a real pg_ctl would tie this to an installed server.
+    pg_exe = "/usr/bin/pg_ctl"
     port = process._pg_port(-1, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
@@ -359,7 +361,7 @@ def test_executor_with_special_chars_in_all_paths(
     postgres_options all at the same time.
     """
     config = get_config(request)
-    pg_exe = process._pg_exe(None, config)
+    pg_exe = _pg._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     # Create a tmpdir with spaces in the name
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}") / "my test dir"
@@ -772,7 +774,7 @@ def test_actual_postgresql_start_windows(
     correctly starts PostgreSQL on actual Windows systems.
     """
     config = get_config(request)
-    pg_exe = process._pg_exe(None, config)
+    pg_exe = _pg._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
@@ -811,7 +813,7 @@ def test_actual_postgresql_start_unix(
     correctly starts PostgreSQL on actual Unix/Linux systems.
     """
     config = get_config(request)
-    pg_exe = process._pg_exe(None, config)
+    pg_exe = _pg._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
@@ -847,7 +849,7 @@ def test_actual_postgresql_start_darwin(
     PostgreSQL on actual Darwin/macOS systems and uses the correct locale.
     """
     config = get_config(request)
-    pg_exe = process._pg_exe(None, config)
+    pg_exe = _pg._pg_exe(None, config)
     port = process._pg_port(None, config, [])
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")

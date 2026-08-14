@@ -21,7 +21,6 @@ import logging
 import os
 import os.path
 import platform
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Callable, Iterable
@@ -32,27 +31,13 @@ from port_for import PortForException, get_port
 from pytest import FixtureRequest, TempPathFactory
 
 from pytest_postgresql.config import PostgreSQLConfig, get_config
-from pytest_postgresql.exceptions import ExecutableMissingException
 from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.factories._pg import _pg_exe
 from pytest_postgresql.janitor import DatabaseJanitor
 
 logger = logging.getLogger(__name__)
 
 PortType = port_for.PortType  # mypy requires explicit export
-
-
-def _pg_exe(executable: str | None, config: PostgreSQLConfig) -> str:
-    """If executable is set, use it. Otherwise best effort to find the executable."""
-    postgresql_ctl = executable or config.exec
-    # check if that executable exists, as it's no on systems' PATH
-    # only replace it if executable isn't passed manually
-    if not os.path.exists(postgresql_ctl) and executable is None:
-        try:
-            pg_bindir = subprocess.check_output(["pg_config", "--bindir"], universal_newlines=True).strip()
-        except FileNotFoundError as ex:
-            raise ExecutableMissingException("Could not find pg_config executable. Is it in system $PATH?") from ex
-        postgresql_ctl = os.path.join(pg_bindir, "pg_ctl")
-    return postgresql_ctl
 
 
 def _pg_port(port: PortType | None, config: PostgreSQLConfig, excluded_ports: Iterable[int]) -> int:
