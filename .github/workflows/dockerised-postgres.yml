@@ -58,7 +58,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Run test noproc fixture on docker
         id: run_docker_tests
-        uses: fizyk/actions-reuse/.github/actions/uv-run@5e3ff7b4d544d6b3b8336cdc9c029cff9ab7abb3 # v5.2.7
+        uses: fizyk/actions-reuse/.github/actions/uv-run@3768ca868776ab12e78334cc376094a7aec3d9b6 # v5.3.1
         with:
           command: python -m coverage run --data-file=.coverage.docker -m pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres
           env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.docker"}'
