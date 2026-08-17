@@ -25,24 +25,24 @@ repos:
       - id: debug-statements
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.0
+    rev: v0.16.3
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix, --respect-gitignore, --show-fixes]
       - id: ruff-format
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.28.0
+    rev: v1.29.0
     hooks:
       - id: zizmor
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.26.0
+    rev: v2.28.0
     hooks:
       - id: pyproject-fmt
 
   - repo: https://github.com/rstcheck/rstcheck
-    rev: v6.2.5
+    rev: v6.3.0
     hooks:
       - id: rstcheck
         additional_dependencies: [sphinx, toml]
