@@ -212,7 +212,6 @@ def postgresql_proc(
                 dbname=postgresql_executor.template_dbname,
                 maintenance_dbname=postgresql_executor.maintenance_dbname,
                 as_template=True,
-                version=postgresql_executor.version,
                 password=postgresql_executor.password,
                 autocommit=janitor_load_autocommit,
             )

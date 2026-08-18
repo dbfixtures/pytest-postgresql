@@ -56,7 +56,6 @@ def test_noproc_version_uses_maintenance_dbname(postgresql_proc: PostgreSQLExecu
         host=postgresql_proc.host,
         port=postgresql_proc.port,
         dbname="maintenance_for_version",
-        version=postgresql_proc.version,
         password=postgresql_proc.password,
     ):
         postgresql_noproc = NoopExecutor(

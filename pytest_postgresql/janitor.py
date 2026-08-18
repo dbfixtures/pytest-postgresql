@@ -2,6 +2,7 @@
 
 import asyncio
 import inspect
+import warnings
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from types import TracebackType
@@ -9,14 +10,11 @@ from typing import AsyncIterator, Callable, Iterator, Type, TypeVar
 
 import psycopg
 import psycopg.sql as sql
-from packaging.version import parse
+from packaging.version import Version, parse
 from psycopg import AsyncCursor, Connection, Cursor
 
 from pytest_postgresql.loader import build_loader, sql_async
 from pytest_postgresql.retry import retry, retry_async
-
-Version = type(parse("1"))
-
 
 DatabaseJanitorType = TypeVar("DatabaseJanitorType", bound="DatabaseJanitor")
 AsyncDatabaseJanitorType = TypeVar("AsyncDatabaseJanitorType", bound="AsyncDatabaseJanitor")
@@ -36,7 +34,7 @@ class BaseDatabaseJanitor:
     _connection_timeout: int
     isolation_level: "psycopg.IsolationLevel | None"
     autocommit: bool
-    version: Version  # type: ignore[valid-type]
+    version: Version | None
 
     def __init__(
         self,
@@ -44,7 +42,7 @@ class BaseDatabaseJanitor:
         user: str,
         host: str,
         port: str | int,
-        version: str | float | Version,  # type: ignore[valid-type]
+        version: str | float | Version | None = None,
         dbname: str,
         template_dbname: str | None = None,
         maintenance_dbname: str = "postgres",
@@ -66,7 +64,7 @@ class BaseDatabaseJanitor:
             created or dropped from a connection to itself, so this has to be a
             database that already exists and that ``user`` can connect to.
         :param as_template: whether to mark the database as a template
-        :param version: postgresql version number
+        :param version: deprecated postgresql version number
         :param password: optional postgresql password
         :param isolation_level: optional postgresql isolation level
             defaults to server's default
@@ -88,10 +86,16 @@ class BaseDatabaseJanitor:
         self._connection_timeout = connection_timeout
         self.isolation_level = isolation_level
         self.autocommit = autocommit
-        if not isinstance(version, Version):
-            self.version = parse(str(version))
-        else:
+        if version is not None:
+            warnings.warn(
+                "version argument is deprecated and will be removed in a future release",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if version is None or isinstance(version, Version):
             self.version = version
+        else:
+            self.version = parse(str(version))
 
     def is_template(self) -> bool:
         """Determine whether the janitor maintains template or database."""

@@ -21,24 +21,32 @@ TEST_PASSWORD = "some_password"  # noqa: S105
 
 
 @pytest.mark.parametrize("version", (VERSION, 10, "10"))
-def test_version_cast(version: Any) -> None:
-    """Test that version is cast to Version object."""
-    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=version)
+def test_version_is_deprecated(version: Any) -> None:
+    """Test that version is cast to Version object with a deprecation warning."""
+    with pytest.warns(DeprecationWarning, match="version argument is deprecated"):
+        janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=version)
     assert janitor.version == VERSION
+
+
+def test_version_is_optional() -> None:
+    """Test that janitors no longer require a PostgreSQL version."""
+    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name")
+    assert janitor.version is None
 
 
 @pytest.mark.parametrize("version", (VERSION, 10, "10"))
 @pytest.mark.asyncio
-async def test_version_cast_async(version: Any) -> None:
-    """Async test that version is cast to Version object."""
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=version)
+async def test_version_is_deprecated_async(version: Any) -> None:
+    """Async test that version is cast to Version object with a deprecation warning."""
+    with pytest.warns(DeprecationWarning, match="version argument is deprecated"):
+        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=version)
     assert janitor.version == VERSION
 
 
 @patch("pytest_postgresql.janitor.psycopg.connect")
 def test_cursor_selects_postgres_database(connect_mock: MagicMock) -> None:
     """Test that the cursor requests the postgres database."""
-    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=10)
+    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="database_name")
     with janitor.cursor():
         connect_mock.assert_called_once_with(dbname="postgres", user="user", password=None, host="host", port="1234")
 
@@ -49,7 +57,7 @@ async def test_cursor_selects_postgres_database_async() -> None:
     conn_mock = _make_async_conn_mock()
     connect_mock = AsyncMock(return_value=conn_mock)
     with patch("pytest_postgresql.janitor.psycopg.AsyncConnection.connect", connect_mock):
-        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=10)
+        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name")
         async with janitor.cursor():
             connect_mock.assert_called_once_with(
                 dbname="postgres", user="user", password=None, host="host", port="1234"
@@ -64,7 +72,6 @@ def test_cursor_connects_with_password(connect_mock: MagicMock) -> None:
         host="host",
         port="1234",
         dbname="database_name",
-        version=10,
         password=TEST_PASSWORD,
     )
     with janitor.cursor():
@@ -84,7 +91,6 @@ async def test_cursor_connects_with_password_async() -> None:
             host="host",
             port="1234",
             dbname="database_name",
-            version=10,
             password=TEST_PASSWORD,
         )
         async with janitor.cursor():
@@ -102,7 +108,6 @@ def test_cursor_selects_maintenance_database(connect_mock: MagicMock) -> None:
         port="1234",
         dbname="database_name",
         maintenance_dbname="maintenance_db",
-        version=10,
     )
     with janitor.cursor():
         connect_mock.assert_called_once_with(
@@ -122,7 +127,6 @@ async def test_cursor_selects_maintenance_database_async() -> None:
             port="1234",
             dbname="database_name",
             maintenance_dbname="maintenance_db",
-            version=10,
         )
         async with janitor.cursor():
             connect_mock.assert_called_once_with(
@@ -139,7 +143,6 @@ def test_cursor_dbname_overrides_maintenance_database(connect_mock: MagicMock) -
         port="1234",
         dbname="database_name",
         maintenance_dbname="maintenance_db",
-        version=10,
     )
     with janitor.cursor(dbname="custom_db"):
         connect_mock.assert_called_once_with(dbname="custom_db", user="user", password=None, host="host", port="1234")
@@ -151,7 +154,7 @@ async def test_cursor_custom_dbname_async() -> None:
     conn_mock = _make_async_conn_mock()
     connect_mock = AsyncMock(return_value=conn_mock)
     with patch("pytest_postgresql.janitor.psycopg.AsyncConnection.connect", connect_mock):
-        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=10)
+        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name")
         async with janitor.cursor(dbname="custom_db"):
             connect_mock.assert_called_once_with(
                 dbname="custom_db", user="user", password=None, host="host", port="1234"
@@ -164,7 +167,7 @@ async def test_cursor_skips_isolation_level_when_none_async() -> None:
     conn_mock = _make_async_conn_mock()
     connect_mock = AsyncMock(return_value=conn_mock)
     with patch("pytest_postgresql.janitor.psycopg.AsyncConnection.connect", connect_mock):
-        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name", version=10)
+        janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="database_name")
         async with janitor.cursor():
             pass
 
@@ -188,7 +191,7 @@ def test_janitor_populate(connect_mock: MagicMock, load_database: str) -> None:
         "password": TEST_PASSWORD,
         "autocommit": False,
     }
-    janitor = DatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
+    janitor = DatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
     janitor.load(load_database)
     assert connect_mock.called
     assert connect_mock.call_args.kwargs == call_kwargs
@@ -211,7 +214,7 @@ async def test_janitor_populate_async(connect_mock: MagicMock, load_database: st
         "password": TEST_PASSWORD,
         "autocommit": False,
     }
-    janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
+    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
     await janitor.load(load_database)
     assert connect_mock.called
     assert connect_mock.call_args.kwargs == call_kwargs
@@ -221,7 +224,6 @@ async def test_janitor_populate_async(connect_mock: MagicMock, load_database: st
 def test_janitor_load_forwards_autocommit(connect_mock: MagicMock) -> None:
     """DatabaseJanitor.load forwards the autocommit flag to the loader connection."""
     janitor = DatabaseJanitor(
-        version=10,
         host="host",
         port="1234",
         user="user",
@@ -238,7 +240,6 @@ def test_janitor_load_forwards_autocommit(connect_mock: MagicMock) -> None:
 async def test_janitor_load_forwards_autocommit_async(connect_mock: MagicMock) -> None:
     """AsyncDatabaseJanitor.load forwards the autocommit flag to the loader connection."""
     janitor = AsyncDatabaseJanitor(
-        version=10,
         host="host",
         port="1234",
         user="user",
@@ -266,7 +267,7 @@ async def test_janitor_populate_async_awaitable_loader() -> None:
     async def async_loader(**kwargs: object) -> None:
         await loader_mock(**kwargs)
 
-    janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
+    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
     await janitor.load(async_loader)
     loader_mock.assert_awaited_once_with(**call_kwargs)
 
@@ -287,7 +288,7 @@ async def test_janitor_populate_async_sync_loader_returns_awaitable() -> None:
     def sync_loader(**kwargs: object) -> object:
         return loader_mock(**kwargs)
 
-    janitor = AsyncDatabaseJanitor(version=10, **call_kwargs)  # type: ignore[arg-type]
+    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
     await janitor.load(sync_loader)
     loader_mock.assert_awaited_once_with(**call_kwargs)
 
@@ -301,7 +302,6 @@ async def test_janitor_populate_async_sql_path(postgresql_proc: PostgreSQLExecut
         host=postgresql_proc.host,
         port=postgresql_proc.port,
         dbname=dbname,
-        version=postgresql_proc.version,
         password=postgresql_proc.password,
         connection_timeout=5,
     )
@@ -361,7 +361,6 @@ async def test_async_janitor_init_and_drop(postgresql_proc: PostgreSQLExecutor) 
         host=postgresql_proc.host,
         port=postgresql_proc.port,
         dbname=dbname,
-        version=postgresql_proc.version,
         password=postgresql_proc.password,
         connection_timeout=5,
     )
@@ -383,7 +382,6 @@ async def test_async_janitor_template_flag_and_context_manager(postgresql_proc: 
         host=postgresql_proc.host,
         port=postgresql_proc.port,
         dbname=dbname,
-        version=postgresql_proc.version,
         password=postgresql_proc.password,
         as_template=True,
         connection_timeout=5,
@@ -403,7 +401,6 @@ async def test_async_janitor_creates_database_from_template(postgresql_proc: Pos
         host=postgresql_proc.host,
         port=postgresql_proc.port,
         dbname=base_dbname,
-        version=postgresql_proc.version,
         password=postgresql_proc.password,
         as_template=True,
         connection_timeout=5,
@@ -414,7 +411,6 @@ async def test_async_janitor_creates_database_from_template(postgresql_proc: Pos
         port=postgresql_proc.port,
         dbname=clone_dbname,
         template_dbname=base_dbname,
-        version=postgresql_proc.version,
         password=postgresql_proc.password,
         connection_timeout=5,
     )
@@ -450,20 +446,20 @@ async def test_async_janitor_creates_database_from_template(postgresql_proc: Pos
 
 def test_async_janitor_is_template_false() -> None:
     """is_template() returns False when as_template is not set."""
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", version=10)
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb")
     assert janitor.is_template() is False
 
 
 def test_async_janitor_is_template_true() -> None:
     """is_template() returns True when as_template=True."""
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", as_template=True, version=10)
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", as_template=True)
     assert janitor.is_template() is True
 
 
 @pytest.mark.asyncio
 async def test_async_janitor_context_manager_calls_init_and_drop() -> None:
     """__aenter__ calls init() and __aexit__ calls drop()."""
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", version=10)
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb")
     init_mock = AsyncMock()
     drop_mock = AsyncMock()
     with patch.object(AsyncDatabaseJanitor, "init", init_mock), patch.object(AsyncDatabaseJanitor, "drop", drop_mock):
@@ -488,7 +484,7 @@ async def test_async_janitor_terminate_connection_sql() -> None:
 @pytest.mark.asyncio
 async def test_async_janitor_drop_noop_when_database_missing() -> None:
     """drop() is a no-op when the target database does not exist."""
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="missing_db", version=10)
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="missing_db")
     cur = AsyncMock(spec=AsyncCursor)
     cur.fetchone.return_value = None
     with patch.object(janitor, "cursor") as cursor_ctx:
@@ -500,7 +496,7 @@ async def test_async_janitor_drop_noop_when_database_missing() -> None:
 
 def test_janitor_drop_noop_when_database_missing() -> None:
     """drop() is a no-op when the target database does not exist."""
-    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="missing_db", version=10)
+    janitor = DatabaseJanitor(user="user", host="host", port="1234", dbname="missing_db")
     cur = MagicMock()
     cur.fetchone.return_value = None
     with patch.object(janitor, "cursor") as cursor_ctx:
@@ -513,7 +509,7 @@ def test_janitor_drop_noop_when_database_missing() -> None:
 @pytest.mark.asyncio
 async def test_async_janitor_load_sql_path_raises_without_aiofiles() -> None:
     """AsyncDatabaseJanitor.load() surfaces aiofiles ImportError for SQL file paths."""
-    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb", version=10)
+    janitor = AsyncDatabaseJanitor(user="user", host="host", port="1234", dbname="mydb")
     with patch("pytest_postgresql.loader.aiofiles", None):
         with pytest.raises(ImportError, match="aiofiles"):
             await janitor.load(Path("dummy.sql"))
