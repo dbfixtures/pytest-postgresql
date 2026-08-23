@@ -13,4 +13,4 @@ jobs:
   pre-commit:
     permissions:
       contents: read
-    uses: fizyk/actions-reuse/.github/workflows/shared-pre-commit.yml@5e3ff7b4d544d6b3b8336cdc9c029cff9ab7abb3 # v5.2.7
+    uses: fizyk/actions-reuse/.github/workflows/shared-pre-commit.yml@ae6177442c58a91f60ffaf7f7a90a331aaf3b049 # v5.4.1
