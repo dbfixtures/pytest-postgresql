@@ -130,7 +130,6 @@ def postgresql_noproc(
             template_dbname=base_template_dbname,
             maintenance_dbname=noop_exec.maintenance_dbname,
             as_template=True,
-            version=noop_exec.version,
             password=noop_exec.password,
             autocommit=janitor_load_autocommit,
         )
