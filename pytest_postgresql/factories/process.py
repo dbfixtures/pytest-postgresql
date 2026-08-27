@@ -31,7 +31,7 @@ from port_for import PortForException, get_port
 from pytest import FixtureRequest, TempPathFactory
 
 from pytest_postgresql.config import PostgreSQLConfig, get_config
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.factories._pg import _pg_exe
 from pytest_postgresql.janitor import DatabaseJanitor
 

@@ -7,7 +7,7 @@ import pytest
 from pytest import Pytester
 
 import pytest_postgresql
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.factories import postgresql_proc
 from pytest_postgresql.factories.noprocess import xdistify_dbname
 from pytest_postgresql.janitor import DatabaseJanitor

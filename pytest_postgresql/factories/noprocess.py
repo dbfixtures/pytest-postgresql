@@ -25,7 +25,7 @@ import pytest
 from pytest import FixtureRequest
 
 from pytest_postgresql.config import get_config
-from pytest_postgresql.executor_noop import NoopExecutor
+from pytest_postgresql.executors import NoopExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
 
 

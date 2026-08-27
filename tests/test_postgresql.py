@@ -5,7 +5,7 @@ from packaging.version import parse
 from psycopg import AsyncConnection, Connection
 from psycopg.pq import ConnStatus
 
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.retry import retry, retry_async
 from tests.conftest import POSTGRESQL_VERSION
 

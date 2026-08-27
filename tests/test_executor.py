@@ -19,7 +19,7 @@ from pytest import FixtureRequest
 import pytest_postgresql.factories.process as process
 from pytest_postgresql.config import get_config
 from pytest_postgresql.exceptions import PostgreSQLUnsupported
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.factories import _pg, postgresql, postgresql_async, postgresql_proc
 from pytest_postgresql.retry import retry
 
@@ -114,7 +114,7 @@ def test_clean_directory_retains_directory_initialised_on_rmtree_failure(tmp_pat
 
     with (
         patch.object(executor, "running", return_value=False),
-        patch("pytest_postgresql.executor.shutil.rmtree", side_effect=OSError("permission denied")),
+        patch("pytest_postgresql.executors.proc.shutil.rmtree", side_effect=OSError("permission denied")),
     ):
         executor.clean_directory()
 
@@ -130,7 +130,7 @@ def test_clean_directory_clears_directory_initialised_on_success(tmp_path: Path)
 
     with (
         patch.object(executor, "running", return_value=False),
-        patch("pytest_postgresql.executor.shutil.rmtree") as rmtree_mock,
+        patch("pytest_postgresql.executors.proc.shutil.rmtree") as rmtree_mock,
     ):
         executor.clean_directory()
 
@@ -149,7 +149,7 @@ def test_init_directory_logs_password_file_cleanup_failure(
     with (
         patch.object(executor, "clean_directory"),
         patch.object(executor, "_run_initdb"),
-        patch("pytest_postgresql.executor.os.unlink", side_effect=OSError("busy")),
+        patch("pytest_postgresql.executors.proc.os.unlink", side_effect=OSError("busy")),
         caplog.at_level(logging.WARNING, logger="pytest_postgresql.executor"),
     ):
         executor.init_directory()
@@ -327,7 +327,7 @@ def test_executor_platform_template_selection(
     tmpdir = tmp_path_factory.mktemp(f"pytest-postgresql-{request.node.name}")
     datadir, logfile_path = process._prepare_dir(tmpdir, port, "test")
 
-    with patch("pytest_postgresql.executor.platform.system", return_value=platform_name):
+    with patch("pytest_postgresql.executors.proc.platform.system", return_value=platform_name):
         executor = PostgreSQLExecutor(
             executable=pg_exe,
             host=config.host,
