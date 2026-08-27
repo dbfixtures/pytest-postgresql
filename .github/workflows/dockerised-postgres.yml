@@ -53,18 +53,18 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up uv with python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/uv-setup@e434952f57d1da48b52d0fe5454b365b2f297d2d # v5.2.6
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Run test noproc fixture on docker
         id: run_docker_tests
-        uses: fizyk/actions-reuse/.github/actions/uv-run@3768ca868776ab12e78334cc376094a7aec3d9b6 # v5.3.1
+        uses: fizyk/actions-reuse/.github/actions/uv-run@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
         with:
           command: python -m coverage run --data-file=.coverage.docker -m pytest -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres
           env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.docker"}'
       - name: Combine and export docker coverage
         if: ${{ always() && (steps.run_docker_tests.conclusion == 'success' || steps.run_docker_tests.conclusion == 'failure') }}
-        uses: fizyk/actions-reuse/.github/actions/coverage-combine-export-uv@3768ca868776ab12e78334cc376094a7aec3d9b6 # v5.3.1
+        uses: fizyk/actions-reuse/.github/actions/coverage-combine-export-uv@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
         with:
           data-file: .coverage.docker
           output-file: coverage-docker.xml

@@ -13,6 +13,6 @@ jobs:
   build:
     permissions:
       contents: read  # actions/checkout in the reusable workflow
-    uses: fizyk/actions-reuse/.github/workflows/shared-pypi.yml@ae6177442c58a91f60ffaf7f7a90a331aaf3b049 # v5.4.1
+    uses: fizyk/actions-reuse/.github/workflows/shared-pypi.yml@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
     with:
       dependency-manager: uv
