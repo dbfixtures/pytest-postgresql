@@ -1,0 +1,1 @@
+Add release-schedule workflow replacing manual release workflow.
