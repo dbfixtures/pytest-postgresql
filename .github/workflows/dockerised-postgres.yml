@@ -26,7 +26,6 @@ jobs:
       matrix:
         python-version: ${{ fromJSON(inputs.python-versions) }}
     env:
-      OS: ${{ inputs.os }}
       PYTHON: ${{ matrix.python-version }}
       POSTGRES: ${{ inputs.postgresql }}
     # Service containers to run with `container-job`
@@ -74,6 +73,6 @@ jobs:
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
-          env_vars: OS,PYTHON
+          env_vars: PYTHON
           fail_ci_if_error: false
           files: coverage-docker.xml
