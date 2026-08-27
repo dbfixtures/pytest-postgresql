@@ -26,8 +26,7 @@ from pytest import FixtureRequest
 
 from pytest_postgresql._asyncio_compat import mark_postgresql_async_fixture, supports_loop_factories
 from pytest_postgresql.config import get_config
-from pytest_postgresql.executor import PostgreSQLExecutor
-from pytest_postgresql.executor_noop import NoopExecutor
+from pytest_postgresql.executors import NoopExecutor, PostgreSQLExecutor
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 
 try:

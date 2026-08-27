@@ -14,7 +14,7 @@ from pytest import Pytester
 import pytest_postgresql
 import pytest_postgresql.plugin as plugin_module
 from pytest_postgresql._asyncio_compat import item_uses_postgresql_async_fixture
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.factories import postgresql_proc
 from pytest_postgresql.factories.client import postgresql_async
 from pytest_postgresql.plugin import (

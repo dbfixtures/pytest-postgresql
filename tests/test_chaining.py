@@ -3,8 +3,7 @@
 import psycopg
 
 from pytest_postgresql import factories
-from pytest_postgresql.executor import PostgreSQLExecutor
-from pytest_postgresql.executor_noop import NoopExecutor
+from pytest_postgresql.executors import NoopExecutor, PostgreSQLExecutor
 
 
 def load_schema(*, host: str, port: int, user: str, dbname: str, password: str | None, autocommit: bool) -> None:

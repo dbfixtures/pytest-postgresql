@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 
 
 class TestCommandTemplates:
@@ -68,7 +68,7 @@ class TestCommandTemplates:
         the single quotes in the Unix template protect the path from being
         split by PostgreSQL's argument parser.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -86,7 +86,7 @@ class TestCommandTemplates:
 
     def test_windows_template_selected_on_windows(self) -> None:
         """Test that Windows template is selected when platform is Windows."""
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -107,7 +107,7 @@ class TestCommandTemplates:
 
     def test_unix_template_selected_on_linux(self) -> None:
         """Test that Unix template is selected when platform is Linux."""
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -130,7 +130,7 @@ class TestCommandTemplates:
         macOS should use the same Unix template as Linux since it's a Unix-like
         system and supports unix_socket_directories.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Darwin"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Darwin"):
             executor = PostgreSQLExecutor(
                 executable="/opt/homebrew/bin/pg_ctl",
                 host="localhost",
@@ -154,7 +154,7 @@ class TestCommandTemplates:
         This test verifies the locale environment variables are set correctly.
         """
         # Patch the _LOCALE variable to simulate Darwin environment
-        with patch("pytest_postgresql.executor._LOCALE", "en_US.UTF-8"):
+        with patch("pytest_postgresql.executors.proc._LOCALE", "en_US.UTF-8"):
             executor = PostgreSQLExecutor(
                 executable="/opt/homebrew/bin/pg_ctl",
                 host="localhost",
@@ -177,7 +177,7 @@ class TestCommandTemplates:
         Single quotes in postgres_options should be preserved and passed through
         to PostgreSQL on Unix systems.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -200,7 +200,7 @@ class TestCommandTemplates:
         Single quotes in postgres_options should work on Windows since they're
         inside the -o parameter's double quotes.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -226,7 +226,7 @@ class TestCommandTemplates:
         invalid shell command. Single-quoted values are the correct form and must
         be preserved verbatim inside the -o argument.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -254,7 +254,7 @@ class TestCommandTemplates:
         Config options that reference file paths with spaces should be properly
         quoted within postgres_options.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -277,7 +277,7 @@ class TestCommandTemplates:
         When postgres_options is empty (default), the command should still be
         properly formatted without extra spaces or malformed syntax.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -308,7 +308,7 @@ class TestCommandTemplates:
         When startparams is empty (default), the command should still be
         properly formatted at the end.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -333,7 +333,7 @@ class TestCommandTemplates:
         When both optional parameters are empty, the command should still
         be properly formatted.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -361,7 +361,7 @@ class TestCommandTemplates:
         should not appear anywhere in the generated command since Windows doesn't
         use unix_socket_directories.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -383,7 +383,7 @@ class TestCommandTemplates:
 
         Paths with multiple spaces should be properly quoted and preserved.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -405,7 +405,7 @@ class TestCommandTemplates:
         Paths with shell metacharacters should be properly quoted to prevent
         shell interpretation. Testing with ampersand, semicolon, and pipe.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -427,7 +427,7 @@ class TestCommandTemplates:
 
         Unicode characters in paths should be properly handled and preserved.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -453,7 +453,7 @@ class TestCommandTemplates:
         prematurely close the GUC string, making PostgreSQL reject the option or
         silently misparse it.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -473,7 +473,7 @@ class TestCommandTemplates:
 
     def test_unixsocketdir_with_multiple_apostrophes_are_escaped(self) -> None:
         """Regression test: multiple apostrophes in unixsocketdir are all escaped."""
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -494,7 +494,7 @@ class TestCommandTemplates:
         This comprehensive test combines spaces, quotes, special shell chars,
         and Unicode to ensure the command handles complex real-world scenarios.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/16/bin/pg_ctl",
                 host="localhost",
@@ -585,8 +585,8 @@ class TestWindowsCompatibility:
 
         # Mock subprocess and process
         with (
-            patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
-            patch("pytest_postgresql.executor.platform.system", return_value="Windows"),
+            patch("pytest_postgresql.executors.proc.subprocess.check_output") as mock_subprocess,
+            patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"),
             patch.object(executor, "_windows_terminate_process") as mock_terminate,
         ):
             result = executor.stop()
@@ -614,9 +614,9 @@ class TestWindowsCompatibility:
 
         # Mock subprocess and super().stop
         with (
-            patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
-            patch("pytest_postgresql.executor.platform.system", return_value="Linux"),
-            patch("pytest_postgresql.executor.TCPExecutor.stop") as mock_super_stop,
+            patch("pytest_postgresql.executors.proc.subprocess.check_output") as mock_subprocess,
+            patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"),
+            patch("pytest_postgresql.executors.proc.TCPExecutor.stop") as mock_super_stop,
         ):
             mock_super_stop.return_value = executor
             result = executor.stop()
@@ -644,10 +644,10 @@ class TestWindowsCompatibility:
 
         # Mock subprocess and super().stop to raise AttributeError
         with (
-            patch("pytest_postgresql.executor.subprocess.check_output") as mock_subprocess,
-            patch("pytest_postgresql.executor.platform.system", return_value="Linux"),
+            patch("pytest_postgresql.executors.proc.subprocess.check_output") as mock_subprocess,
+            patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"),
             patch(
-                "pytest_postgresql.executor.TCPExecutor.stop",
+                "pytest_postgresql.executors.proc.TCPExecutor.stop",
                 side_effect=AttributeError("module 'os' has no attribute 'killpg'"),
             ),
             patch.object(executor, "_windows_terminate_process") as mock_terminate,
@@ -669,7 +669,7 @@ class TestWindowsCompatibility:
 
     def test_command_formatting_windows(self) -> None:
         """Test that command is properly formatted for Windows paths."""
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -708,7 +708,7 @@ class TestWindowsCompatibility:
 
         Windows paths with spaces should be properly quoted with double quotes.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -729,7 +729,7 @@ class TestWindowsCompatibility:
 
         Windows log file paths with spaces should be properly quoted with double quotes.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -750,7 +750,7 @@ class TestWindowsCompatibility:
 
         UNC paths like \\server\share should be properly handled on Windows.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:/Program Files/PostgreSQL/bin/pg_ctl.exe",
                 host="localhost",
@@ -773,7 +773,7 @@ class TestWindowsCompatibility:
         Windows accepts both forward slashes and backslashes, and the command
         should handle both properly.
         """
-        with patch("pytest_postgresql.executor.platform.system", return_value="Windows"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"):
             executor = PostgreSQLExecutor(
                 executable="C:\\Program Files\\PostgreSQL\\bin\\pg_ctl.exe",
                 host="localhost",
@@ -814,8 +814,8 @@ class TestRunningMethod:
         )
 
         with (
-            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+            patch("pytest_postgresql.executors.proc.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executors.proc.subprocess.run") as mock_run,
         ):
             mock_run.return_value = MagicMock(returncode=0)
             executor.running()
@@ -844,8 +844,8 @@ class TestRunningMethod:
         )
 
         with (
-            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+            patch("pytest_postgresql.executors.proc.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executors.proc.subprocess.run") as mock_run,
         ):
             mock_run.return_value = MagicMock(returncode=0)
             executor.running()
@@ -867,8 +867,8 @@ class TestRunningMethod:
         )
 
         with (
-            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+            patch("pytest_postgresql.executors.proc.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executors.proc.subprocess.run") as mock_run,
         ):
             mock_run.return_value = MagicMock(returncode=0)
             assert executor.running() is True
@@ -890,8 +890,8 @@ class TestRunningMethod:
         )
 
         with (
-            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+            patch("pytest_postgresql.executors.proc.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executors.proc.subprocess.run") as mock_run,
         ):
             mock_run.return_value = MagicMock(returncode=0)
             executor.running()
@@ -914,8 +914,8 @@ class TestRunningMethod:
         )
 
         with (
-            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
-            patch("pytest_postgresql.executor.subprocess.run") as mock_run,
+            patch("pytest_postgresql.executors.proc.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executors.proc.subprocess.run") as mock_run,
         ):
             mock_run.return_value = MagicMock(returncode=0)
             executor.running()
@@ -938,9 +938,9 @@ class TestRunningMethod:
         )
 
         with (
-            patch("pytest_postgresql.executor.os.path.exists", return_value=True),
+            patch("pytest_postgresql.executors.proc.os.path.exists", return_value=True),
             patch(
-                "pytest_postgresql.executor.subprocess.run",
+                "pytest_postgresql.executors.proc.subprocess.run",
                 side_effect=subprocess.TimeoutExpired(cmd="pg_ctl status", timeout=30),
             ),
         ):
@@ -957,7 +957,7 @@ class TestInitdbEnvironment:
         """Initdb uses the executor locale environment."""
         monkeypatch.setenv("HOME", "/home/user")
         monkeypatch.setenv("PGDATA", "/wrong")
-        with patch("pytest_postgresql.executor.platform.system", return_value="Linux"):
+        with patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"):
             executor = PostgreSQLExecutor(
                 executable="/usr/lib/postgresql/17/bin/pg_ctl",
                 host="localhost",
@@ -983,7 +983,7 @@ class TestInitdbEnvironment:
     ) -> None:
         """Windows must invoke initdb through pg_ctl with wrapped options."""
         monkeypatch.setattr(
-            "pytest_postgresql.executor.platform.system",
+            "pytest_postgresql.executors.proc.platform.system",
             lambda: "Windows",
         )
         executor = PostgreSQLExecutor(

@@ -10,7 +10,7 @@ import pytest
 from packaging.version import parse
 from psycopg import AsyncCursor
 
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.factories.noprocess import xdistify_dbname
 from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
 

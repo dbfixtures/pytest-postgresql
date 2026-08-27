@@ -3,8 +3,7 @@
 import psycopg
 import pytest
 
-from pytest_postgresql.executor import PostgreSQLExecutor
-from pytest_postgresql.executor_noop import NoopExecutor
+from pytest_postgresql.executors import NoopExecutor, PostgreSQLExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
 from pytest_postgresql.retry import retry
 

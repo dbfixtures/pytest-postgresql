@@ -2,7 +2,7 @@
 
 import pytest
 
-from pytest_postgresql.executor import PostgreSQLExecutor
+from pytest_postgresql.executors import PostgreSQLExecutor
 
 
 @pytest.mark.parametrize(
