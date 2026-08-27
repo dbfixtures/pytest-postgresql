@@ -14,13 +14,32 @@ updates:
   commit-message:
     prefix: " "
 - package-ecosystem: github-actions
-  directory: "/"
+  directories:
+  - "/"
+  - "/.github/actions/*"
   schedule:
-    interval: weekly
-    time: "06:00"
-    day: "sunday"
-  open-pull-requests-limit: 2
+    interval: daily
+    time: "03:10"
+  open-pull-requests-limit: 1
   cooldown:
     default-days: 7
+  groups:
+    fizyk-actions-reuse:
+      patterns:
+      - "fizyk/actions-reuse/*"
+    checkout:
+      patterns:
+      - "actions/checkout"
+    setup-postgres:
+      patterns:
+      - "ankane/setup-postgres"
   commit-message:
     prefix: " "
+- package-ecosystem: pre-commit
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "04:10"
+  open-pull-requests-limit: 1
+  cooldown:
+    default-days: 7

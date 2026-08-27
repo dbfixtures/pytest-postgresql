@@ -1,0 +1,1 @@
+Migrated the Automerge workflow to `fizyk/actions-reuse` version 5.5.0.
