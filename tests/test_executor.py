@@ -6,7 +6,7 @@ import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import psycopg
@@ -14,7 +14,6 @@ import pytest
 from packaging.version import parse
 from port_for import PortForException, get_port
 from psycopg import Connection
-from pytest import FixtureRequest
 
 import pytest_postgresql.factories.process as process
 from pytest_postgresql.config import get_config
@@ -85,7 +84,7 @@ class PatchedPostgreSQLExecutor(PostgreSQLExecutor):
         return parse("8.9")
 
 
-def test_unsupported_version(request: FixtureRequest) -> None:
+def test_unsupported_version(request: pytest.FixtureRequest) -> None:
     """Check that the error gets raised on unsupported postgres version."""
     config = get_config(request)
     port = get_port(config.port)
@@ -240,9 +239,9 @@ async def test_postgresql_async_client_closes_on_pre_yield_failure() -> None:
 
 
 @pytest.mark.xdist_group(name="executor_no_xdist_guard")
-@pytest.mark.parametrize("locale", ("en_US.UTF-8", "de_DE.UTF-8", "nl_NO.UTF-8"))
+@pytest.mark.parametrize("locale", ["en_US.UTF-8", "de_DE.UTF-8", "nl_NO.UTF-8"])
 def test_executor_init_with_password(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path_factory: pytest.TempPathFactory,
     locale: str,
@@ -269,7 +268,7 @@ def test_executor_init_with_password(
 
 
 def test_executor_init_bad_tmp_path(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     r"""Test init with \ and space chars in the path."""
@@ -310,7 +309,7 @@ def test_executor_init_bad_tmp_path(
     ["Windows", "Linux", "Darwin", "FreeBSD"],
 )
 def test_executor_platform_template_selection(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     platform_name: str,
 ) -> None:
@@ -351,7 +350,7 @@ def test_executor_platform_template_selection(
 
 
 def test_executor_with_special_chars_in_all_paths(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     """Test executor with special characters in multiple paths simultaneously.
@@ -473,7 +472,7 @@ async def test_custom_async_isolation_level(postgres_async_isolation_level: psyc
 @contextmanager
 def _isolated_port_basetemp(
     tmp_path_factory: pytest.TempPathFactory,
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path: Path,
 ) -> Iterator[Path]:
     """Patch session basetemp to a per-test directory for port-lock sentinel files."""
@@ -487,7 +486,7 @@ def _isolated_port_basetemp(
 
 
 def test_postgresql_proc_removes_port_lock_on_teardown(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     tmp_path: Path,
 ) -> None:
@@ -514,15 +513,12 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
         janitor_mock.init = MagicMock()
         janitor_mock.drop = MagicMock()
 
-        finalizers: list[Callable[[], None]] = []
-
         with (
             patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
             patch("pytest_postgresql.factories.process._pg_port", return_value=pg_port),
             patch("pytest_postgresql.factories.process.PostgreSQLExecutor", return_value=executor_mock),
             patch("pytest_postgresql.factories.process.DatabaseJanitor", return_value=janitor_mock),
             patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
-            patch.object(request, "addfinalizer", side_effect=finalizers.append),
         ):
             config_mock = MagicMock()
             config_mock.dbname = "tests"
@@ -531,17 +527,17 @@ def test_postgresql_proc_removes_port_lock_on_teardown(
             config_mock.port_search_count = 5
             get_config_mock.return_value = config_mock
 
-            raw_func(request, tmp_path_factory)
+            generator = raw_func(request, tmp_path_factory)
+            next(generator)
             port_file = port_path / f"postgresql-{pg_port}.port"
             assert port_file.exists()
-            for finalizer in finalizers:
-                finalizer()
+            next(generator, None)
 
         assert not port_file.exists()
 
 
 def test_postgresql_proc_removes_port_lock_on_setup_failure(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     tmp_path: Path,
 ) -> None:
@@ -567,14 +563,14 @@ def test_postgresql_proc_removes_port_lock_on_setup_failure(
             get_config_mock.return_value = config_mock
 
             with pytest.raises(OSError, match="setup failed"):
-                raw_func(request, tmp_path_factory)
+                next(raw_func(request, tmp_path_factory))
 
         port_file = port_path / f"postgresql-{pg_port}.port"
         assert not port_file.exists()
 
 
 def test_postgresql_proc_stops_executor_on_setup_failure_after_start(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     tmp_path: Path,
 ) -> None:
@@ -618,7 +614,7 @@ def test_postgresql_proc_stops_executor_on_setup_failure_after_start(
             get_config_mock.return_value = config_mock
 
             with pytest.raises(RuntimeError, match="init failed"):
-                raw_func(request, tmp_path_factory)
+                next(raw_func(request, tmp_path_factory))
 
         executor_mock.stop.assert_called_once()
         executor_mock.clean_directory.assert_called_once()
@@ -627,7 +623,7 @@ def test_postgresql_proc_stops_executor_on_setup_failure_after_start(
 
 
 def test_postgresql_proc_cleanup_stops_executor_when_drop_fails(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     tmp_path: Path,
 ) -> None:
@@ -654,15 +650,12 @@ def test_postgresql_proc_cleanup_stops_executor_when_drop_fails(
         janitor_mock.init = MagicMock()
         janitor_mock.drop = MagicMock(side_effect=RuntimeError("drop failed"))
 
-        finalizers: list[Callable[[], None]] = []
-
         with (
             patch("pytest_postgresql.factories.process._pg_exe", return_value="/usr/bin/pg_ctl"),
             patch("pytest_postgresql.factories.process._pg_port", return_value=pg_port),
             patch("pytest_postgresql.factories.process.PostgreSQLExecutor", return_value=executor_mock),
             patch("pytest_postgresql.factories.process.DatabaseJanitor", return_value=janitor_mock),
             patch("pytest_postgresql.factories.process.get_config") as get_config_mock,
-            patch.object(request, "addfinalizer", side_effect=finalizers.append),
         ):
             config_mock = MagicMock()
             config_mock.dbname = "tests"
@@ -671,19 +664,19 @@ def test_postgresql_proc_cleanup_stops_executor_when_drop_fails(
             config_mock.port_search_count = 5
             get_config_mock.return_value = config_mock
 
-            raw_func(request, tmp_path_factory)
+            generator = raw_func(request, tmp_path_factory)
+            next(generator)
             port_file = port_path / f"postgresql-{pg_port}.port"
             assert port_file.exists()
             with pytest.raises(RuntimeError, match="drop failed"):
-                for finalizer in finalizers:
-                    finalizer()
+                next(generator, None)
 
         executor_mock.stop.assert_called_once()
         assert not port_file.exists()
 
 
 def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     tmp_path: Path,
 ) -> None:
@@ -710,13 +703,13 @@ def test_postgresql_proc_port_lock_safe_on_pg_port_failure(
             get_config_mock.return_value = config_mock
 
             with pytest.raises(PortForException, match="no free ports"):
-                raw_func(request, tmp_path_factory)
+                next(raw_func(request, tmp_path_factory))
 
         assert set(port_path.glob("postgresql-*.port")) == existing_ports
 
 
 def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     tmp_path: Path,
 ) -> None:
@@ -753,7 +746,7 @@ def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
                 get_config_mock.return_value = config_mock
 
                 with pytest.raises(PortForException, match="Attempted"):
-                    raw_func(request, tmp_path_factory)
+                    next(raw_func(request, tmp_path_factory))
 
             for pg_port, foreign_lock in zip(pg_ports, foreign_locks, strict=True):
                 assert foreign_lock.exists()
@@ -765,7 +758,7 @@ def test_postgresql_proc_preserves_foreign_port_lock_on_exhausted_retries(
 
 @pytest.mark.skipif(platform.system() != "Windows", reason="Windows-specific test")
 def test_actual_postgresql_start_windows(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     """Test that PostgreSQL actually starts on Windows with the new template.
@@ -804,7 +797,7 @@ def test_actual_postgresql_start_windows(
     reason="Unix/Linux-specific test",
 )
 def test_actual_postgresql_start_unix(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     """Test that PostgreSQL actually starts on Unix/Linux with the new template.
@@ -840,7 +833,7 @@ def test_actual_postgresql_start_unix(
 
 @pytest.mark.skipif(platform.system() != "Darwin", reason="Darwin/macOS-specific test")
 def test_actual_postgresql_start_darwin(
-    request: FixtureRequest,
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     """Test that PostgreSQL actually starts on Darwin/macOS with the new template.

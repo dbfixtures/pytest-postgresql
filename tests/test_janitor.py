@@ -20,7 +20,7 @@ VERSION = parse("10")
 TEST_PASSWORD = "some_password"  # noqa: S105
 
 
-@pytest.mark.parametrize("version", (VERSION, 10, "10"))
+@pytest.mark.parametrize("version", [VERSION, 10, "10"])
 def test_version_is_deprecated(version: Any) -> None:
     """Test that version is cast to Version object with a deprecation warning."""
     with pytest.warns(DeprecationWarning, match="version argument is deprecated"):
@@ -34,7 +34,7 @@ def test_version_is_optional() -> None:
     assert janitor.version is None
 
 
-@pytest.mark.parametrize("version", (VERSION, 10, "10"))
+@pytest.mark.parametrize("version", [VERSION, 10, "10"])
 @pytest.mark.asyncio
 async def test_version_is_deprecated_async(version: Any) -> None:
     """Async test that version is cast to Version object with a deprecation warning."""
@@ -176,7 +176,7 @@ async def test_cursor_skips_isolation_level_when_none_async() -> None:
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="Unittest call_args.kwargs was introduced since python 3.8")
-@pytest.mark.parametrize("load_database", ("tests.loader.load_database", "tests.loader:load_database"))
+@pytest.mark.parametrize("load_database", ["tests.loader.load_database", "tests.loader:load_database"])
 @patch("pytest_postgresql.janitor.psycopg.connect")
 def test_janitor_populate(connect_mock: MagicMock, load_database: str) -> None:
     """Test that the cursor requests the postgres database.
@@ -198,7 +198,7 @@ def test_janitor_populate(connect_mock: MagicMock, load_database: str) -> None:
 
 
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="Unittest call_args.kwargs was introduced since python 3.8")
-@pytest.mark.parametrize("load_database", ("tests.loader.load_database", "tests.loader:load_database"))
+@pytest.mark.parametrize("load_database", ["tests.loader.load_database", "tests.loader:load_database"])
 @patch("tests.loader.psycopg.connect")
 @pytest.mark.asyncio
 async def test_janitor_populate_async(connect_mock: MagicMock, load_database: str) -> None:

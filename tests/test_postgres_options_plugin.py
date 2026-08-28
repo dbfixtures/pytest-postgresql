@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Iterator
 
 import pytest
-from pytest import Pytester
 
 import pytest_postgresql
 from pytest_postgresql.executors import PostgreSQLExecutor
@@ -15,7 +14,7 @@ from tests.loader import load_database
 
 
 @pytest.fixture
-def pointed_pytester(pytester: Pytester) -> Pytester:
+def pointed_pytester(pytester: pytest.Pytester) -> pytest.Pytester:
     """Pre-configured pytester fixture."""
     pytest_postgresql_path = Path(pytest_postgresql.__file__)
     root_path = pytest_postgresql_path.parent.parent
@@ -23,14 +22,14 @@ def pointed_pytester(pytester: Pytester) -> Pytester:
     return pytester
 
 
-def test_postgres_options_config_in_cli(pointed_pytester: Pytester) -> None:
+def test_postgres_options_config_in_cli(pointed_pytester: pytest.Pytester) -> None:
     """Check that command line arguments are honored."""
     pointed_pytester.copy_example("test_postgres_options.py")
     ret = pointed_pytester.runpytest("--postgresql-postgres-options", "-N 16", "test_postgres_options.py")
     ret.assert_outcomes(passed=1)
 
 
-def test_postgres_options_config_in_ini(pointed_pytester: Pytester) -> None:
+def test_postgres_options_config_in_ini(pointed_pytester: pytest.Pytester) -> None:
     """Check that pytest.ini arguments are honored."""
     pointed_pytester.copy_example("test_postgres_options.py")
     pointed_pytester.makefile(".ini", pytest="[pytest]\npostgresql_postgres_options = -N 16\n")
@@ -38,7 +37,7 @@ def test_postgres_options_config_in_ini(pointed_pytester: Pytester) -> None:
     ret.assert_outcomes(passed=1)
 
 
-def test_postgres_loader_in_cli(pointed_pytester: Pytester) -> None:
+def test_postgres_loader_in_cli(pointed_pytester: pytest.Pytester) -> None:
     """Check that command line arguments are honored."""
     pointed_pytester.copy_example("test_load.py")
     test_sql_path = pointed_pytester.copy_example("test.sql")
@@ -46,7 +45,7 @@ def test_postgres_loader_in_cli(pointed_pytester: Pytester) -> None:
     ret.assert_outcomes(passed=1)
 
 
-def test_postgres_loader_in_ini(pointed_pytester: Pytester) -> None:
+def test_postgres_loader_in_ini(pointed_pytester: pytest.Pytester) -> None:
     """Check that pytest.ini arguments are honored for load."""
     pointed_pytester.copy_example("test_load.py")
     test_sql_path = pointed_pytester.copy_example("test.sql")
@@ -58,14 +57,14 @@ def test_postgres_loader_in_ini(pointed_pytester: Pytester) -> None:
     ret.assert_outcomes(passed=1)
 
 
-def test_postgres_load_autocommit_in_cli(pointed_pytester: Pytester) -> None:
+def test_postgres_load_autocommit_in_cli(pointed_pytester: pytest.Pytester) -> None:
     """Check that the --postgresql-load-autocommit command line flag is honored."""
     pointed_pytester.copy_example("test_assert_load_autocommit_is_true.py")
     ret = pointed_pytester.runpytest("--postgresql-load-autocommit", "test_assert_load_autocommit_is_true.py")
     ret.assert_outcomes(passed=1)
 
 
-def test_postgres_load_autocommit_in_ini(pointed_pytester: Pytester) -> None:
+def test_postgres_load_autocommit_in_ini(pointed_pytester: pytest.Pytester) -> None:
     """Check that pytest.ini postgresql_load_autocommit is honored and parsed as a bool."""
     pointed_pytester.copy_example("test_assert_load_autocommit_is_true.py")
     pointed_pytester.makefile(".ini", pytest="[pytest]\npostgresql_load_autocommit = True\n")
@@ -73,14 +72,14 @@ def test_postgres_load_autocommit_in_ini(pointed_pytester: Pytester) -> None:
     ret.assert_outcomes(passed=1)
 
 
-def test_postgres_port_search_count_in_cli_is_int(pointed_pytester: Pytester) -> None:
+def test_postgres_port_search_count_in_cli_is_int(pointed_pytester: pytest.Pytester) -> None:
     """Check that the --postgresql-port-search-count command line argument is parsed as an int."""
     pointed_pytester.copy_example("test_assert_port_search_count_is_ten.py")
     ret = pointed_pytester.runpytest("--postgresql-port-search-count", "10", "test_assert_port_search_count_is_ten.py")
     ret.assert_outcomes(passed=1)
 
 
-def test_postgres_port_search_count_in_ini_is_int(pointed_pytester: Pytester) -> None:
+def test_postgres_port_search_count_in_ini_is_int(pointed_pytester: pytest.Pytester) -> None:
     """Check that pytest.ini arguments are honored for load."""
     pointed_pytester.copy_example("test_assert_port_search_count_is_ten.py")
     pointed_pytester.makefile(".ini", pytest="[pytest]\npostgresql_port_search_count = 10\n")
@@ -108,7 +107,7 @@ def maintenance_dbname(postgresql_proc_to_override: PostgreSQLExecutor) -> Itera
 
 def test_postgres_maintenance_dbname_in_cli(
     postgresql_proc_to_override: PostgreSQLExecutor,
-    pointed_pytester: Pytester,
+    pointed_pytester: pytest.Pytester,
     maintenance_dbname: str,
 ) -> None:
     """Check that noproc fixtures work off a maintenance database other than postgres."""
@@ -125,7 +124,7 @@ def test_postgres_maintenance_dbname_in_cli(
 
 def test_postgres_maintenance_dbname_in_ini(
     postgresql_proc_to_override: PostgreSQLExecutor,
-    pointed_pytester: Pytester,
+    pointed_pytester: pytest.Pytester,
     maintenance_dbname: str,
 ) -> None:
     """Check that pytest.ini postgresql_maintenance_dbname is honored."""
@@ -145,7 +144,7 @@ def test_postgres_maintenance_dbname_in_ini(
 
 def test_postgres_maintenance_dbname_is_used(
     postgresql_proc_to_override: PostgreSQLExecutor,
-    pointed_pytester: Pytester,
+    pointed_pytester: pytest.Pytester,
 ) -> None:
     """Check the maintenance database is the one connected to, and not just accepted.
 
@@ -164,7 +163,7 @@ def test_postgres_maintenance_dbname_is_used(
 
 def _run_drop_test_database_case(
     postgresql_proc_to_override: PostgreSQLExecutor,
-    pointed_pytester: Pytester,
+    pointed_pytester: pytest.Pytester,
     example_filename: str,
 ) -> None:
     dbname = xdistify_dbname("override")
@@ -222,7 +221,7 @@ def _run_drop_test_database_case(
 
 def test_postgres_drop_test_database(
     postgresql_proc_to_override: PostgreSQLExecutor,
-    pointed_pytester: Pytester,
+    pointed_pytester: pytest.Pytester,
 ) -> None:
     """Check that the database is dropped on both process and client level if argument is passed.
 
@@ -245,7 +244,7 @@ def test_postgres_drop_test_database(
 
 def test_postgres_drop_test_database_async(
     postgresql_proc_to_override: PostgreSQLExecutor,
-    pointed_pytester: Pytester,
+    pointed_pytester: pytest.Pytester,
 ) -> None:
     """Check that async client fixture drops the database when --postgresql-drop-test-database is set.
 

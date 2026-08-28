@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Callable, Iterator
 
 import pytest
-from pytest import FixtureRequest
 
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executors import NoopExecutor
@@ -49,7 +48,7 @@ def postgresql_noproc(
     load: list[Callable | str | Path] | None = None,
     load_autocommit: bool | None = None,
     depends_on: str | None = None,
-) -> Callable[[FixtureRequest], Iterator[NoopExecutor]]:
+) -> Callable[[pytest.FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 
     :param host: hostname
@@ -72,7 +71,7 @@ def postgresql_noproc(
     """
 
     @pytest.fixture(scope="session")
-    def postgresql_noproc_fixture(request: FixtureRequest) -> Iterator[NoopExecutor]:
+    def postgresql_noproc_fixture(request: pytest.FixtureRequest) -> Iterator[NoopExecutor]:
         """Noop Process fixture for PostgreSQL.
 
         :param request: fixture request object
