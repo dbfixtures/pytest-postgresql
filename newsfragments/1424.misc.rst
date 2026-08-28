@@ -1,0 +1,1 @@
+Migrate tests to be based on `actions-reuse` new composite action `uv-pytest-coverage`

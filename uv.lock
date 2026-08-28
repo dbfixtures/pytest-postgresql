@@ -757,9 +757,11 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-xdist" },
-    { name = "tbump" },
     { name = "towncrier" },
     { name = "types-aiofiles" },
+]
+release = [
+    { name = "tbump" },
 ]
 
 [package.metadata]
@@ -788,10 +790,10 @@ dev = [
     { name = "pytest", specifier = "==9.1.1" },
     { name = "pytest-asyncio", specifier = "==1.4.0" },
     { name = "pytest-xdist", specifier = "==3.8.0" },
-    { name = "tbump", specifier = "==6.11.0" },
     { name = "towncrier", specifier = "==25.8.0" },
     { name = "types-aiofiles", specifier = "==25.1.0.20260518" },
 ]
+release = [{ name = "tbump", specifier = "==6.11.0" }]
 
 [[package]]
 name = "pytest-xdist"

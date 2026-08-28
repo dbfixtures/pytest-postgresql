@@ -60,9 +60,11 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-xdist==3.8.0",
-    "tbump==6.11.0",
     "towncrier==25.8.0",
     "types-aiofiles==25.1.0.20260518",
+]
+release = [
+    "tbump==6.11.0",
 ]
 
 [tool.uv.build-backend]

@@ -34,6 +34,7 @@ jobs:
       OS: ${{ inputs.os }}
       PYTHON: ${{ matrix.python-version }}
       POSTGRES: ${{ inputs.postgresql }}
+      UV_NO_SYNC: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,28 +64,15 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/uv-run@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
         with:
           command: pip install -r oldest/requirements.txt
-      - name: Run tests without xdist
-        id: run_serial_tests
-        uses: fizyk/actions-reuse/.github/actions/uv-run@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
         with:
-          command: python -m coverage run --data-file=.coverage.serial -m pytest -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
-          env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.serial"}'
-      - name: Combine and export serial coverage
-        if: ${{ always() && (steps.run_serial_tests.conclusion == 'success' || steps.run_serial_tests.conclusion == 'failure') }}
-        uses: fizyk/actions-reuse/.github/actions/coverage-combine-export-uv@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
-        with:
+          pytest-opts: -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.serial
           output-file: coverage-serial.xml
-      - name: Run xdist test
-        id: run_xdist_tests
-        uses: fizyk/actions-reuse/.github/actions/uv-run@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
         with:
-          command: python -m coverage run --data-file=.coverage.xdist -m pytest -n auto -c pyproject.oldest.toml --dist loadgroup --max-worker-restart 0 --postgresql-exec="/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
-          env: '{"COVERAGE_PROCESS_START": ".coveragerc", "COVERAGE_FILE": ".coverage.xdist"}'
-      - name: Combine and export xdist coverage
-        if: ${{ always() && (steps.run_xdist_tests.conclusion == 'success' || steps.run_xdist_tests.conclusion == 'failure') }}
-        uses: fizyk/actions-reuse/.github/actions/coverage-combine-export-uv@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
-        with:
+          pytest-opts: -n auto -c pyproject.oldest.toml --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+          coverage-config: .coveragerc
           data-file: .coverage.xdist
           output-file: coverage-xdist.xml
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
