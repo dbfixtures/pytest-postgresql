@@ -23,12 +23,11 @@ import os.path
 import platform
 import tempfile
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Iterator
 
 import port_for
 import pytest
 from port_for import PortForException, get_port
-from pytest import FixtureRequest, TempPathFactory
 
 from pytest_postgresql.config import PostgreSQLConfig, get_config
 from pytest_postgresql.executors import PostgreSQLExecutor
@@ -81,7 +80,7 @@ def postgresql_proc(
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
     load_autocommit: bool | None = None,
-) -> Callable[[FixtureRequest, TempPathFactory], PostgreSQLExecutor]:
+) -> Callable[[pytest.FixtureRequest, pytest.TempPathFactory], Iterator[PostgreSQLExecutor]]:
     """Postgresql process factory.
 
     :param executable: path to postgresql_ctl
@@ -108,7 +107,10 @@ def postgresql_proc(
     """
 
     @pytest.fixture(scope="session")
-    def postgresql_proc_fixture(request: FixtureRequest, tmp_path_factory: TempPathFactory) -> PostgreSQLExecutor:
+    def postgresql_proc_fixture(
+        request: pytest.FixtureRequest,
+        tmp_path_factory: pytest.TempPathFactory,
+    ) -> Iterator[PostgreSQLExecutor]:
         """Process fixture for PostgreSQL.
 
         :param request: fixture request object
@@ -221,16 +223,9 @@ def postgresql_proc(
             for load_element in pg_load:
                 janitor.load(load_element)
 
-            def cleanup() -> None:
-                try:
-                    janitor.drop()
-                finally:
-                    _cleanup_executor_resources()
-
-            request.addfinalizer(cleanup)
-            return postgresql_executor
-        except Exception:
+            yield postgresql_executor
+            janitor.drop()
+        finally:
             _cleanup_executor_resources()
-            raise
 
     return postgresql_proc_fixture

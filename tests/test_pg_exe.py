@@ -129,12 +129,12 @@ def test_client_only_install_raises_early(tmp_path: Path, config: PostgreSQLConf
 
 @pytest.mark.parametrize(
     "error",
-    (
+    [
         FileNotFoundError("pg_config"),
         PermissionError("pg_config"),
         subprocess.CalledProcessError(1, "pg_config"),
         subprocess.TimeoutExpired("pg_config", _pg.PG_CONFIG_TIMEOUT),
-    ),
+    ],
 )
 def test_broken_pg_config_surfaces_as_executable_missing(config: PostgreSQLConfig, error: Exception) -> None:
     """A missing, unusable, hanging or failing pg_config is reported as a missing executable.

@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import pytest
 from _pytest._py.path import LocalPath
-from pytest import FixtureRequest
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class PostgreSQLConfig:
     drop_test_database: bool
 
 
-def get_config(request: FixtureRequest) -> PostgreSQLConfig:
+def get_config(request: pytest.FixtureRequest) -> PostgreSQLConfig:
     """Return a PostgreSQLConfig instance with configuration options."""
 
     def get_postgresql_option(option: str) -> Any:

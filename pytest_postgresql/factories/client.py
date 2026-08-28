@@ -22,7 +22,6 @@ from typing import AsyncIterator, Callable, Iterator, cast
 import psycopg
 import pytest
 from psycopg import AsyncConnection, Connection
-from pytest import FixtureRequest
 
 from pytest_postgresql._asyncio_compat import mark_postgresql_async_fixture, supports_loop_factories
 from pytest_postgresql.config import get_config
@@ -37,11 +36,11 @@ except ImportError:
 pytest_asyncio = _pytest_asyncio
 
 
-def _postgresql_async_unavailable_stub() -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
+def _postgresql_async_unavailable_stub() -> Callable[[pytest.FixtureRequest], AsyncIterator[AsyncConnection]]:
     """Return a sync fixture stub that raises when pytest-asyncio is missing or too old."""
 
     @pytest.fixture
-    def postgresql_async_stub(request: FixtureRequest) -> None:
+    def postgresql_async_stub(request: pytest.FixtureRequest) -> None:
         """Sync stub that raises ImportError when pytest-asyncio is absent or too old."""
         raise ImportError(
             "pytest-asyncio >= 1.4 is required for async fixtures. "
@@ -50,7 +49,7 @@ def _postgresql_async_unavailable_stub() -> Callable[[FixtureRequest], AsyncIter
 
     mark_postgresql_async_fixture(postgresql_async_stub)
     return cast(
-        Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
+        Callable[[pytest.FixtureRequest], AsyncIterator[AsyncConnection]],
         postgresql_async_stub,
     )
 
@@ -59,7 +58,7 @@ def postgresql(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-) -> Callable[[FixtureRequest], Iterator[Connection]]:
+) -> Callable[[pytest.FixtureRequest], Iterator[Connection]]:
     """Return connection fixture factory for PostgreSQL.
 
     :param process_fixture_name: name of the process fixture
@@ -70,7 +69,7 @@ def postgresql(
     """
 
     @pytest.fixture
-    def postgresql_factory(request: FixtureRequest) -> Iterator[Connection]:
+    def postgresql_factory(request: pytest.FixtureRequest) -> Iterator[Connection]:
         """Fixture connection factory for PostgreSQL.
 
         :param request: fixture request object
@@ -120,7 +119,7 @@ def postgresql_async(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
-) -> Callable[[FixtureRequest], AsyncIterator[AsyncConnection]]:
+) -> Callable[[pytest.FixtureRequest], AsyncIterator[AsyncConnection]]:
     """Return async connection fixture factory for PostgreSQL.
 
     Requires ``pytest-asyncio`` >= 1.4 (install via ``pip install pytest-postgresql[async]``).
@@ -135,7 +134,7 @@ def postgresql_async(
         return _postgresql_async_unavailable_stub()
 
     @pytest_asyncio.fixture
-    async def postgresql_async_factory(request: FixtureRequest) -> AsyncIterator[AsyncConnection]:
+    async def postgresql_async_factory(request: pytest.FixtureRequest) -> AsyncIterator[AsyncConnection]:
         """Async connection fixture factory for PostgreSQL.
 
         :param request: fixture request object
@@ -180,6 +179,6 @@ def postgresql_async(
 
     mark_postgresql_async_fixture(postgresql_async_factory)
     return cast(
-        Callable[[FixtureRequest], AsyncIterator[AsyncConnection]],
+        Callable[[pytest.FixtureRequest], AsyncIterator[AsyncConnection]],
         postgresql_async_factory,
     )
