@@ -1,4 +1,0 @@
-The database used to create/drop test databases and read the server version is no longer hardcoded to
-``postgres``. Set it with the ``postgresql_maintenance_dbname`` ini option, the
-``--postgresql-maintenance-dbname`` command line option, or the ``maintenance_dbname`` argument of
-``factories.postgresql_noproc`` and ``DatabaseJanitor``/``AsyncDatabaseJanitor``. Defaults to ``postgres``.

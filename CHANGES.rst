@@ -3,6 +3,95 @@ CHANGELOG
 
 .. towncrier release notes start
 
+pytest-postgresql 9.0.0 (2026-08-28)
+====================================
+
+Breaking changes
+----------------
+
+- Load functions passed to proc/noproc fixtures have to accept new `autocommit` argument. (`#902 <https://github.com/dbfixtures/pytest-postgresql/issues/902>`__)
+- `postgresql_noproc` has an additional parameter `load_autocommit` which is grouped together with `load` making
+  positional arguments filled till `depends_on` incompatible. (`#902 <https://github.com/dbfixtures/pytest-postgresql/issues/902>`__)
+- Arguments after `dbname` in `postgresql_noproc` are now keyword-only. Update callers that pass
+  `options`, `load`, `load_autocommit` or `depends_on` positionally. (`#1387 <https://github.com/dbfixtures/pytest-postgresql/issues/1387>`__)
+- Arguments after `dbname` in `postgresql_proc` are now keyword-only. Update callers that pass
+  `options`, `startparams`, `unixsocketdir`, `postgres_options`, `load` or `load_autocommit` positionally. (`#1387 <https://github.com/dbfixtures/pytest-postgresql/issues/1387>`__)
+- Arguments after `dbname` in `PostgreSQLExecutor`. Update callers that pass
+  +`shell`, `timeout`, `sleep`, `user`, `password`,
+  +`options`, or `postgres_options` positionally. (`#1387 <https://github.com/dbfixtures/pytest-postgresql/issues/1387>`__)
+
+
+Deprecations
+------------
+
+- Deprecated the unused ``version`` argument of ``DatabaseJanitor`` and ``AsyncDatabaseJanitor``. (`#1393 <https://github.com/dbfixtures/pytest-postgresql/issues/1393>`__)
+
+
+Features
+--------
+
+- The database used to create/drop test databases and read the server version is no longer hardcoded to
+  ``postgres``. Set it with the ``postgresql_maintenance_dbname`` ini option, the
+  ``--postgresql-maintenance-dbname`` command line option, or the ``maintenance_dbname`` argument of
+  ``factories.postgresql_noproc`` and ``DatabaseJanitor``/``AsyncDatabaseJanitor``. Defaults to ``postgres``. (`#653 <https://github.com/dbfixtures/pytest-postgresql/issues/653>`__)
+- Allow running the SQL loader connection with autocommit enabled, so ``.sql`` files containing statements that cannot run inside a transaction block (such as ``CREATE DATABASE``) can be loaded. This is configurable without a custom loader in three ways: the ``postgresql_load_autocommit`` ini option, the ``--postgresql-load-autocommit`` command line flag, or the ``load_autocommit`` argument of the ``postgresql_proc`` / ``postgresql_noproc`` factories (which also maps to an ``autocommit`` argument on ``DatabaseJanitor`` / ``AsyncDatabaseJanitor``). (`#902 <https://github.com/dbfixtures/pytest-postgresql/issues/902>`__)
+- Added async PostgreSQL fixture support via ``postgresql_async`` factory and ``AsyncDatabaseJanitor``.
+  Added optional ``async`` extra (``pip install pytest-postgresql[async]``) providing ``pytest-asyncio`` (>= 1.4) and ``aiofiles`` dependencies. (`#1235 <https://github.com/dbfixtures/pytest-postgresql/issues/1235>`__)
+
+
+Bugfixes
+--------
+
+- ``pg_ctl`` discovery no longer hands back a path that does not exist. A client-only PostgreSQL
+  install (Debian/Ubuntu's ``libpq-dev`` without the matching server package) makes
+  ``pg_config --bindir`` point at a directory holding no ``pg_ctl``; that path used to be returned
+  unchecked, and the failure only surfaced later as ``Could not found ...`` when the executor read the
+  server version. The path is now verified up front, and the ``ExecutableMissingException`` names the
+  locations that were checked along with the ways to fix it: install the server package, point at a
+  ``pg_ctl`` with ``--postgresql-exec``, or use ``postgresql_noproc`` against a server you run yourself.
+
+  A broken ``pg_config`` is reported the same way. Only ``FileNotFoundError`` used to be handled, so a
+  non-executable or failing ``pg_config`` escaped as a raw ``PermissionError``/``CalledProcessError``. (`#1031 <https://github.com/dbfixtures/pytest-postgresql/issues/1031>`__)
+- Fixed ``DeprecationWarning`` on Python 3.14 from deprecated asyncio event-loop policy usage on Windows; use pytest-asyncio loop factories instead. (`#1295 <https://github.com/dbfixtures/pytest-postgresql/issues/1295>`__)
+
+
+Documentation
+-------------
+
+- Corrected the README's description of how ``pg_ctl`` is located — it listed the discovery steps in
+  the wrong order — and spelled out that ``postgresql_proc`` needs a local PostgreSQL server, pointing
+  at ``postgresql_noproc`` for dockerised or otherwise externally managed servers. (`#1031 <https://github.com/dbfixtures/pytest-postgresql/issues/1031>`__)
+
+
+Miscellaneous
+-------------
+
+- Pin GitHub Actions to immutable commit SHAs (`#1331 <https://github.com/dbfixtures/pytest-postgresql/issues/1331>`__)
+- Enabled Ruff's `FBT <https://docs.astral.sh/ruff/rules/#flake8-boolean-trap-fbt>`_ rules to detect boolean positional arguments. (`#1387 <https://github.com/dbfixtures/pytest-postgresql/issues/1387>`__)
+- ``postgresql_proc`` now tears down through a fixture ``yield`` instead of ``request.addfinalizer``.
+  Consuming it as a pytest fixture is unaffected. (`#1397 <https://github.com/dbfixtures/pytest-postgresql/issues/1397>`__)
+- Enabled Ruff's `PT <https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt>`_ rules
+  to keep pytest usage consistent across the plugin and its test suite. (`#1397 <https://github.com/dbfixtures/pytest-postgresql/issues/1397>`__)
+- Gathered all executors under common executors package. (`#1402 <https://github.com/dbfixtures/pytest-postgresql/issues/1402>`__)
+- Add release-schedule workflow replacing manual release workflow. (`#1410 <https://github.com/dbfixtures/pytest-postgresql/issues/1410>`__)
+- Migrated the Automerge workflow to `fizyk/actions-reuse` version 5.5.0. (`#1411 <https://github.com/dbfixtures/pytest-postgresql/issues/1411>`__)
+- Add actionlint to pre-commit (`#1414 <https://github.com/dbfixtures/pytest-postgresql/issues/1414>`__)
+- Configure Dependabot to update pre-commit dependencies. (`#1415 <https://github.com/dbfixtures/pytest-postgresql/issues/1415>`__)
+- Add Python 3.15 to CI
+- Add pyproject-fmt to pre-commit tools.
+- Add zizmor to pre-commit and harden GitHub Actions workflow permissions.
+- Deduplicate DatabaseJanitor codebase after async introduction.
+- Extended coderabbit configuration
+- Migrate developer environment from pipenv to uv
+- Scope the ``test_postgres_terminate_connection`` (and async) connection check
+  to the test's own database via ``datname = current_database()``.
+
+  So a transient, already-closed janitor connection on the ``postgres`` maintenance
+  database no longer causes spurious timeouts on macOS CI.
+- Set CodeRabbit review profile to assertive for stricter pull request reviews.
+- Update automerge to new 5.x version and change app id to client id
+
+
 pytest-postgresql 8.1.0 (2026-05-15)
 ====================================
 

@@ -1,2 +1,0 @@
-`postgresql_noproc` has an additional parameter `load_autocommit` which is grouped together with `load` making
-positional arguments filled till `depends_on` incompatible.

@@ -1,1 +1,0 @@
-Deprecated the unused ``version`` argument of ``DatabaseJanitor`` and ``AsyncDatabaseJanitor``.

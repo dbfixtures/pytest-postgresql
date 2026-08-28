@@ -1,2 +1,0 @@
-``postgresql_proc`` now tears down through a fixture ``yield`` instead of ``request.addfinalizer``.
-Consuming it as a pytest fixture is unaffected.

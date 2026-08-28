@@ -1,1 +1,0 @@
-Enabled Ruff's `FBT <https://docs.astral.sh/ruff/rules/#flake8-boolean-trap-fbt>`_ rules to detect boolean positional arguments.
