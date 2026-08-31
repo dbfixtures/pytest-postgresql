@@ -34,7 +34,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Python ${{ inputs.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/uv-setup@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
         with:
           python-version: ${{ inputs.python-version }}
       # ankane/setup-postgres publishes no tags/releases; v1 is a branch. Pinning
@@ -69,7 +69,7 @@ jobs:
         run: |
           sudo locale-gen de_DE.UTF-8
       - name: Run async tests
-        uses: fizyk/actions-reuse/.github/actions/uv-run@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
+        uses: fizyk/actions-reuse/.github/actions/uv-run@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
         with:
           command: python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
