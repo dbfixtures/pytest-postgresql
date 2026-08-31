@@ -10,6 +10,6 @@ jobs:
   pr-check:
     permissions:
       contents: read
-    uses: fizyk/actions-reuse/.github/workflows/shared-pr-check.yml@42b61e053c1d70a61deb42b323c1a2229e2e7fe0 # v5.5.0
+    uses: fizyk/actions-reuse/.github/workflows/shared-pr-check.yml@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
     with:
       dependency-manager: 'uv'
