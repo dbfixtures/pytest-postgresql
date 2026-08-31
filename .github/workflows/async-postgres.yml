@@ -61,7 +61,7 @@ jobs:
           fi
       - name: Detect PostgreSQL path on Windows
         if: runner.os == 'Windows'
-        uses: ./.github/actions/detect-pg-ctl
+        uses: $/.github/actions/detect-pg-ctl
         with:
           postgresql-version: ${{ inputs.postgresql }}
       - name: update locale for tests
