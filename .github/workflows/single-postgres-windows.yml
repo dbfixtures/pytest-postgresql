@@ -43,7 +43,7 @@ jobs:
       - uses: ankane/setup-postgres@v1 # zizmor: ignore[unpinned-uses]
         with:
           postgres-version: ${{ inputs.postgresql }}
-      - uses: ./.github/actions/detect-pg-ctl
+      - uses: $/.github/actions/detect-pg-ctl
         with:
           postgresql-version: ${{ inputs.postgresql }}
       - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
