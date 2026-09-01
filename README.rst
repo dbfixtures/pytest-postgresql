@@ -447,7 +447,7 @@ You can define settings via fixture factory arguments, command line options, or 
        on Unix this defaults to ``/usr/lib/postgresql/14/bin/pg_ctl``, on Windows there is no
        default path),
     2. the directory reported by ``pg_config --bindir``,
-    3. on Windows, ``%ProgramFiles%\\PostgreSQL\\*\\bin\\pg_ctl.exe`` (newest version first),
+    3. on Windows, ``%ProgramFiles%\PostgreSQL\*\bin\pg_ctl.exe`` (newest version first),
     4. ``pg_ctl`` on ``PATH`` (via ``shutil.which``).
 
     Only the ``executable`` factory argument is taken at face value; the other locations are
