@@ -189,7 +189,6 @@ def _from_path(checked: list[str]) -> str | None:
 
 def _pg_exe(executable: str | None, config: PostgreSQLConfig) -> str:
     """If executable is set, use it. Otherwise best effort to find the executable."""
-    # an explicitly passed executable is taken at face value, it's not ours to second-guess
     if executable is not None:
         logger.debug("Using factory executable: %s", executable)
         return executable
