@@ -48,30 +48,31 @@ jobs:
         run: |
           if command -v pg_ctl >/dev/null 2>&1; then
             PG_CTL_PATH=$(command -v pg_ctl)
-            echo "POSTGRESQL_EXEC=$PG_CTL_PATH" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=$PG_CTL_PATH" >> "$GITHUB_ENV"
           elif [ -f "/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            echo "POSTGRESQL_EXEC=/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
           elif [ -f "/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            echo "POSTGRESQL_EXEC=/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
           elif [ -f "/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
           else
             echo "Error: pg_ctl not found in expected locations"
             exit 1
           fi
-      - name: Detect PostgreSQL path on Windows
-        if: runner.os == 'Windows'
-        uses: ./.github/actions/detect-pg-ctl
-        with:
-          postgresql-version: ${{ inputs.postgresql }}
       - name: update locale for tests
         if: startsWith(inputs.os, 'ubuntu')
         run: |
           sudo locale-gen de_DE.UTF-8
-      - name: Run async tests
+      - name: Run async tests on Unix
+        if: runner.os != 'Windows'
         uses: fizyk/actions-reuse/.github/actions/uv-run@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
         with:
           command: python -m pytest -svv -m asyncio -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+      - name: Run async tests on Windows
+        if: runner.os == 'Windows'
+        uses: fizyk/actions-reuse/.github/actions/uv-run@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
+        with:
+          command: python -m pytest -svv -m asyncio -p no:xdist -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:

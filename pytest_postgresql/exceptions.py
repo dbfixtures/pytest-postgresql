@@ -50,6 +50,18 @@ class ExecutableMissingException(FileNotFoundError):
             checked,
         )
 
+    @classmethod
+    def discovery_failed(cls, causes: Iterable[str], checked: Iterable[str]) -> "ExecutableMissingException":
+        """None of the discovery strategies found a runnable pg_ctl.
+
+        :param causes: why each strategy came up empty, joined into one explanation
+        :param checked: every location that was probed
+        """
+        cause = " ".join(causes)
+        if not cause:
+            cause = "No pg_ctl was found in any of the usual locations."
+        return cls._no_pg_ctl(cause, checked)
+
 
 class PostgreSQLUnsupported(Exception):
     """Exception raised when unsupported postgresql would be detected."""

@@ -1,0 +1,4 @@
+``pg_ctl`` discovery now finds a Windows PostgreSQL install without ``--postgresql-exec``.
+The default executable path is empty on Windows, and discovery probes
+``%ProgramFiles%\\PostgreSQL\\*\\bin\\pg_ctl.exe`` (newest version first) and ``PATH`` after
+``pg_config --bindir``.
