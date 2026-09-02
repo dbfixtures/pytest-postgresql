@@ -343,7 +343,7 @@ You can define settings via fixture factory arguments, command line options, or 
      - n/a
      - --postgresql-exec
      - postgresql_exec
-     - ``pg_config --bindir`` + ``pg_ctl``
+     - discovered (see note)
    * - host
      - host
      - host
@@ -440,13 +440,18 @@ You can define settings via fixture factory arguments, command line options, or 
 
 .. note::
 
-    If the ``executable`` factory argument is not provided, the plugin looks for ``pg_ctl`` first at
-    the configured path (``--postgresql-exec`` / the ``postgresql_exec`` ini option,
-    ``/usr/lib/postgresql/14/bin/pg_ctl`` by default), then in the directory reported by
-    ``pg_config --bindir``.
+    If the ``executable`` factory argument is not provided, the plugin looks for ``pg_ctl`` in
+    this order:
 
-    Only the ``executable`` factory argument is taken at face value; the other two are
-    verified to exist before being used. If neither is there, an ``ExecutableMissingException``
+    1. the configured path (``--postgresql-exec`` / the ``postgresql_exec`` ini option;
+       on Unix this defaults to ``/usr/lib/postgresql/14/bin/pg_ctl``, on Windows there is no
+       default path),
+    2. the directory reported by ``pg_config --bindir``,
+    3. on Windows, ``%ProgramFiles%\PostgreSQL\*\bin\pg_ctl.exe`` (newest version first),
+    4. ``pg_ctl`` on ``PATH`` (via ``shutil.which``).
+
+    Only the ``executable`` factory argument is taken at face value; the other locations are
+    verified to exist before being used. If none of them is there, an ``ExecutableMissingException``
     is raised listing the locations that were checked.
 
 .. note::

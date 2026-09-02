@@ -37,6 +37,7 @@ except ImportError:
     pytest_asyncio = None  # type: ignore[assignment]
 
 _help_executable = "Path to PostgreSQL executable"
+_DEFAULT_POSTGRESQL_EXEC = "" if platform.system() == "Windows" else "/usr/lib/postgresql/14/bin/pg_ctl"
 _help_host = "Host at which PostgreSQL will accept connections"
 _help_port = "Port at which PostgreSQL will accept connections"
 _help_port_search_count = "Number of times, pytest-postgresql will search for free port"
@@ -144,7 +145,7 @@ if _is_windows():
 
 def pytest_addoption(parser: Parser) -> None:
     """Configure options for pytest-postgresql."""
-    parser.addini(name="postgresql_exec", help=_help_executable, default="/usr/lib/postgresql/14/bin/pg_ctl")
+    parser.addini(name="postgresql_exec", help=_help_executable, default=_DEFAULT_POSTGRESQL_EXEC)
 
     parser.addini(name="postgresql_host", help=_help_host, default="127.0.0.1")
 

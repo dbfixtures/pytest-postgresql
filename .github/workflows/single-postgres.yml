@@ -53,16 +53,16 @@ jobs:
           # Try to find pg_ctl dynamically for cross-platform compatibility
           if command -v pg_ctl >/dev/null 2>&1; then
             PG_CTL_PATH=$(command -v pg_ctl)
-            echo "POSTGRESQL_EXEC=$PG_CTL_PATH" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=$PG_CTL_PATH" >> "$GITHUB_ENV"
           elif [ -f "/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
             # macOS Apple Silicon Homebrew path
-            echo "POSTGRESQL_EXEC=/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
           elif [ -f "/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
             # macOS Intel Homebrew path
-            echo "POSTGRESQL_EXEC=/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
           elif [ -f "/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" ]; then
             # Debian/Ubuntu path (fallback)
-            echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> $GITHUB_ENV
+            echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
           else
             echo "Error: pg_ctl not found in expected locations"
             exit 1

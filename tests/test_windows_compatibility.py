@@ -660,7 +660,7 @@ class TestWindowsCompatibility:
                 result = executor.stop()
             finally:
                 if real_killpg is not None:
-                    os.killpg = real_killpg
+                    setattr(os, "killpg", real_killpg)
 
             # Should call pg_ctl stop, fail on super().stop, then use Windows terminate
             mock_subprocess.assert_called_once()
