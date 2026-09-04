@@ -3,6 +3,24 @@ CHANGELOG
 
 .. towncrier release notes start
 
+pytest-postgresql 9.1.0 (2026-09-04)
+====================================
+
+Features
+--------
+
+- ``pg_ctl`` discovery now finds a Windows PostgreSQL install without ``--postgresql-exec``.
+  The default executable path is empty on Windows, and discovery probes
+  ``%ProgramFiles%\PostgreSQL\*\bin\pg_ctl.exe`` (newest version first) and ``PATH`` after
+  ``pg_config --bindir``. (`#1399 <https://github.com/dbfixtures/pytest-postgresql/issues/1399>`__)
+
+
+Miscellaneous
+-------------
+
+- Migrate tests to be based on `actions-reuse` new composite action `uv-pytest-coverage` (`#1424 <https://github.com/dbfixtures/pytest-postgresql/issues/1424>`__)
+
+
 pytest-postgresql 9.0.0 (2026-08-28)
 ====================================
 

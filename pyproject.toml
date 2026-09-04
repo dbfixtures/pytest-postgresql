@@ -4,7 +4,7 @@ requires = [ "uv-build>=0.11,<0.13" ]
 
 [project]
 name = "pytest-postgresql"
-version = "9.0.0"
+version = "9.1.0"
 description = "Postgresql fixtures and fixture factories for Pytest."
 readme = "README.rst"
 keywords = [ "fixture", "postgresql", "pytest", "tests" ]
@@ -41,7 +41,7 @@ async = [ "aiofiles>=23.0", "pytest-asyncio>=1.4" ]
 [project.urls]
 Source = "https://github.com/dbfixtures/pytest-postgresql"
 "Bug Tracker" = "https://github.com/dbfixtures/pytest-postgresql/issues"
-Changelog = "https://github.com/dbfixtures/pytest-postgresql/blob/v9.0.0/CHANGES.rst"
+Changelog = "https://github.com/dbfixtures/pytest-postgresql/blob/v9.1.0/CHANGES.rst"
 
 [project.entry-points.pytest11]
 pytest_postgresql = "pytest_postgresql.plugin"
@@ -146,7 +146,7 @@ message_template = "Release {new_version}"
 tag_template = "v{new_version}"
 
 [tool.tbump.version]
-current = "9.0.0"
+current = "9.1.0"
 regex = '''
   (?P<major>\d+)
   \.
