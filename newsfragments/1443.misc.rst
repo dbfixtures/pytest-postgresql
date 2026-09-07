@@ -1,0 +1,1 @@
+Update actions with zizmor 1.30.0 and migrate to maintained actionlint fork

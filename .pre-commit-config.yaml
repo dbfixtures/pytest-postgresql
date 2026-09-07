@@ -53,8 +53,8 @@ repos:
     hooks:
     -   id: check-python-version-consistency
 
-  - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.12
+  - repo: https://github.com/kjanat/actionlint
+    rev: v1.14.0
     hooks:
       - id: actionlint
 
