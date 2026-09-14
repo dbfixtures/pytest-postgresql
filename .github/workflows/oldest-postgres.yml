@@ -40,7 +40,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up uv with python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/uv-setup@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@2ab3c94b032a11fca1238ef134690e589616739d # v5.7.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: false
@@ -61,15 +61,15 @@ jobs:
         if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
         run: sudo apt install libpq5
       - name: Install oldest supported versions
-        uses: fizyk/actions-reuse/.github/actions/uv-run@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
+        uses: fizyk/actions-reuse/.github/actions/uv-run@2ab3c94b032a11fca1238ef134690e589616739d # v5.7.0
         with:
           command: pip install -r oldest/requirements.txt
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@2ab3c94b032a11fca1238ef134690e589616739d # v5.7.0
         with:
           pytest-opts: -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.serial
           output-file: coverage-serial.xml
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@7eefbd6ffc6c6787ad3be6ce93dcf475e3ae99b5 # v5.6.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@2ab3c94b032a11fca1238ef134690e589616739d # v5.7.0
         with:
           pytest-opts: -n auto -c pyproject.oldest.toml --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           coverage-config: .coveragerc
