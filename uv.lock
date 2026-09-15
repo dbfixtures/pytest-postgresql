@@ -574,11 +574,11 @@ wheels = [
 
 [[package]]
 name = "port-for"
-version = "1.0.0"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/88/a0/80a64e8cc096c7a9d0f546a28994af849b4775afc5e4ee44bf2739a55115/port_for-1.0.0.tar.gz", hash = "sha256:404d161b1b2c82e2f6b31d8646396b4847d02bf5ee10068c92b7263657a14582", size = 21681, upload-time = "2025-09-30T10:22:51.149Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/db/cb50b1dd5ce6d1ffdfb93ff358c714c57367cc59beafe14209c21c0b3408/port_for-1.1.0.tar.gz", hash = "sha256:b9e949f0ec7101094c4b0f096fad80d0aa90818854fa69a9d750fa4fd1e7b4ba", size = 17414, upload-time = "2026-09-05T11:37:50.459Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/2c/b1faca65b9728b4ac43f0bee4bb9e7294bd0a62cc2ee59fd59403bf575f6/port_for-1.0.0-py3-none-any.whl", hash = "sha256:35a848b98cf4cc075fe80dc49ae5c3a78e3ca345a23bd39bf5252277b4eef5c2", size = 17544, upload-time = "2025-09-30T10:22:49.878Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/8b/823aec43117b17fcecd241b3c893c4e6f9156a878b139b2d684d71fe25f7/port_for-1.1.0-py3-none-any.whl", hash = "sha256:99c543583dc33942b64ae5e3b80d71c536bd2eb1c568730d533776e0d0ff9264", size = 17041, upload-time = "2026-09-05T11:37:49.335Z" },
 ]
 
 [[package]]
@@ -784,7 +784,7 @@ dev = [
     { name = "mock", specifier = "==5.2.0" },
     { name = "mypy", marker = "implementation_name == 'cpython'", specifier = "==2.3.1" },
     { name = "packaging", specifier = "==26.3" },
-    { name = "port-for", specifier = "==1.0.0" },
+    { name = "port-for", specifier = "==1.1.0" },
     { name = "psycopg", specifier = "==3.3.5" },
     { name = "psycopg-binary", marker = "python_full_version < '3.15' and implementation_name == 'cpython'", specifier = "==3.3.4" },
     { name = "pytest", specifier = "==9.1.1" },
