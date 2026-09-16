@@ -54,7 +54,7 @@ repos:
     -   id: check-python-version-consistency
 
   - repo: https://github.com/kjanat/actionlint
-    rev: v1.15.1
+    rev: v1.16.0
     hooks:
       - id: actionlint
 
