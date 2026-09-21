@@ -39,7 +39,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up uv with python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/uv-setup@2ab3c94b032a11fca1238ef134690e589616739d # v5.7.0
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@ef34949dba56816730c78752529724b4aa96e557 # v5.8.0
         with:
           python-version: ${{ matrix.python-version }}
       # ankane/setup-postgres publishes no tags/releases; v1 is a branch. Pinning
@@ -77,12 +77,12 @@ jobs:
       - name: install libpq
         if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
         run: sudo apt install libpq5
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@2ab3c94b032a11fca1238ef134690e589616739d # v5.7.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@ef34949dba56816730c78752529724b4aa96e557 # v5.8.0
         with:
           pytest-opts: -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.serial
           output-file: coverage-serial.xml
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@2ab3c94b032a11fca1238ef134690e589616739d # v5.7.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@ef34949dba56816730c78752529724b4aa96e557 # v5.8.0
         with:
           pytest-opts: -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           coverage-config: .coveragerc
