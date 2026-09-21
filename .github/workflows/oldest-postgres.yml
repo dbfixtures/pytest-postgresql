@@ -61,9 +61,9 @@ jobs:
         if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
         run: sudo apt install libpq5
       - name: Install oldest supported versions
-        uses: fizyk/actions-reuse/.github/actions/uv-run@ef34949dba56816730c78752529724b4aa96e557 # v5.8.0
+        uses: fizyk/actions-reuse/.github/actions/uv-pip@ef34949dba56816730c78752529724b4aa96e557 # v5.8.0
         with:
-          command: pip install -r oldest/requirements.txt
+          requirements: oldest/requirements.txt
       - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@ef34949dba56816730c78752529724b4aa96e557 # v5.8.0
         with:
           pytest-opts: -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
