@@ -82,7 +82,7 @@ jobs:
           path: ${{ runner.temp }}/pytest-basetemp/**
       - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v6.0.1
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v6.0.1
         with:
           token: ${{ secrets.codecov_token }}
           flags: unittests
