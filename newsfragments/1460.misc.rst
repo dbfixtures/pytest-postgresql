@@ -1,0 +1,1 @@
+Bump psycopg-binary alongside psycopg and group both packages in Dependabot updates
