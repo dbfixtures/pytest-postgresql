@@ -39,6 +39,38 @@ def test_two_postgreses(postgresql: Connection, postgresql2: Connection) -> None
     cur.close()
 
 
+@pytest.mark.parametrize("reserved_key", ["dbname", "user", "host", "port"])
+def test_connection_kwargs_rejects_managed_identity(reserved_key: str) -> None:
+    """connection_kwargs must not override the janitor-managed connection identity."""
+    from pytest_postgresql import factories
+
+    with pytest.raises(ValueError, match=reserved_key):
+        factories.postgresql("postgresql_proc", connection_kwargs={reserved_key: "override"})
+
+
+@pytest.mark.parametrize("reserved_key", ["dbname", "user", "host", "port"])
+def test_connection_kwargs_rejects_managed_identity_async(reserved_key: str) -> None:
+    """Async factory rejects the same managed identity keys."""
+    from pytest_postgresql import factories
+
+    with pytest.raises(ValueError, match=reserved_key):
+        factories.postgresql_async("postgresql_proc", connection_kwargs={reserved_key: "override"})
+
+
+def test_connection_kwargs_passed_through(postgresql2_dict_row: Connection) -> None:
+    """Test that connection_kwargs are forwarded to psycopg.connect.
+
+    ``row_factory`` is a psycopg.connect keyword argument, so passing it
+    through the factory should change how rows are returned.
+    """
+    cur = postgresql2_dict_row.cursor()
+    cur.execute("SELECT * FROM test_load;")
+    row = cur.fetchone()
+    cur.close()
+
+    assert isinstance(row, dict)
+
+
 def test_postgres_load_two_files(postgresql_load_1: Connection) -> None:
     """Check postgresql fixture can load two files."""
     cur = postgresql_load_1.cursor()
@@ -90,6 +122,16 @@ async def test_two_postgreses_async(postgresql_async: AsyncConnection, postgresq
     async with postgresql2_async.cursor() as cur:
         await cur.execute(MAKE_Q)
         await postgresql2_async.commit()
+
+
+@pytest.mark.asyncio
+async def test_connection_kwargs_passed_through_async(postgresql2_dict_row_async: AsyncConnection) -> None:
+    """Test that connection_kwargs are forwarded to AsyncConnection.connect."""
+    async with postgresql2_dict_row_async.cursor() as cur:
+        await cur.execute(SELECT_Q)
+        row = await cur.fetchone()
+
+    assert isinstance(row, dict)
 
 
 @pytest.mark.asyncio
