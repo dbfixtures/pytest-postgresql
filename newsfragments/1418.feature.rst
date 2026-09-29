@@ -1,0 +1,1 @@
+Allow passing extra keyword arguments through to ``psycopg.connect`` in the ``postgresql`` and ``postgresql_async`` factories via a new ``connection_kwargs`` parameter, e.g. to set ``row_factory``. Identity keys managed by the fixtures (``dbname``, ``user``, ``host``, ``port``) are rejected so the janitor-managed connection isolation stays intact.
