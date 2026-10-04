@@ -3,6 +3,17 @@ CHANGELOG
 
 .. towncrier release notes start
 
+pytest-postgresql 9.1.1 (2026-10-04)
+====================================
+
+Miscellaneous
+-------------
+
+- Update actions with zizmor 1.30.0 and migrate to maintained actionlint fork (`#1443 <https://github.com/dbfixtures/pytest-postgresql/issues/1443>`__)
+- Adjust shared-automerge permissions (`#1457 <https://github.com/dbfixtures/pytest-postgresql/issues/1457>`__)
+- Bump psycopg-binary alongside psycopg and group both packages in Dependabot updates (`#1460 <https://github.com/dbfixtures/pytest-postgresql/issues/1460>`__)
+
+
 pytest-postgresql 9.1.0 (2026-09-04)
 ====================================
 
