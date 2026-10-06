@@ -17,7 +17,7 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql client."""
 
-from typing import AsyncIterator, Callable, Iterator, cast
+from typing import Any, AsyncIterator, Callable, Iterator, cast
 
 import psycopg
 import pytest
@@ -34,6 +34,28 @@ except ImportError:
     _pytest_asyncio = None  # type: ignore[assignment]
 
 pytest_asyncio = _pytest_asyncio
+
+# Connection identity keys managed by the janitor/fixtures. Allowing them in
+# ``connection_kwargs`` would let the client connect to a different database or
+# server than the one the janitor creates and drops, breaking fixture isolation.
+_RESERVED_CONNECTION_KWARGS = ("dbname", "user", "host", "port")
+
+
+def _reject_reserved_connection_kwargs(connection_kwargs: dict[str, Any] | None) -> None:
+    """Raise ValueError if connection_kwargs tries to override the managed connection identity.
+
+    :param connection_kwargs: caller-supplied extra connect kwargs, if any
+    :raises ValueError: if any reserved identity key is present
+    """
+    if not connection_kwargs:
+        return
+    reserved = sorted(key for key in _RESERVED_CONNECTION_KWARGS if key in connection_kwargs)
+    if reserved:
+        raise ValueError(
+            f"connection_kwargs must not override the janitor-managed connection identity: "
+            f"{', '.join(reserved)}. These keys are set by the fixture; override the "
+            f"process/noproc fixture instead if a different target is needed."
+        )
 
 
 def _postgresql_async_unavailable_stub() -> Callable[[pytest.FixtureRequest], AsyncIterator[AsyncConnection]]:
@@ -58,6 +80,7 @@ def postgresql(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
+    connection_kwargs: dict[str, Any] | None = None,
 ) -> Callable[[pytest.FixtureRequest], Iterator[Connection]]:
     """Return connection fixture factory for PostgreSQL.
 
@@ -65,8 +88,12 @@ def postgresql(
     :param dbname: database name
     :param isolation_level: optional postgresql isolation level
                             defaults to server's default
+    :param connection_kwargs: optional additional keyword arguments passed
+                              through to ``psycopg.connect`` for the client
+                              connection, e.g. ``{"row_factory": psycopg.rows.dict_row}``
     :returns: function which makes a connection to postgresql
     """
+    _reject_reserved_connection_kwargs(connection_kwargs)
 
     @pytest.fixture
     def postgresql_factory(request: pytest.FixtureRequest) -> Iterator[Connection]:
@@ -97,14 +124,17 @@ def postgresql(
         if config.drop_test_database:
             janitor.drop()
         with janitor:
-            db_connection: Connection = psycopg.connect(
-                dbname=pg_db,
-                user=pg_user,
-                password=pg_password,
-                host=pg_host,
-                port=pg_port,
-                options=pg_options,
-            )
+            connect_kwargs: dict[str, Any] = {
+                "dbname": pg_db,
+                "user": pg_user,
+                "password": pg_password,
+                "host": pg_host,
+                "port": pg_port,
+                "options": pg_options,
+            }
+            if connection_kwargs:
+                connect_kwargs.update(connection_kwargs)
+            db_connection: Connection = psycopg.connect(**connect_kwargs)
             try:
                 if isolation_level is not None:
                     db_connection.isolation_level = isolation_level
@@ -119,6 +149,7 @@ def postgresql_async(
     process_fixture_name: str,
     dbname: str | None = None,
     isolation_level: "psycopg.IsolationLevel | None" = None,
+    connection_kwargs: dict[str, Any] | None = None,
 ) -> Callable[[pytest.FixtureRequest], AsyncIterator[AsyncConnection]]:
     """Return async connection fixture factory for PostgreSQL.
 
@@ -128,8 +159,13 @@ def postgresql_async(
     :param dbname: database name
     :param isolation_level: optional postgresql isolation level
                             defaults to server's default
+    :param connection_kwargs: optional additional keyword arguments passed
+                              through to ``AsyncConnection.connect`` for the
+                              client connection
     :returns: function which makes an async connection to postgresql
     """
+    _reject_reserved_connection_kwargs(connection_kwargs)
+
     if not supports_loop_factories(pytest_asyncio):
         return _postgresql_async_unavailable_stub()
 
@@ -162,14 +198,17 @@ def postgresql_async(
         if config.drop_test_database:
             await janitor.drop()
         async with janitor:
-            db_connection: AsyncConnection = await AsyncConnection.connect(
-                dbname=pg_db,
-                user=pg_user,
-                password=pg_password,
-                host=pg_host,
-                port=pg_port,
-                options=pg_options,
-            )
+            connect_kwargs: dict[str, Any] = {
+                "dbname": pg_db,
+                "user": pg_user,
+                "password": pg_password,
+                "host": pg_host,
+                "port": pg_port,
+                "options": pg_options,
+            }
+            if connection_kwargs:
+                connect_kwargs.update(connection_kwargs)
+            db_connection: AsyncConnection = await AsyncConnection.connect(**connect_kwargs)
             try:
                 if isolation_level is not None:
                     await db_connection.set_isolation_level(isolation_level)

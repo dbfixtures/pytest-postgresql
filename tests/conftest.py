@@ -3,6 +3,8 @@
 import os
 from pathlib import Path
 
+import psycopg.rows
+
 from pytest_postgresql import factories
 
 pytest_plugins = ["pytester"]
@@ -15,6 +17,16 @@ TEST_SQL_FILE2 = Path(TEST_SQL_DIR + "test2.sql")
 
 postgresql_proc2 = factories.postgresql_proc(port=None, load=[TEST_SQL_FILE, TEST_SQL_FILE2])
 postgresql2 = factories.postgresql("postgresql_proc2", dbname="test-db")
+postgresql2_dict_row = factories.postgresql(
+    "postgresql_proc2",
+    dbname="test-db",
+    connection_kwargs={"row_factory": psycopg.rows.dict_row},
+)
 postgresql_load_1 = factories.postgresql("postgresql_proc2")
 postgresql2_async = factories.postgresql_async("postgresql_proc2", dbname="test-db")
+postgresql2_dict_row_async = factories.postgresql_async(
+    "postgresql_proc2",
+    dbname="test-db",
+    connection_kwargs={"row_factory": psycopg.rows.dict_row},
+)
 postgresql_load_1_async = factories.postgresql_async("postgresql_proc2")

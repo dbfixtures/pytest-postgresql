@@ -207,6 +207,23 @@ You can create additional fixtures using factories:
     # Async client fixture (requires pytest-postgresql[async], pytest-asyncio >= 1.4)
     postgresql_my_async = factories.postgresql_async('postgresql_my_proc')
 
+The client fixtures accept a ``connection_kwargs`` mapping, which is forwarded
+to ``psycopg.connect`` (or ``AsyncConnection.connect``) when opening the test
+connection. This is useful for options like ``row_factory``:
+
+.. code-block:: python
+
+    import psycopg.rows
+
+    # Return dict rows instead of tuples
+    postgresql_dict_rows = factories.postgresql(
+        'postgresql_my_proc',
+        connection_kwargs={'row_factory': psycopg.rows.dict_row},
+    )
+
+Keys that control the connection identity (``dbname``, ``user``, ``host``,
+``port``) are managed by the fixtures and rejected in ``connection_kwargs``.
+
 .. note::
 
     Each process fixture can be configured independently through factory arguments.
