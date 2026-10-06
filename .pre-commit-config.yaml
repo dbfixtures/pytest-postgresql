@@ -25,7 +25,7 @@ repos:
       - id: debug-statements
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.9
+    rev: v0.16.10
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix, --respect-gitignore, --show-fixes]
@@ -38,7 +38,7 @@ repos:
         args: [--no-progress, --fix]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.29.4
+    rev: v2.30.1
     hooks:
       - id: pyproject-fmt
 
@@ -49,7 +49,7 @@ repos:
         additional_dependencies: [sphinx, toml]
 
   - repo: https://github.com/fizyk/pyproject-validator
-    rev: v0.1.0
+    rev: v0.1.1
     hooks:
     -   id: check-python-version-consistency
 
