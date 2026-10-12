@@ -516,14 +516,14 @@ wheels = [
 
 [[package]]
 name = "mirakuru"
-version = "3.0.3"
+version = "3.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "psutil", marker = "sys_platform != 'cygwin'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/82/70/d15022d73ed8c18977a8dc4860b3e1f83259fd8dddd8eaea0bb35c25afb9/mirakuru-3.0.3.tar.gz", hash = "sha256:70ec0b03a474fd5c29ce2d2050e15546e91f4e7d5f709d209ad45d091deaa2f6", size = 28257, upload-time = "2026-09-03T12:23:03.529Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/d2/d6a4299c4d1b2bdfc4123f489490f1bddaf3f93411cc153e89b1cb496937/mirakuru-3.0.4.tar.gz", hash = "sha256:3bed186bf5df9dff100252d76465262d039c84bc6997b066b3fb8b0c8cea813c", size = 29127, upload-time = "2026-10-03T12:50:10.157Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/3e/4255fde6cd809861c677567513e767bda508a2d1264ec05d49258455ebb5/mirakuru-3.0.3-py3-none-any.whl", hash = "sha256:a506fa39a401873b12c31fe902a40249e67f54e32351e42a77fd3e94a789f6f2", size = 28433, upload-time = "2026-09-03T12:23:02.155Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/40/e5cbeab872b8ed81ccc9d792458fcd05b602157f715545665ae3ebe0f4de/mirakuru-3.0.4-py3-none-any.whl", hash = "sha256:9a490afcd3f6c7f354655bcb15604f4952488ced3605217cf4ad61efa88b4684", size = 28993, upload-time = "2026-10-03T12:50:08.632Z" },
 ]
 
 [[package]]
@@ -857,7 +857,7 @@ provides-extras = ["async"]
 dev = [
     { name = "aiofiles", specifier = "==25.1.0" },
     { name = "coverage", specifier = "==7.16.2" },
-    { name = "mirakuru", specifier = "==3.0.3" },
+    { name = "mirakuru", specifier = "==3.0.4" },
     { name = "mock", specifier = "==5.2.0" },
     { name = "mypy", marker = "implementation_name == 'cpython'", specifier = "==2.4.0" },
     { name = "packaging", specifier = "==26.3" },
