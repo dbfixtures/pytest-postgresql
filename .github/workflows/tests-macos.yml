@@ -1,4 +1,4 @@
-name: Run pytest tests
+name: Run pytest tests on macOS
 
 on:
   workflow_call:
@@ -10,13 +10,8 @@ on:
         type: string
       postgresql:
         description: 'PostgreSQL version'
-        default: 14
+        required: true
         type: number
-      os:
-        description: 'Operating system to run tests on'
-        default: 'ubuntu-latest'
-        required: false
-        type: string
     secrets:
       codecov_token:
         description: 'Codecov token'
@@ -24,17 +19,16 @@ on:
 
 jobs:
   postgres:
-    runs-on: ${{ inputs.os }}
+    runs-on: macos-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         python-version: ${{ fromJSON(inputs.python-versions) }}
     env:
-      OS: ${{ inputs.os }}
+      OS: macos-latest
       PYTHON: ${{ matrix.python-version }}
       POSTGRES: ${{ inputs.postgresql }}
-      UV_NO_SYNC: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,42 +37,33 @@ jobs:
         uses: fizyk/actions-reuse/.github/actions/uv-setup@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
         with:
           python-version: ${{ matrix.python-version }}
-          cache: false
       # ankane/setup-postgres publishes no tags/releases; v1 is a branch. Pinning
       # to a SHA gains nothing (Dependabot can't track a branch). Revisit if the
       # maintainer adds releases. See https://docs.zizmor.sh/audits/#unpinned-uses
       - uses: ankane/setup-postgres@v1 # zizmor: ignore[unpinned-uses]
         with:
           postgres-version: ${{ inputs.postgresql }}
+      - name: Set PostgreSQL path
+        run: |
+          echo "POSTGRESQL_EXEC=$(brew --prefix "postgresql@${POSTGRES}")/bin/pg_ctl" >> "$GITHUB_ENV"
       - name: Check installed locales
         run: |
           locale -a
-      - name: update locale for tests
-        if: ${{ inputs.os == 'ubuntu-latest' }}
-        run: |
-          sudo locale-gen de_DE.UTF-8
-      - name: install libpq
-        if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
-        run: sudo apt install libpq5
-      - name: Install oldest supported versions
-        uses: fizyk/actions-reuse/.github/actions/uv-pip@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
-        with:
-          requirements: oldest/requirements.txt
       - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
         with:
-          pytest-opts: -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+          pytest-opts: -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.serial
           output-file: coverage-serial.xml
       - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
         with:
-          pytest-opts: -n auto -c pyproject.oldest.toml --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+          pytest-opts: -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           coverage-config: .coveragerc
           data-file: .coverage.xdist
           output-file: coverage-xdist.xml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
-          name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
+          name: postgresql-macos-${{ matrix.python-version }}-${{ inputs.postgresql }}
           path: ${{ runner.temp }}/pytest-basetemp/**
       - name: Upload coverage to Codecov
         if: always()

@@ -251,6 +251,7 @@ def test_postgres_drop_test_database_async(
     Mirrors ``test_postgres_drop_test_database`` but runs an async subprocess test that uses
     ``postgresql_async`` against the same live PostgreSQL process.
     """
+    pytest.importorskip("pytest_asyncio")
     _run_drop_test_database_case(
         postgresql_proc_to_override,
         pointed_pytester,
