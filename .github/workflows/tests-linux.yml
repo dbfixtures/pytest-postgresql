@@ -1,4 +1,4 @@
-name: Run pytest tests
+name: Run pytest tests on Linux
 
 on:
   workflow_call:
@@ -12,11 +12,6 @@ on:
         description: 'PostgreSQL version'
         required: true
         type: number
-      os:
-        description: 'Operating system to run tests on'
-        default: 'ubuntu-latest'
-        required: false
-        type: string
     secrets:
       codecov_token:
         description: 'Codecov token'
@@ -24,16 +19,32 @@ on:
 
 jobs:
   postgres:
-    runs-on: ${{ inputs.os }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         python-version: ${{ fromJSON(inputs.python-versions) }}
     env:
-      OS: ${{ inputs.os }}
+      OS: ubuntu-latest
       PYTHON: ${{ matrix.python-version }}
       POSTGRES: ${{ inputs.postgresql }}
+      POSTGRESQL_EXEC: /usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl
+    # PostgreSQL in a container, for the noproc fixture tests (-k docker)
+    services:
+      postgres:
+        image: postgres:${{ inputs.postgresql }}
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5433:5432
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,34 +59,14 @@ jobs:
       - uses: ankane/setup-postgres@v1 # zizmor: ignore[unpinned-uses]
         with:
           postgres-version: ${{ inputs.postgresql }}
-      - name: Set PostgreSQL path
-        run: |
-          # Try to find pg_ctl dynamically for cross-platform compatibility
-          if command -v pg_ctl >/dev/null 2>&1; then
-            PG_CTL_PATH=$(command -v pg_ctl)
-            echo "POSTGRESQL_EXEC=$PG_CTL_PATH" >> "$GITHUB_ENV"
-          elif [ -f "/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            # macOS Apple Silicon Homebrew path
-            echo "POSTGRESQL_EXEC=/opt/homebrew/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
-          elif [ -f "/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            # macOS Intel Homebrew path
-            echo "POSTGRESQL_EXEC=/usr/local/opt/postgresql@${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
-          elif [ -f "/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" ]; then
-            # Debian/Ubuntu path (fallback)
-            echo "POSTGRESQL_EXEC=/usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl" >> "$GITHUB_ENV"
-          else
-            echo "Error: pg_ctl not found in expected locations"
-            exit 1
-          fi
       - name: Check installed locales
         run: |
           locale -a
       - name: update locale for tests
-        if: ${{ inputs.os == 'ubuntu-latest' }}
         run: |
           sudo locale-gen de_DE.UTF-8
       - name: install libpq
-        if: ${{ contains(matrix.python-version, 'pypy') && runner.os == 'Linux' }}
+        if: ${{ contains(matrix.python-version, 'pypy') }}
         run: sudo apt install libpq5
       - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
         with:
@@ -88,10 +79,27 @@ jobs:
           coverage-config: .coveragerc
           data-file: .coverage.xdist
           output-file: coverage-xdist.xml
+      - name: Run test noproc fixture on docker
+        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          pytest-opts: -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --basetemp="${{ runner.temp }}/pytest-basetemp"
+          data-file: .coverage.docker
+          output-file: coverage-docker.xml
+      # Keep this run last: it removes the async extra from the environment.
+      - name: Remove async extra
+        run: uv pip uninstall pytest-asyncio aiofiles
+      - name: Run tests without async extra
+        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          pytest-opts: -svv -p no:xdist -m "not asyncio" --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+          data-file: .coverage.noasync
+          output-file: coverage-noasync.xml
+          # Without it, uv run re-syncs the environment and reinstalls the extra.
+          env: '{"UV_NO_SYNC": "1"}'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
-          name: postgresql-${{ matrix.python-version }}-${{ inputs.postgresql }}
+          name: postgresql-linux-${{ matrix.python-version }}-${{ inputs.postgresql }}
           path: ${{ runner.temp }}/pytest-basetemp/**
       - name: Upload coverage to Codecov
         if: always()
@@ -101,4 +109,4 @@ jobs:
           flags: unittests
           env_vars: OS,PYTHON
           fail_ci_if_error: false
-          files: coverage-serial.xml,coverage-xdist.xml
+          files: coverage-serial.xml,coverage-xdist.xml,coverage-docker.xml,coverage-noasync.xml

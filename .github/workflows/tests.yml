@@ -10,39 +10,23 @@ jobs:
   postgresql_18:
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-linux.yml
     with:
       postgresql: 18
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
-  postgresql_async_extra:
-    permissions:
-      contents: read
-    uses: $/.github/workflows/async-postgres.yml
-    with:
-      postgresql: 18
-      python-version: '3.12'
-      os: ubuntu-latest
-  windows_postgres_async_extra:
-    permissions:
-      contents: read
-    uses: $/.github/workflows/async-postgres.yml
-    with:
-      postgresql: 17
-      python-version: '3.14'
-      os: windows-latest
   postgresql_oldest:
     needs: [postgresql_18]
     permissions:
       contents: read
-    uses: $/.github/workflows/oldest-postgres.yml
+    uses: $/.github/workflows/tests-oldest.yml
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_17:
     needs: [postgresql_18]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-linux.yml
     with:
       postgresql: 17
       python-versions: '["3.12", "3.13", "3.14", "3.15", "pypy-3.11"]'
@@ -52,7 +36,7 @@ jobs:
     needs: [postgresql_17]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-linux.yml
     with:
       postgresql: 16
       python-versions: '["3.13", "3.14", "3.15"]'
@@ -62,7 +46,7 @@ jobs:
     needs: [postgresql_16]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-linux.yml
     with:
       postgresql: 15
       python-versions: '["3.14", "3.15"]'
@@ -72,7 +56,7 @@ jobs:
     needs: [postgresql_15]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-linux.yml
     with:
       postgresql: 14
       python-versions: '["3.14", "3.15"]'
@@ -82,10 +66,9 @@ jobs:
     needs: [postgresql_18]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-macos.yml
     with:
       postgresql: 18
-      os: macos-latest
       python-versions: '["3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -93,10 +76,9 @@ jobs:
     needs: [postgresql_17, macos_postgres_18]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-macos.yml
     with:
       postgresql: 17
-      os: macos-latest
       python-versions: '["3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -104,10 +86,9 @@ jobs:
     needs: [postgresql_16, macos_postgres_17]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres.yml
+    uses: $/.github/workflows/tests-macos.yml
     with:
       postgresql: 16
-      os: macos-latest
       python-versions: '["3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
@@ -115,58 +96,9 @@ jobs:
     needs: [postgresql_17]
     permissions:
       contents: read
-    uses: $/.github/workflows/single-postgres-windows.yml
+    uses: $/.github/workflows/tests-windows.yml
     with:
       postgresql: 17
       python-versions: '["3.13", "3.14", "3.15"]'
-    secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
-  docker_postgresql_18:
-    needs: [postgresql_18]
-    permissions:
-      contents: read
-    uses: $/.github/workflows/dockerised-postgres.yml
-    with:
-      postgresql: 18
-    secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
-  docker_postgresql_17:
-    needs: [postgresql_17, docker_postgresql_18]
-    permissions:
-      contents: read
-    uses: $/.github/workflows/dockerised-postgres.yml
-    with:
-      postgresql: 17
-      python-versions: '["3.12", "3.13", "3.14", "3.15"]'
-    secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
-  docker_postgresql_16:
-    needs: [postgresql_16, docker_postgresql_18]
-    permissions:
-      contents: read
-    uses: $/.github/workflows/dockerised-postgres.yml
-    with:
-      postgresql: 16
-      python-versions: '["3.13", "3.14", "3.15"]'
-    secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
-  docker_postgresql_15:
-    needs: [postgresql_15, docker_postgresql_16]
-    permissions:
-      contents: read
-    uses: $/.github/workflows/dockerised-postgres.yml
-    with:
-      postgresql: 15
-      python-versions: '["3.14", "3.15"]'
-    secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
-  docker_postgresql_14:
-    needs: [postgresql_14, docker_postgresql_15]
-    permissions:
-      contents: read
-    uses: $/.github/workflows/dockerised-postgres.yml
-    with:
-      postgresql: 14
-      python-versions: '["3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}

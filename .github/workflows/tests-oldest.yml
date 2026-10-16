@@ -1,0 +1,117 @@
+name: Run pytest tests on oldest supported versions
+
+on:
+  workflow_call:
+    inputs:
+      python-versions:
+        description: 'Supported python versions'
+        default: '["3.11", "3.12", "3.13", "3.14", "3.15", "pypy-3.11"]'
+        required: false
+        type: string
+      postgresql:
+        description: 'PostgreSQL version'
+        default: 14
+        type: number
+    secrets:
+      codecov_token:
+        description: 'Codecov token'
+        required: false
+
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ${{ fromJSON(inputs.python-versions) }}
+    env:
+      OS: ubuntu-latest
+      PYTHON: ${{ matrix.python-version }}
+      POSTGRES: ${{ inputs.postgresql }}
+      POSTGRESQL_EXEC: /usr/lib/postgresql/${{ inputs.postgresql }}/bin/pg_ctl
+      UV_NO_SYNC: "1"
+    # PostgreSQL in a container, for the noproc fixture tests (-k docker)
+    services:
+      postgres:
+        image: postgres:${{ inputs.postgresql }}
+        env:
+          POSTGRES_PASSWORD: postgres
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5433:5432
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv with python ${{ matrix.python-version }}
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: false
+      # ankane/setup-postgres publishes no tags/releases; v1 is a branch. Pinning
+      # to a SHA gains nothing (Dependabot can't track a branch). Revisit if the
+      # maintainer adds releases. See https://docs.zizmor.sh/audits/#unpinned-uses
+      - uses: ankane/setup-postgres@v1 # zizmor: ignore[unpinned-uses]
+        with:
+          postgres-version: ${{ inputs.postgresql }}
+      - name: Check installed locales
+        run: |
+          locale -a
+      - name: update locale for tests
+        run: |
+          sudo locale-gen de_DE.UTF-8
+      - name: install libpq
+        if: ${{ contains(matrix.python-version, 'pypy') }}
+        run: sudo apt install libpq5
+      - name: Install oldest supported versions
+        uses: fizyk/actions-reuse/.github/actions/uv-pip@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          requirements: oldest/requirements.txt
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          pytest-opts: -c pyproject.oldest.toml -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+          data-file: .coverage.serial
+          output-file: coverage-serial.xml
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          pytest-opts: -n auto -c pyproject.oldest.toml --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+          coverage-config: .coveragerc
+          data-file: .coverage.xdist
+          output-file: coverage-xdist.xml
+      - name: Run test noproc fixture on docker
+        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          pytest-opts: -c pyproject.oldest.toml -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --basetemp="${{ runner.temp }}/pytest-basetemp"
+          data-file: .coverage.docker
+          output-file: coverage-docker.xml
+      # Keep this run last: it removes the async extra from the environment.
+      # UV_NO_SYNC is set for the whole job, so uv run won't reinstall it.
+      - name: Remove async extra
+        run: uv pip uninstall pytest-asyncio aiofiles
+      - name: Run tests without async extra
+        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@06f5123d5a89db10f394aaa1533a5c119b34a48f # v5.10.1
+        with:
+          pytest-opts: -c pyproject.oldest.toml -svv -p no:xdist -m "not asyncio" --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
+          data-file: .coverage.noasync
+          output-file: coverage-noasync.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: postgresql-oldest-${{ matrix.python-version }}-${{ inputs.postgresql }}
+          path: ${{ runner.temp }}/pytest-basetemp/**
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v6.0.1
+        with:
+          token: ${{ secrets.codecov_token }}
+          flags: unittests
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
+          files: coverage-serial.xml,coverage-xdist.xml,coverage-docker.xml,coverage-noasync.xml
