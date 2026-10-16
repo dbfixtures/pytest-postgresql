@@ -17,7 +17,8 @@
 # along with pytest-postgresql.  If not, see <http://www.gnu.org/licenses/>.
 """Fixture factory for postgresql client."""
 
-from typing import AsyncIterator, Callable, Iterator, cast
+from collections.abc import AsyncIterator, Callable, Iterator
+from typing import cast
 
 import psycopg
 import pytest

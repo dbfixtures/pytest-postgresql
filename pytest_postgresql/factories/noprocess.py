@@ -18,8 +18,8 @@
 """Fixture factory for existing postgresql server."""
 
 import os
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Callable, Iterator
 
 import pytest
 

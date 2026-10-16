@@ -28,7 +28,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Self, TypeVar
 
 from mirakuru import TCPExecutor
 from mirakuru.exceptions import ProcessFinishedWithError, TimeoutExpired
@@ -101,7 +101,7 @@ class PostgreSQLExecutor(TCPExecutor):
         dbname: str,
         *,
         shell: bool = False,
-        timeout: Optional[int] = 60,
+        timeout: int | None = 60,
         sleep: float = 0.1,
         user: str = "postgres",
         password: str | None = None,
@@ -189,7 +189,7 @@ class PostgreSQLExecutor(TCPExecutor):
         """
         return "postgres"
 
-    def start(self: T) -> T:
+    def start(self) -> Self:
         """Add check for postgresql version before starting process."""
         if self.version < self.MIN_SUPPORTED_VERSION:
             raise PostgreSQLUnsupported(
@@ -298,13 +298,13 @@ class PostgreSQLExecutor(TCPExecutor):
         # remove old one if exists first.
         self.clean_directory()
         pgdata = str(Path(self.datadir).resolve())
-        options = ["--username=%s" % self.user]
+        options = [f"--username={self.user}"]
 
         if self.password:
             password_file = tempfile.NamedTemporaryFile(delete=False)
             password_path = password_file.name
             try:
-                options += ["--auth=password", "--pwfile=%s" % password_path]
+                options += ["--auth=password", f"--pwfile={password_path}"]
                 if hasattr(self.password, "encode"):
                     password = self.password.encode("utf-8")
                 else:
@@ -391,7 +391,7 @@ class PostgreSQLExecutor(TCPExecutor):
             return self.running()
         return super().check_subprocess()
 
-    def _windows_terminate_process(self, _sig: Optional[int] = None) -> None:
+    def _windows_terminate_process(self, _sig: int | None = None) -> None:
         """Terminate process on Windows.
 
         :param _sig: Signal parameter (unused on Windows but included for consistency)
@@ -423,7 +423,7 @@ class PostgreSQLExecutor(TCPExecutor):
                 e,
             )
 
-    def stop(self: T, sig: Optional[int] = None, exp_sig: Optional[int] = None) -> T:
+    def stop(self, sig: int | None = None, exp_sig: int | None = None) -> Self:
         """Issue a stop request to executable."""
         try:
             subprocess.check_output(

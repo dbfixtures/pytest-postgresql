@@ -3,10 +3,11 @@
 import asyncio
 import inspect
 import warnings
+from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from types import TracebackType
-from typing import AsyncIterator, Callable, Iterator, Type, TypeVar
+from typing import Self, TypeVar
 
 import psycopg
 import psycopg.sql as sql
@@ -204,14 +205,14 @@ class DatabaseJanitor(BaseDatabaseJanitor):
             cur.close()
             conn.close()
 
-    def __enter__(self: DatabaseJanitorType) -> DatabaseJanitorType:
+    def __enter__(self) -> Self:
         """Initialize Database Janitor."""
         self.init()
         return self
 
     def __exit__(
-        self: DatabaseJanitorType,
-        exc_type: Type[BaseException] | None,
+        self,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
@@ -322,14 +323,14 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
         finally:
             await conn.close()
 
-    async def __aenter__(self: AsyncDatabaseJanitorType) -> AsyncDatabaseJanitorType:
+    async def __aenter__(self) -> Self:
         """Initialize Async Database Janitor."""
         await self.init()
         return self
 
     async def __aexit__(
-        self: AsyncDatabaseJanitorType,
-        exc_type: Type[BaseException] | None,
+        self,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:

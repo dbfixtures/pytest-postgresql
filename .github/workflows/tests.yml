@@ -45,7 +45,7 @@ jobs:
     uses: $/.github/workflows/single-postgres.yml
     with:
       postgresql: 17
-      python-versions: '["3.11", "3.12", "3.13", "3.14", "3.15", "pypy-3.11"]'
+      python-versions: '["3.12", "3.13", "3.14", "3.15", "pypy-3.11"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_16:
@@ -55,7 +55,7 @@ jobs:
     uses: $/.github/workflows/single-postgres.yml
     with:
       postgresql: 16
-      python-versions: '["3.12", "3.13", "3.14", "3.15"]'
+      python-versions: '["3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   postgresql_15:
@@ -86,7 +86,7 @@ jobs:
     with:
       postgresql: 18
       os: macos-latest
-      python-versions: '["3.12", "3.13", "3.14", "3.15"]'
+      python-versions: '["3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   macos_postgres_17:
@@ -97,7 +97,7 @@ jobs:
     with:
       postgresql: 17
       os: macos-latest
-      python-versions: '["3.12", "3.13", "3.14", "3.15"]'
+      python-versions: '["3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   macos_postgres_16:
@@ -108,7 +108,7 @@ jobs:
     with:
       postgresql: 16
       os: macos-latest
-      python-versions: '["3.13", "3.14", "3.15"]'
+      python-versions: '["3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   windows_postgres_17:
@@ -118,7 +118,7 @@ jobs:
     uses: $/.github/workflows/single-postgres-windows.yml
     with:
       postgresql: 17
-      python-versions: '["3.12", "3.13", "3.14", "3.15"]'
+      python-versions: '["3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_18:
@@ -137,7 +137,7 @@ jobs:
     uses: $/.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 17
-      python-versions: '["3.11", "3.12", "3.13", "3.14", "3.15"]'
+      python-versions: '["3.12", "3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_16:
@@ -147,7 +147,7 @@ jobs:
     uses: $/.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 16
-      python-versions: '["3.12", "3.13", "3.14", "3.15"]'
+      python-versions: '["3.13", "3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_15:
@@ -157,7 +157,7 @@ jobs:
     uses: $/.github/workflows/dockerised-postgres.yml
     with:
       postgresql: 15
-      python-versions: '["3.13", "3.14", "3.15"]'
+      python-versions: '["3.14", "3.15"]'
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
   docker_postgresql_14:

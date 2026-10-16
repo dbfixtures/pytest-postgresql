@@ -1,6 +1,6 @@
 """pytest-postgresql's exceptions."""
 
-from typing import Iterable
+from collections.abc import Iterable
 
 
 class ExecutableMissingException(FileNotFoundError):
