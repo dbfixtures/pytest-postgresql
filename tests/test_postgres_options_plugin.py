@@ -1,7 +1,7 @@
 """Test behavior of postgres_options passed in different ways."""
 
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import pytest
 

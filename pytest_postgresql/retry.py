@@ -2,8 +2,9 @@
 
 import asyncio
 import datetime
+from collections.abc import Awaitable, Callable
 from time import sleep
-from typing import Awaitable, Callable, Type, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -11,7 +12,7 @@ T = TypeVar("T")
 def retry(
     func: Callable[[], T],
     timeout: int = 60,
-    possible_exception: Type[Exception] = Exception,
+    possible_exception: type[Exception] = Exception,
 ) -> T:
     """Attempt to retry the function for timeout time.
 
@@ -40,7 +41,7 @@ def retry(
 async def retry_async(
     func: Callable[[], Awaitable[T]],
     timeout: int = 60,
-    possible_exception: Type[Exception] = Exception,
+    possible_exception: type[Exception] = Exception,
 ) -> T:
     """Attempt to retry the async function for timeout time.
 
@@ -68,4 +69,4 @@ async def retry_async(
 
 def get_current_datetime() -> datetime.datetime:
     """Get the current timezone-aware UTC datetime."""
-    return datetime.datetime.now(datetime.timezone.utc)
+    return datetime.datetime.now(datetime.UTC)

@@ -2,10 +2,11 @@
 
 import importlib
 import re
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable
+from typing import Any
 
 import psycopg
 
@@ -19,7 +20,7 @@ except ImportError:
 def sql(sql_filename: Path, **kwargs: Any) -> None:
     """Database loader for sql files."""
     with psycopg.connect(**kwargs) as db_connection:
-        with open(sql_filename, "r") as _fd:
+        with open(sql_filename) as _fd:
             with db_connection.cursor() as cur:
                 cur.execute(_fd.read())
         db_connection.commit()

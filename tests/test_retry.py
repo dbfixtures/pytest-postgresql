@@ -39,7 +39,7 @@ def test_retry_succeeds_after_failures() -> None:
 def test_retry_timeout() -> None:
     """Test that retry raises TimeoutError after the timeout elapses."""
     always_fail_mock = MagicMock(side_effect=ValueError("boom"))
-    base = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    base = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
     call_count = 0
 
     def advancing_clock() -> datetime.datetime:
@@ -104,7 +104,7 @@ async def test_retry_async_timeout() -> None:
     """Test that retry_async raises TimeoutError after the timeout elapses."""
     always_fail_mock = AsyncMock(side_effect=ValueError("boom"))
     sleep_mock = AsyncMock()
-    base = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    base = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
     call_count = 0
 
     def advancing_clock() -> datetime.datetime:
