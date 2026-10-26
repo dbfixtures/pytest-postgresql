@@ -50,7 +50,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up uv with python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/uv-setup@f291c85379e7f30693e73f06b88f4b122eaf0812 # v5.10.2
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@fda7c6236777ced9c8947ab7243959ee6aa185e9 # v5.10.3
         with:
           python-version: ${{ matrix.python-version }}
       # ankane/setup-postgres publishes no tags/releases; v1 is a branch. Pinning
@@ -68,19 +68,19 @@ jobs:
       - name: install libpq
         if: ${{ contains(matrix.python-version, 'pypy') }}
         run: sudo apt install libpq5
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@f291c85379e7f30693e73f06b88f4b122eaf0812 # v5.10.2
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@fda7c6236777ced9c8947ab7243959ee6aa185e9 # v5.10.3
         with:
           pytest-opts: -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.serial
           output-file: coverage-serial.xml
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@f291c85379e7f30693e73f06b88f4b122eaf0812 # v5.10.2
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@fda7c6236777ced9c8947ab7243959ee6aa185e9 # v5.10.3
         with:
           pytest-opts: -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           coverage-config: .coveragerc
           data-file: .coverage.xdist
           output-file: coverage-xdist.xml
       - name: Run test noproc fixture on docker
-        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@f291c85379e7f30693e73f06b88f4b122eaf0812 # v5.10.2
+        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@fda7c6236777ced9c8947ab7243959ee6aa185e9 # v5.10.3
         with:
           pytest-opts: -n 0 --max-worker-restart 0 -k docker --postgresql-host=localhost --postgresql-port 5433 --postgresql-password=postgres --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.docker
@@ -89,7 +89,7 @@ jobs:
       - name: Remove async extra
         run: uv pip uninstall pytest-asyncio aiofiles
       - name: Run tests without async extra
-        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@f291c85379e7f30693e73f06b88f4b122eaf0812 # v5.10.2
+        uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@fda7c6236777ced9c8947ab7243959ee6aa185e9 # v5.10.3
         with:
           pytest-opts: -svv -p no:xdist -m "not asyncio" --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.noasync
