@@ -10,7 +10,7 @@ jobs:
   automerge:
     permissions: {}
     cache-mode: none
-    uses: fizyk/actions-reuse/.github/workflows/shared-automerge.yml@f291c85379e7f30693e73f06b88f4b122eaf0812 # v5.10.2
+    uses: fizyk/actions-reuse/.github/workflows/shared-automerge.yml@fda7c6236777ced9c8947ab7243959ee6aa185e9 # v5.10.3
     secrets:
       client_id: ${{ secrets.MERGE_APP_CLIENT_ID }}
       private_key: ${{ secrets.MERGE_APP_PRIVATE_KEY }}

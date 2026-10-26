@@ -9,4 +9,4 @@ jobs:
     # Grant the action permission to write to the repository
     permissions:
       contents: write
-    uses: fizyk/actions-reuse/.github/workflows/shared-diagram.yml@f291c85379e7f30693e73f06b88f4b122eaf0812 # v5.10.2
+    uses: fizyk/actions-reuse/.github/workflows/shared-diagram.yml@fda7c6236777ced9c8947ab7243959ee6aa185e9 # v5.10.3
