@@ -49,7 +49,7 @@ pytest_postgresql = "pytest_postgresql.plugin"
 [dependency-groups]
 dev = [
     "aiofiles==25.1.0",
-    "coverage==7.16.2",
+    "coverage==7.17.0",
     "mirakuru==3.0.4",
     "mock==5.2.0",
     "mypy==2.4.0; implementation_name=='cpython'",
