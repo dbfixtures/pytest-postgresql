@@ -43,18 +43,18 @@ repos:
       - id: pyproject-fmt
 
   - repo: https://github.com/rstcheck/rstcheck
-    rev: 27a8027d6c6df787891a01b76e8298bac493fb58  # frozen: v6.3.0
+    rev: d8774e96810795967ed9603f445b4e751e7b313f  # frozen: v6.3.0
     hooks:
       - id: rstcheck
         additional_dependencies: [sphinx, toml]
 
   - repo: https://github.com/fizyk/pyproject-validator
-    rev: 4ec6447bfaa56ea3503cd9fa9ba6e54577121aaa  # frozen: v1.1.0
+    rev: dba43a3da860553a5d41824ef949c244658cd6d1  # frozen: v1.1.0
     hooks:
     -   id: check-python-version-consistency
 
   - repo: https://github.com/kjanat/actionlint
-    rev: 2da2ceb4af2c7ecc48f5b9311d85080c3971b5f0  # frozen: v1.17.0
+    rev: 08bb2c4f0d039744455b87aef1c647fb8b66d37b  # frozen: v1.17.0
     hooks:
       - id: actionlint
 
