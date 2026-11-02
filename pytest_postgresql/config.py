@@ -7,6 +7,18 @@ from typing import Any
 import pytest
 from _pytest._py.path import LocalPath
 
+CREATE_STRATEGIES = ("wal_log", "file_copy", "clone")
+
+
+def validate_create_strategy(create_strategy: str | None) -> str | None:
+    """Validate the optional database cloning strategy."""
+    if create_strategy is not None and create_strategy not in CREATE_STRATEGIES:
+        raise ValueError(
+            f"Invalid PostgreSQL create_strategy {create_strategy!r}; "
+            f"expected one of {', '.join(CREATE_STRATEGIES)} or None"
+        )
+    return create_strategy
+
 
 @dataclass(frozen=True)
 class PostgreSQLConfig:
@@ -26,6 +38,7 @@ class PostgreSQLConfig:
     load: list[Path | str]
     load_autocommit: bool
     postgres_options: str
+    create_strategy: str | None
     drop_test_database: bool
 
 
@@ -37,6 +50,10 @@ def get_config(request: pytest.FixtureRequest) -> PostgreSQLConfig:
         return request.config.getoption(name) or request.config.getini(name)
 
     load_paths: list[Path | str] = detect_paths(get_postgresql_option("load"))
+    try:
+        create_strategy = validate_create_strategy(get_postgresql_option("create_strategy"))
+    except ValueError as exc:
+        raise pytest.UsageError(str(exc)) from exc
 
     cfg = PostgreSQLConfig(
         exec=get_postgresql_option("exec"),
@@ -54,6 +71,7 @@ def get_config(request: pytest.FixtureRequest) -> PostgreSQLConfig:
         load=load_paths,
         load_autocommit=bool(get_postgresql_option("load_autocommit")),
         postgres_options=get_postgresql_option("postgres_options"),
+        create_strategy=create_strategy,
         drop_test_database=request.config.getoption("postgresql_drop_test_database"),
     )
     return cfg

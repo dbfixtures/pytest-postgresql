@@ -33,6 +33,7 @@ def make_config(exec_path: str) -> PostgreSQLConfig:
         load=[],
         load_autocommit=False,
         postgres_options="",
+        create_strategy=None,
         drop_test_database=False,
     )
 

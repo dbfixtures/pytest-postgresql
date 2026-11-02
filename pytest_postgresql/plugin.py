@@ -30,6 +30,7 @@ from packaging.version import Version
 
 from pytest_postgresql import factories
 from pytest_postgresql._asyncio_compat import supports_loop_factories
+from pytest_postgresql.config import CREATE_STRATEGIES
 
 try:
     import pytest_asyncio
@@ -50,6 +51,7 @@ _help_dbname = "Default database name"
 _help_maintenance_dbname = "Database used to create/drop test databases and read server version. Noproc fixture only"
 _help_load = "Dotted-style or entrypoint-style path to callable or path to SQL File"
 _help_postgres_options = "Postgres executable extra parameters. Passed via the -o option to pg_ctl"
+_help_create_strategy = "Database cloning strategy: wal_log, file_copy, or clone (default: PostgreSQL's default)"
 _help_drop_test_database = (
     "Drop test database in noproc and client fixture, for the cases, "
     "when database was not cleared due to errors in previous test runs. "
@@ -176,6 +178,7 @@ def pytest_addoption(parser: Parser) -> None:
 
     parser.addini(name="postgresql_load", type="pathlist", help=_help_load)
     parser.addini(name="postgresql_postgres_options", help=_help_postgres_options, default="")
+    parser.addini(name="postgresql_create_strategy", help=_help_create_strategy, default=None)
     parser.addini(name="postgresql_load_autocommit", type="bool", default=False, help=_help_load_autocommit)
 
     parser.addoption(
@@ -237,6 +240,14 @@ def pytest_addoption(parser: Parser) -> None:
         action="store",
         dest="postgresql_postgres_options",
         help=_help_postgres_options,
+    )
+
+    parser.addoption(
+        "--postgresql-create-strategy",
+        action="store",
+        choices=CREATE_STRATEGIES,
+        dest="postgresql_create_strategy",
+        help=_help_create_strategy,
     )
 
     parser.addoption(

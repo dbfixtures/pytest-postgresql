@@ -94,6 +94,7 @@ def postgresql(
             maintenance_dbname=proc_fixture.maintenance_dbname,
             password=pg_password,
             isolation_level=isolation_level,
+            create_strategy=proc_fixture.create_strategy,
         )
         if config.drop_test_database:
             janitor.drop()
@@ -159,6 +160,7 @@ def postgresql_async(
             maintenance_dbname=proc_fixture.maintenance_dbname,
             password=pg_password,
             isolation_level=isolation_level,
+            create_strategy=proc_fixture.create_strategy,
         )
         if config.drop_test_database:
             await janitor.drop()

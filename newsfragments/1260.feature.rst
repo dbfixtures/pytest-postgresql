@@ -1,0 +1,4 @@
+Add ``create_strategy`` to the process and noproc factories, with matching CLI
+and ini options, to select PostgreSQL's default, ``wal_log``, ``file_copy``, or
+the operating-system ``clone`` method when client fixtures copy the template
+database. The default remains unchanged; cloning does not guarantee reflinks.

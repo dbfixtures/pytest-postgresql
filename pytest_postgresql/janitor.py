@@ -14,6 +14,7 @@ import psycopg.sql as sql
 from packaging.version import Version, parse
 from psycopg import AsyncCursor, Connection, Cursor
 
+from pytest_postgresql.config import validate_create_strategy
 from pytest_postgresql.loader import build_loader, sql_async
 from pytest_postgresql.retry import retry, retry_async
 
@@ -36,6 +37,7 @@ class BaseDatabaseJanitor:
     isolation_level: "psycopg.IsolationLevel | None"
     autocommit: bool
     version: Version | None
+    create_strategy: str | None
 
     def __init__(
         self,
@@ -52,6 +54,7 @@ class BaseDatabaseJanitor:
         isolation_level: "psycopg.IsolationLevel | None" = None,
         autocommit: bool = False,
         connection_timeout: int = 60,
+        create_strategy: str | None = None,
     ) -> None:
         """Initialize janitor.
 
@@ -75,6 +78,9 @@ class BaseDatabaseJanitor:
             affects the loader connection, not the janitor's admin cursor.
         :param connection_timeout: how long to retry connection before
             raising a TimeoutError
+        :param create_strategy: strategy for cloning a test database from its
+            template: ``wal_log``, ``file_copy``, or ``clone``. None leaves the
+            choice to PostgreSQL. Does not affect template creation.
         """
         self.user = user
         self.password = password
@@ -87,6 +93,7 @@ class BaseDatabaseJanitor:
         self._connection_timeout = connection_timeout
         self.isolation_level = isolation_level
         self.autocommit = autocommit
+        self.create_strategy = validate_create_strategy(create_strategy)
         if version is not None:
             warnings.warn(
                 "version argument is deprecated and will be removed in a future release",
@@ -109,7 +116,19 @@ class BaseDatabaseJanitor:
             query = query + sql.SQL(" TEMPLATE {}").format(sql.Identifier(self.template_dbname))
         if self.is_template():
             query = query + sql.SQL(" IS_TEMPLATE = true")
+        elif self.template_dbname and self.create_strategy is not None:
+            strategy = "WAL_LOG" if self.create_strategy == "wal_log" else "FILE_COPY"
+            query = query + sql.SQL(" STRATEGY {}").format(sql.SQL(strategy))
         return query
+
+    def _build_file_copy_method_sql(self) -> sql.SQL | None:
+        """Build a session setting for the explicit file-copy methods."""
+        if self.template_dbname and not self.is_template():
+            if self.create_strategy == "file_copy":
+                return sql.SQL("SET file_copy_method = copy")
+            if self.create_strategy == "clone":
+                return sql.SQL("SET file_copy_method = clone")
+        return None
 
 
 class DatabaseJanitor(BaseDatabaseJanitor):
@@ -123,6 +142,9 @@ class DatabaseJanitor(BaseDatabaseJanitor):
                 # Otherwise, Creating database from template will fail
                 self._terminate_connection(cur, self.template_dbname)
             query = self._build_create_database_sql()
+            file_copy_method_sql = self._build_file_copy_method_sql()
+            if file_copy_method_sql is not None:
+                cur.execute(file_copy_method_sql)
             cur.execute(query)
 
     @staticmethod
@@ -231,6 +253,9 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
                 # Otherwise, Creating database from template will fail
                 await self._terminate_connection(cur, self.template_dbname)
             query = self._build_create_database_sql()
+            file_copy_method_sql = self._build_file_copy_method_sql()
+            if file_copy_method_sql is not None:
+                await cur.execute(file_copy_method_sql)
             await cur.execute(query)
 
     @staticmethod
