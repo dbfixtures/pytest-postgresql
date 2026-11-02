@@ -25,7 +25,7 @@ def test_loader_deeply_nested_import_path() -> None:
     """All path segments before the final delimiter are joined as the import path."""
     sentinel = object()
     fake_module = ModuleType("fake_module")
-    fake_module.my_loader = sentinel  # type: ignore[attr-defined]
+    fake_module.my_loader = sentinel  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
     with patch("pytest_postgresql.loader.importlib.import_module", return_value=fake_module) as import_mock:
         result = build_loader("a.b.c.d:my_loader")
     import_mock.assert_called_once_with("a.b.c.d")

@@ -423,7 +423,8 @@ class PostgreSQLExecutor(TCPExecutor):
                 e,
             )
 
-    def stop(self, sig: int | None = None, exp_sig: int | None = None) -> Self:
+    # mirakuru names these stop_signal and expected_returncode; callers pass them positionally
+    def stop(self, sig: int | None = None, exp_sig: int | None = None) -> Self:  # ty: ignore[invalid-method-override]
         """Issue a stop request to executable."""
         try:
             subprocess.check_output(

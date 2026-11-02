@@ -22,7 +22,8 @@ def sql(sql_filename: Path, **kwargs: Any) -> None:
     with psycopg.connect(**kwargs) as db_connection:
         with open(sql_filename) as _fd:
             with db_connection.cursor() as cur:
-                cur.execute(_fd.read())
+                # psycopg types the query as LiteralString; SQL read from a file is a plain str
+                cur.execute(_fd.read())  # ty: ignore[no-matching-overload]
         db_connection.commit()
 
 

@@ -30,7 +30,7 @@ def test_postgresql_async_raises_on_use_without_pytest_asyncio() -> None:
         raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
         assert not hasattr(raw_func, "__await__"), "stub must be a sync function, not a coroutine"
         with pytest.raises(ImportError, match=r"pytest-asyncio >= 1\.4"):
-            raw_func(None)  # type: ignore[arg-type]
+            raw_func(None)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
 
 def test_postgresql_async_raises_on_use_with_old_pytest_asyncio() -> None:
@@ -42,4 +42,4 @@ def test_postgresql_async_raises_on_use_with_old_pytest_asyncio() -> None:
             raw_func = getattr(fixture_func, "__wrapped__", fixture_func)
             assert not hasattr(raw_func, "__await__"), "stub must be a sync function, not a coroutine"
             with pytest.raises(ImportError, match=r"pytest-asyncio >= 1\.4"):
-                raw_func(None)  # type: ignore[arg-type]
+                raw_func(None)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
