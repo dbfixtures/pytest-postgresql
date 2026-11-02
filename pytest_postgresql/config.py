@@ -38,8 +38,8 @@ class PostgreSQLConfig:
     load: list[Path | str]
     load_autocommit: bool
     postgres_options: str
-    create_strategy: str | None
     drop_test_database: bool
+    create_strategy: str | None = None
 
 
 def get_config(request: pytest.FixtureRequest) -> PostgreSQLConfig:
