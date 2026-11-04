@@ -3,6 +3,29 @@ CHANGELOG
 
 .. towncrier release notes start
 
+pytest-postgresql 10.0.0 (2026-11-04)
+=====================================
+
+Breaking changes
+----------------
+
+- Require pytest>=8.4, the lowest version compatible with the ``async`` extra (pytest-asyncio>=1.4).
+
+
+Features
+--------
+
+- Add support for Python 3.15, drop support for Python 3.10 (`#1440 <https://github.com/dbfixtures/pytest-postgresql/issues/1440>`__)
+
+
+Miscellaneous
+-------------
+
+- Freeze all pre-commit hook revisions to commit SHAs. (`#1441 <https://github.com/dbfixtures/pytest-postgresql/issues/1441>`__)
+- Enable UP and PYI ruff rulesets (`#1444 <https://github.com/dbfixtures/pytest-postgresql/issues/1444>`__)
+- Run docker and async-extra-less tests as steps of the regular test jobs, split test workflows per OS (`#1476 <https://github.com/dbfixtures/pytest-postgresql/issues/1476>`__)
+
+
 pytest-postgresql 9.1.1 (2026-10-04)
 ====================================
 
