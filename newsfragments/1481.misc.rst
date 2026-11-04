@@ -1,0 +1,1 @@
+Set dependabot's versioning-strategy explicitly to increase-if-necessary.

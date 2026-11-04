@@ -3,6 +3,7 @@ updates:
 - package-ecosystem: uv
   directories:
     - "/"
+  versioning-strategy: increase-if-necessary
   exclude-paths:
     - "oldest/*"
   schedule:
