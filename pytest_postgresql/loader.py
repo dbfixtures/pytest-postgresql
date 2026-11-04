@@ -6,7 +6,7 @@ from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, LiteralString, cast
 
 import psycopg
 
@@ -23,7 +23,7 @@ def sql(sql_filename: Path, **kwargs: Any) -> None:
         with open(sql_filename) as _fd:
             with db_connection.cursor() as cur:
                 # psycopg types the query as LiteralString; SQL read from a file is a plain str
-                cur.execute(_fd.read())  # ty: ignore[no-matching-overload]
+                cur.execute(cast(LiteralString, _fd.read()))
         db_connection.commit()
 
 
