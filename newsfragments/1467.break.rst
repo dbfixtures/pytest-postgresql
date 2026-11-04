@@ -1,0 +1,1 @@
+``PostgreSQLExecutor.stop()`` arguments are renamed from ``sig`` and ``exp_sig`` to ``stop_signal`` and ``expected_returncode``, matching mirakuru. Callers passing them by keyword need the new names.

@@ -423,7 +423,7 @@ class PostgreSQLExecutor(TCPExecutor):
                 e,
             )
 
-    def stop(self, sig: int | None = None, exp_sig: int | None = None) -> Self:
+    def stop(self, stop_signal: int | None = None, expected_returncode: int | None = None) -> Self:
         """Issue a stop request to executable."""
         try:
             subprocess.check_output(
@@ -434,19 +434,19 @@ class PostgreSQLExecutor(TCPExecutor):
             raise TimeoutExpired(self, self._timeout) from exc
         try:
             if platform.system() == "Windows":
-                self._windows_terminate_process(sig)
+                self._windows_terminate_process(stop_signal)
                 # Clean up mirakuru's internal process reference so that
                 # the stopped() context manager can call start() again
                 self._process = None
             else:
-                super().stop(sig, exp_sig)
+                super().stop(stop_signal, expected_returncode)
         except ProcessFinishedWithError:
             # Finished, leftovers ought to be cleaned afterwards anyway
             pass
         except AttributeError:
             # Fallback for edge cases where os.killpg doesn't exist (e.g., Windows)
             if not hasattr(os, "killpg"):
-                self._windows_terminate_process(sig)
+                self._windows_terminate_process(stop_signal)
                 self._process = None
             else:
                 raise

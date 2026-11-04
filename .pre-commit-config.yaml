@@ -1,6 +1,6 @@
 ---
 ci:
-  skip: [uv-sync, mypy]
+  skip: [uv-sync, mypy, ty]
 
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
@@ -57,6 +57,11 @@ repos:
     rev: 08bb2c4f0d039744455b87aef1c647fb8b66d37b  # frozen: v1.17.0
     hooks:
       - id: actionlint
+
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: 18b2b8bb1b9b90d2d21283756e89b07fc9c747bf  # frozen: v0.0.95
+    hooks:
+      - id: ty
 
   - repo: local
     hooks:

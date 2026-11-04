@@ -191,7 +191,7 @@ def test_janitor_populate(connect_mock: MagicMock, load_database: str) -> None:
         "password": TEST_PASSWORD,
         "autocommit": False,
     }
-    janitor = DatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
+    janitor = DatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     janitor.load(load_database)
     assert connect_mock.called
     assert connect_mock.call_args.kwargs == call_kwargs
@@ -214,7 +214,7 @@ async def test_janitor_populate_async(connect_mock: MagicMock, load_database: st
         "password": TEST_PASSWORD,
         "autocommit": False,
     }
-    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
+    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     await janitor.load(load_database)
     assert connect_mock.called
     assert connect_mock.call_args.kwargs == call_kwargs
@@ -267,7 +267,7 @@ async def test_janitor_populate_async_awaitable_loader() -> None:
     async def async_loader(**kwargs: object) -> None:
         await loader_mock(**kwargs)
 
-    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
+    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     await janitor.load(async_loader)
     loader_mock.assert_awaited_once_with(**call_kwargs)
 
@@ -288,7 +288,7 @@ async def test_janitor_populate_async_sync_loader_returns_awaitable() -> None:
     def sync_loader(**kwargs: object) -> object:
         return loader_mock(**kwargs)
 
-    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]
+    janitor = AsyncDatabaseJanitor(**call_kwargs)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     await janitor.load(sync_loader)
     loader_mock.assert_awaited_once_with(**call_kwargs)
 

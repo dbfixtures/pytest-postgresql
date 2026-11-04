@@ -3,7 +3,7 @@
 import asyncio
 import inspect
 import warnings
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from types import TracebackType
@@ -177,7 +177,7 @@ class DatabaseJanitor(BaseDatabaseJanitor):
         )
 
     @contextmanager
-    def cursor(self, dbname: str | None = None) -> Iterator[Cursor]:
+    def cursor(self, dbname: str | None = None) -> Generator[Cursor, None, None]:
         """Return postgresql cursor.
 
         :param dbname: database to connect to. Defaults to the janitor's
@@ -296,7 +296,7 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
                 await result
 
     @asynccontextmanager
-    async def cursor(self, dbname: str | None = None) -> AsyncIterator[AsyncCursor]:
+    async def cursor(self, dbname: str | None = None) -> AsyncGenerator[AsyncCursor, None]:
         """Return postgresql async cursor.
 
         :param dbname: database to connect to. Defaults to the janitor's

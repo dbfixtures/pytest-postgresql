@@ -117,7 +117,8 @@ def pytest_configure(config: pytest.Config) -> None:
     policy_cls = _windows_selector_event_loop_policy_cls()
     if policy_cls is None:
         return
-    asyncio.set_event_loop_policy(policy_cls())
+    # the legacy path for pytest-asyncio versions without the loop-factory hook
+    asyncio.set_event_loop_policy(policy_cls())  # ty: ignore[deprecated]
 
 
 if _is_windows():

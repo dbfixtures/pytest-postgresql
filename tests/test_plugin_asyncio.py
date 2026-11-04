@@ -4,6 +4,7 @@ import asyncio
 import os
 import shutil
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -163,7 +164,7 @@ def test_pytest_asyncio_loop_factories_uses_selector_by_default_on_windows() -> 
 def test_pytest_asyncio_loop_factories_preserves_prior_user_factories() -> None:
     """Unrelated asyncio tests keep loop factories from earlier hook implementations."""
     item = _make_item_with_fixtures("event_loop")
-    prior = {"custom": _windows_selector_event_loop}
+    prior: dict[str, Callable[[], asyncio.AbstractEventLoop]] = {"custom": _windows_selector_event_loop}
     factories = _resolve_windows_loop_factories(item, prior)
     assert factories is prior
 

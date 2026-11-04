@@ -1,0 +1,1 @@
+Run the ty type checker alongside mypy in pre-commit

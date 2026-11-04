@@ -3,7 +3,7 @@
 import logging
 import platform
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -474,7 +474,7 @@ def _isolated_port_basetemp(
     tmp_path_factory: pytest.TempPathFactory,
     request: pytest.FixtureRequest,
     tmp_path: Path,
-) -> Iterator[Path]:
+) -> Generator[Path, None, None]:
     """Patch session basetemp to a per-test directory for port-lock sentinel files."""
     isolated = tmp_path / "basetemp"
     isolated.mkdir()
