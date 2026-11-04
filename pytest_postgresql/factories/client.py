@@ -27,7 +27,14 @@ from psycopg import AsyncConnection, Connection
 from pytest_postgresql._asyncio_compat import mark_postgresql_async_fixture, supports_loop_factories
 from pytest_postgresql.config import get_config
 from pytest_postgresql.executors import NoopExecutor, PostgreSQLExecutor
-from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseJanitor
+from pytest_postgresql.janitor import AsyncDatabaseJanitor, DatabaseCreationStrategy, DatabaseJanitor, FileCopyMethod
+
+_CREATE_STRATEGY_OPTIONS: dict[str | None, tuple[DatabaseCreationStrategy | None, FileCopyMethod | None]] = {
+    None: (None, None),
+    "wal_log": ("WAL_LOG", None),
+    "file_copy": ("FILE_COPY", "copy"),
+    "clone": ("FILE_COPY", "clone"),
+}
 
 try:
     import pytest_asyncio as _pytest_asyncio
@@ -85,6 +92,7 @@ def postgresql(
         pg_password = proc_fixture.password
         pg_options = proc_fixture.options
         pg_db = dbname or proc_fixture.dbname
+        strategy, copy_method = _CREATE_STRATEGY_OPTIONS[proc_fixture.create_strategy]
         janitor = DatabaseJanitor(
             user=pg_user,
             host=pg_host,
@@ -94,7 +102,8 @@ def postgresql(
             maintenance_dbname=proc_fixture.maintenance_dbname,
             password=pg_password,
             isolation_level=isolation_level,
-            create_strategy=proc_fixture.create_strategy,
+            strategy=strategy,
+            copy_method=copy_method,
         )
         if config.drop_test_database:
             janitor.drop()
@@ -151,6 +160,7 @@ def postgresql_async(
         pg_password = proc_fixture.password
         pg_options = proc_fixture.options
         pg_db = dbname or proc_fixture.dbname
+        strategy, copy_method = _CREATE_STRATEGY_OPTIONS[proc_fixture.create_strategy]
         janitor = AsyncDatabaseJanitor(
             user=pg_user,
             host=pg_host,
@@ -160,7 +170,8 @@ def postgresql_async(
             maintenance_dbname=proc_fixture.maintenance_dbname,
             password=pg_password,
             isolation_level=isolation_level,
-            create_strategy=proc_fixture.create_strategy,
+            strategy=strategy,
+            copy_method=copy_method,
         )
         if config.drop_test_database:
             await janitor.drop()
