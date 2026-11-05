@@ -272,95 +272,6 @@ For async tests against an external server, create a client fixture with
 
 By default, it connects to ``127.0.0.1:5432``.
 
-Choosing how test databases are cloned
---------------------------------------
-
-Use ``create_strategy`` on ``postgresql_proc`` or ``postgresql_noproc`` to choose
-how synchronous and asynchronous client fixtures clone the session's template
-database for each test. The setting only affects client database creation;
-initial and layered template databases keep PostgreSQL's default behavior.
-
-.. code-block:: python
-
-    postgresql_my_proc = factories.postgresql_proc(create_strategy="clone")
-    postgresql_my = factories.postgresql("postgresql_my_proc")
-
-For an existing server, including PostgreSQL in Docker, configure the noproc
-factory instead. No server configuration change is needed:
-
-.. code-block:: python
-
-    postgresql_external = factories.postgresql_noproc(create_strategy="clone")
-    postgresql_my = factories.postgresql("postgresql_external")
-    postgresql_my_async = factories.postgresql_async("postgresql_external")
-
-The same setting is available on the command line and in ``pytest.ini``:
-
-.. code-block:: sh
-
-    pytest --postgresql-create-strategy=clone
-
-.. code-block:: ini
-
-    [pytest]
-    postgresql_create_strategy = clone
-
-The available values are:
-
-* Unset (the default): no ``STRATEGY`` clause or session setting is sent, leaving
-  the choice to PostgreSQL.
-* ``wal_log``: ``CREATE DATABASE ... STRATEGY WAL_LOG``.
-* ``file_copy``: ``SET file_copy_method = copy``, followed by
-  ``CREATE DATABASE ... STRATEGY FILE_COPY`` on the same connection.
-* ``clone``: ``SET file_copy_method = clone``, followed by
-  ``CREATE DATABASE ... STRATEGY FILE_COPY`` on the same connection.
-
-The session setting applies immediately before database creation and does not
-require a server restart. Explicit strategies require PostgreSQL support:
-``WAL_LOG`` requires PostgreSQL 15 or newer, while ``file_copy`` and ``clone``
-require PostgreSQL 18 or newer for ``file_copy_method``. PostgreSQL reports unsupported
-settings or strategies directly; the plugin does not silently fall back to another
-mode. The ``clone`` method must also be supported by the server's operating system.
-
-Factory arguments take precedence over command line and ini options. With chained
-fixtures, configure the ``postgresql_noproc`` factory used by the client: its
-strategy comes from its own argument or the global configuration, rather than
-inheriting the strategy of the fixture named by ``depends_on``.
-
-Filesystem and performance considerations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-On PostgreSQL 15 and newer, the default ``WAL_LOG`` strategy ignores
-``file_copy_method``. Setting that parameter on the server alone therefore does
-not enable file-copy cloning; choose ``file_copy`` or ``clone`` explicitly.
-
-``clone`` can share file blocks when the PostgreSQL data directory's filesystem
-supports reflinks, such as suitable XFS, Btrfs, or APFS configurations. Without
-reflinks, the operating system may copy the data instead or reject the operation.
-A successful ``clone`` request does not prove that disk blocks were shared.
-Even with reflink support, template size and concurrent work can make another
-strategy faster. This is why the option is opt-in and the default is unchanged.
-
-Check the filesystem backing the server's actual data directory, which can be
-found with ``SHOW data_directory``. In Docker, a volume, bind mount, and tmpfs can
-have different behavior. Docker on macOS runs PostgreSQL in a Linux VM; a bind
-mount of an APFS directory through file sharing is not equivalent to running
-PostgreSQL directly on APFS. tmpfs is memory-backed and does not provide disk
-reflinks; a fast ``clone`` result there is not evidence of reflink support.
-
-``FILE_COPY`` forces checkpoints before and after database creation, which can
-cause contention between concurrent pytest-xdist workers. Compare the complete
-test suite at its usual worker count, including database creation and cleanup,
-and repeat each strategy on the same storage with the same template and server
-settings. Keep failed or timed-out runs separate from successful timings.
-Faster isolated database creation does not guarantee a faster test suite, and
-results from one filesystem or worker count need not transfer to another.
-
-For details, see PostgreSQL's `CREATE DATABASE strategy documentation
-<https://www.postgresql.org/docs/18/sql-createdatabase.html>`_ and
-`file_copy_method documentation
-<https://www.postgresql.org/docs/18/runtime-config-resource.html#GUC-FILE-COPY-METHOD>`_.
-
 Using a maintenance database other than ``postgres``
 ----------------------------------------------------
 
@@ -594,6 +505,61 @@ This example shows how to create an SQLAlchemy session fixture:
 
         SessionLocal.close()
         Base.metadata.drop_all(engine)
+
+Advanced Usage: Test database cloning
+-------------------------------------
+
+Use ``create_strategy`` on ``postgresql_proc`` or ``postgresql_noproc`` to choose
+how synchronous and asynchronous client fixtures clone the template database
+for each test. Initial and layered template creation keep the server default.
+
+.. code-block:: python
+
+    postgresql_my_proc = factories.postgresql_proc(create_strategy="clone")
+    postgresql_my = factories.postgresql("postgresql_my_proc")
+
+For an existing server, including PostgreSQL in Docker, configure the noproc
+factory instead:
+
+.. code-block:: python
+
+    postgresql_external = factories.postgresql_noproc(create_strategy="clone")
+    postgresql_my = factories.postgresql("postgresql_external")
+    postgresql_my_async = factories.postgresql_async("postgresql_external")
+
+The same setting is available on the command line and in ``pytest.ini``:
+
+.. code-block:: sh
+
+    pytest --postgresql-create-strategy=clone
+
+.. code-block:: ini
+
+    [pytest]
+    postgresql_create_strategy = clone
+
+The available values are:
+
+* Unset (the default): no ``STRATEGY`` clause or session setting is sent.
+* ``wal_log``: ``CREATE DATABASE ... STRATEGY WAL_LOG`` (PostgreSQL 15+).
+* ``file_copy``: ``SET file_copy_method = copy``, then
+  ``CREATE DATABASE ... STRATEGY FILE_COPY`` (PostgreSQL 18+).
+* ``clone``: ``SET file_copy_method = clone``, then
+  ``CREATE DATABASE ... STRATEGY FILE_COPY`` (PostgreSQL 18+).
+
+The session setting and database creation use the same connection; no server
+restart is needed. PostgreSQL reports unsupported settings or strategies directly.
+Factory arguments take precedence over command line and ini options. Chained
+fixtures use the client-facing noproc factory's argument or global configuration,
+not the strategy of its ``depends_on`` fixture.
+
+``clone`` needs operating-system support, and sharing disk blocks depends on the
+server's filesystem supporting reflinks. It is not guaranteed to improve
+performance; compare the full test suite at its usual worker count. For strategy,
+checkpoint and filesystem details, see PostgreSQL's `CREATE DATABASE documentation
+<https://www.postgresql.org/docs/18/sql-createdatabase.html>`_ and
+`file_copy_method documentation
+<https://www.postgresql.org/docs/18/runtime-config-resource.html#GUC-FILE-COPY-METHOD>`_.
 
 Advanced Usage: DatabaseJanitor
 -------------------------------
