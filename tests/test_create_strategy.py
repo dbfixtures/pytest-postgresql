@@ -1,6 +1,7 @@
 """Database cloning strategy configuration and real-server contracts."""
 
 import importlib.util
+import json
 import re
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -31,11 +32,8 @@ def test_create_strategy_configuration(
     """The CLI overrides ini configuration, and the unset default is None."""
     if ini_strategy:
         pytester.makeini(f"[pytest]\npostgresql_create_strategy = {ini_strategy}\n")
-    pytester.makepyfile(
-        "from pytest_postgresql.config import get_config\n"
-        "def test_strategy(request):\n"
-        f"    assert get_config(request).create_strategy == {expected!r}\n"
-    )
+    pytester.copy_example("test_create_strategy_configuration.py")
+    pytester.makefile(".json", expected_strategy=json.dumps(expected))
     args = [f"--postgresql-create-strategy={cli_strategy}"] if cli_strategy else []
     pytester.runpytest(*args).assert_outcomes(passed=1)
 
@@ -43,9 +41,8 @@ def test_create_strategy_configuration(
 @pytest.mark.parametrize("source", ["cli", "ini"])
 def test_invalid_create_strategy_configuration(pytester: pytest.Pytester, source: str) -> None:
     """Invalid CLI and ini values produce a clear configuration error."""
-    pytester.makepyfile(
-        "from pytest_postgresql.config import get_config\ndef test_strategy(request):\n    get_config(request)\n"
-    )
+    pytester.copy_example("test_create_strategy_configuration.py")
+    pytester.makefile(".json", expected_strategy=json.dumps(None))
     if source == "cli":
         result = pytester.runpytest("--postgresql-create-strategy=invalid")
         assert result.ret == pytest.ExitCode.USAGE_ERROR
@@ -64,32 +61,27 @@ def test_invalid_factory_create_strategy(factory: Callable[..., object]) -> None
         factory(create_strategy="invalid")
 
 
-@pytest.mark.parametrize("factory_name", ["postgresql_proc", "postgresql_noproc"])
-@pytest.mark.parametrize("factory_strategy", [None, "clone"])
+precedence_proc_default = postgresql_proc()
+precedence_proc_clone = postgresql_proc(create_strategy="clone")
+precedence_noproc_default = postgresql_noproc(depends_on="precedence_proc_clone", dbname="precedence_default")
+precedence_noproc_clone = postgresql_noproc(
+    depends_on="precedence_proc_clone", dbname="precedence_clone", create_strategy="clone"
+)
+
+
+@pytest.mark.parametrize("factory_name", ["proc", "noproc"])
+@pytest.mark.parametrize("factory_strategy", ["default", "clone"])
 def test_factory_create_strategy_precedence(
-    postgresql_proc: PostgreSQLExecutor,
-    pytester: pytest.Pytester,
+    request: pytest.FixtureRequest,
+    monkeypatch: pytest.MonkeyPatch,
     factory_name: str,
-    factory_strategy: str | None,
+    factory_strategy: str,
 ) -> None:
-    """Both factories propagate the chosen setting to clients, with arguments taking precedence."""
-    pytester.makeini("[pytest]\npostgresql_create_strategy = file_copy\n")
-    kwargs: dict[str, object] = {"create_strategy": factory_strategy}
-    if factory_name == "postgresql_noproc":
-        kwargs.update(
-            host=postgresql_proc.host,
-            port=postgresql_proc.port,
-            user=postgresql_proc.user,
-            dbname="strategy_noproc",
-        )
-    expected = factory_strategy or "wal_log"
-    pytester.makeconftest(
-        f"from pytest_postgresql import factories\nconfigured_proc = factories.{factory_name}(**{kwargs!r})\n"
-    )
-    pytester.makepyfile(
-        f"def test_strategy(configured_proc):\n    assert configured_proc.create_strategy == {expected!r}\n"
-    )
-    pytester.runpytest("--postgresql-create-strategy=wal_log").assert_outcomes(passed=1)
+    """Factory arguments override global configuration, and unset arguments use it."""
+    monkeypatch.setattr(request.config.option, "postgresql_create_strategy", "wal_log")
+    configured_proc = request.getfixturevalue(f"precedence_{factory_name}_{factory_strategy}")
+    expected = "clone" if factory_strategy == "clone" else "wal_log"
+    assert configured_proc.create_strategy == expected
 
 
 strategy_server = postgresql_proc(
@@ -326,7 +318,7 @@ def test_client_factories_translate_creation_strategy(
     kwargs: dict[str, Any] = {"create_strategy": create_strategy}
     if factory_name == "postgresql_proc":
         kwargs["postgres_options"] = "-c log_statement=all -c log_line_prefix=PID:%p:"
-        logfile = "configured_proc.logfile"
+        logfile = None
         offset = 0
     else:
         kwargs.update(
@@ -336,48 +328,21 @@ def test_client_factories_translate_creation_strategy(
             password=strategy_server.password,
             dbname="factory_layer",
         )
-        logfile = repr(strategy_server.logfile)
+        logfile = strategy_server.logfile
         offset = len(Path(strategy_server.logfile).read_text(encoding="utf-8"))
-    pytester.makeconftest(
-        "from pytest_postgresql import factories\n"
-        "from tests.loader import load_database\n"
-        f"configured_proc = factories.{factory_name}(load=[load_database], **{kwargs!r})\n"
-        "client = factories.postgresql('configured_proc', dbname='factory\"sync')\n"
-        "async_client = factories.postgresql_async('configured_proc', dbname='factory\"async')\n"
+    pytester.copy_example("test_create_strategy_clients.py")
+    pytester.makefile(
+        ".json",
+        factory_case=json.dumps(
+            {
+                "factory_name": factory_name,
+                "factory_kwargs": kwargs,
+                "strategy": strategy,
+                "copy_method": copy_method,
+                "logfile": logfile,
+                "offset": offset,
+            }
+        ),
     )
-    suffix = "" if strategy is None else f" STRATEGY '{strategy}'"
     async_available = importlib.util.find_spec("pytest_asyncio") is not None
-    pytester.makepyfile(
-        f"""
-import pytest
-from tests.test_create_strategy import _assert_creation
-
-
-def check_creation(connection, configured_proc):
-    def quote(name):
-        return '"' + name.replace('"', '""') + '"'
-    expected = (
-        f'CREATE DATABASE {{quote(connection.info.dbname)}} '
-        f'TEMPLATE {{quote(configured_proc.template_dbname)}}'
-        {suffix!r}
-    )
-    _assert_creation({logfile}, connection.info.dbname, expected, {copy_method!r}, offset={offset})
-
-
-def test_sync(client, configured_proc):
-    with client.cursor() as cursor:
-        cursor.execute("SELECT count(*) FROM stories")
-        assert cursor.fetchone() == (4,)
-    check_creation(client, configured_proc)
-
-
-@pytest.mark.asyncio
-@pytest.mark.skipif(not {async_available!r}, reason="requires the optional pytest-asyncio extra")
-async def test_async(async_client, configured_proc):
-    async with async_client.cursor() as cursor:
-        await cursor.execute("SELECT count(*) FROM stories")
-        assert await cursor.fetchone() == (4,)
-    check_creation(async_client, configured_proc)
-"""
-    )
     pytester.runpytest().assert_outcomes(passed=2 if async_available else 1, skipped=0 if async_available else 1)
