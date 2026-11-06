@@ -107,6 +107,7 @@ class PostgreSQLExecutor(TCPExecutor):
         password: str | None = None,
         options: str = "",
         postgres_options: str = "",
+        create_strategy: str | None = None,
     ):
         """Initialize PostgreSQLExecutor executor.
 
@@ -127,6 +128,7 @@ class PostgreSQLExecutor(TCPExecutor):
         :param dbname: database name (might not yet exist)
         :param options:
         :param postgres_options: extra arguments to `postgres start`
+        :param create_strategy: strategy used by client fixtures to clone databases
         """
         self._directory_initialised = False
         self.executable = executable
@@ -139,6 +141,7 @@ class PostgreSQLExecutor(TCPExecutor):
         self.logfile = logfile
         self.startparams = startparams
         self.postgres_options = postgres_options
+        self.create_strategy = create_strategy
         if platform.system() == "Windows":
             command = self.WINDOWS_PROC_START_COMMAND.format(
                 executable=self.executable,

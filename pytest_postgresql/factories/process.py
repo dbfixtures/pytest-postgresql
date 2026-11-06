@@ -29,7 +29,7 @@ import port_for
 import pytest
 from port_for import PortForException, get_port
 
-from pytest_postgresql.config import PostgreSQLConfig, get_config
+from pytest_postgresql.config import PostgreSQLConfig, get_config, validate_create_strategy
 from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.factories._pg import _pg_exe
 from pytest_postgresql.janitor import DatabaseJanitor
@@ -80,6 +80,7 @@ def postgresql_proc(
     postgres_options: str | None = None,
     load: list[Callable | str | Path] | None = None,
     load_autocommit: bool | None = None,
+    create_strategy: str | None = None,
 ) -> Callable[[pytest.FixtureRequest, pytest.TempPathFactory], Iterator[PostgreSQLExecutor]]:
     """Postgresql process factory.
 
@@ -103,8 +104,11 @@ def postgresql_proc(
     :param load_autocommit: run the SQL loader connection with autocommit on.
         Required for statements that cannot run inside a transaction block,
         e.g. ``CREATE DATABASE`` in a loaded ``.sql`` file.
+    :param create_strategy: strategy used by client fixtures to clone the template:
+        ``wal_log``, ``file_copy``, or ``clone``. Defaults to configuration.
     :returns: function which makes a postgresql process
     """
+    validate_create_strategy(create_strategy)
 
     @pytest.fixture(scope="session")
     def postgresql_proc_fixture(
@@ -201,6 +205,7 @@ def postgresql_proc(
                 logfile=str(logfile_path.resolve()),
                 startparams=startparams or config.startparams,
                 postgres_options=postgres_options or config.postgres_options,
+                create_strategy=create_strategy if create_strategy is not None else config.create_strategy,
             )
             postgresql_executor.start()
             postgresql_executor.wait_for_postgres()

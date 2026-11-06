@@ -40,6 +40,7 @@ class NoopExecutor:
         dbname: str,
         password: str | None = None,
         maintenance_dbname: str = "postgres",
+        create_strategy: str | None = None,
     ):
         """Initialize nooperator executor mock.
 
@@ -52,6 +53,7 @@ class NoopExecutor:
         :param maintenance_dbname: database to connect to for server-level work,
             i.e. reading the server version. Defaults to ``postgres``. Point it at
             a database the user can reach when ``postgres`` is unavailable.
+        :param create_strategy: strategy used by client fixtures to clone databases
         """
         self.host = host
         self.port = int(port)
@@ -60,6 +62,7 @@ class NoopExecutor:
         self.password = password
         self.dbname = dbname
         self.maintenance_dbname = maintenance_dbname
+        self.create_strategy = create_strategy
         self._version: Any = None
 
     @property

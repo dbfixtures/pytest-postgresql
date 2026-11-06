@@ -175,6 +175,7 @@ def test_postgresql_client_closes_on_pre_yield_failure() -> None:
     proc_mock.password = None
     proc_mock.options = ""
     proc_mock.dbname = "tests"
+    proc_mock.create_strategy = None
     proc_mock.template_dbname = "tests_tmpl"
     proc_mock.version = 14
 
@@ -215,6 +216,7 @@ async def test_postgresql_async_client_closes_on_pre_yield_failure() -> None:
     proc_mock.password = None
     proc_mock.options = ""
     proc_mock.dbname = "tests"
+    proc_mock.create_strategy = None
     proc_mock.template_dbname = "tests_tmpl"
     proc_mock.version = 14
 

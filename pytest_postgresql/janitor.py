@@ -7,7 +7,7 @@ from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from types import TracebackType
-from typing import Self, TypeVar
+from typing import Literal, Self, TypeVar
 
 import psycopg
 import psycopg.sql as sql
@@ -19,6 +19,8 @@ from pytest_postgresql.retry import retry, retry_async
 
 DatabaseJanitorType = TypeVar("DatabaseJanitorType", bound="DatabaseJanitor")
 AsyncDatabaseJanitorType = TypeVar("AsyncDatabaseJanitorType", bound="AsyncDatabaseJanitor")
+DatabaseCreationStrategy = Literal["WAL_LOG", "FILE_COPY"]
+FileCopyMethod = Literal["copy", "clone"]
 
 
 class BaseDatabaseJanitor:
@@ -36,6 +38,8 @@ class BaseDatabaseJanitor:
     isolation_level: "psycopg.IsolationLevel | None"
     autocommit: bool
     version: Version | None
+    strategy: DatabaseCreationStrategy | None
+    copy_method: FileCopyMethod | None
 
     def __init__(
         self,
@@ -52,6 +56,8 @@ class BaseDatabaseJanitor:
         isolation_level: "psycopg.IsolationLevel | None" = None,
         autocommit: bool = False,
         connection_timeout: int = 60,
+        strategy: DatabaseCreationStrategy | None = None,
+        copy_method: FileCopyMethod | None = None,
     ) -> None:
         """Initialize janitor.
 
@@ -75,6 +81,11 @@ class BaseDatabaseJanitor:
             affects the loader connection, not the janitor's admin cursor.
         :param connection_timeout: how long to retry connection before
             raising a TimeoutError
+        :param strategy: PostgreSQL creation strategy for client template clones:
+            ``WAL_LOG`` or ``FILE_COPY``. None leaves the server default unchanged.
+        :param copy_method: PostgreSQL ``file_copy_method`` value, ``copy`` or
+            ``clone``. Required with ``FILE_COPY`` and otherwise must be None.
+            Neither option affects template creation.
         """
         self.user = user
         self.password = password
@@ -87,6 +98,10 @@ class BaseDatabaseJanitor:
         self._connection_timeout = connection_timeout
         self.isolation_level = isolation_level
         self.autocommit = autocommit
+        if (strategy == "FILE_COPY") != (copy_method is not None):
+            raise ValueError("copy_method must be set exactly when strategy is FILE_COPY")
+        self.strategy = strategy
+        self.copy_method = copy_method
         if version is not None:
             warnings.warn(
                 "version argument is deprecated and will be removed in a future release",
@@ -109,7 +124,15 @@ class BaseDatabaseJanitor:
             query = query + sql.SQL(" TEMPLATE {}").format(sql.Identifier(self.template_dbname))
         if self.is_template():
             query = query + sql.SQL(" IS_TEMPLATE = true")
+        elif self.template_dbname and self.strategy is not None:
+            query = query + sql.SQL(" STRATEGY {}").format(sql.Literal(self.strategy))
         return query
+
+    def _build_file_copy_method_sql(self) -> sql.Composed | None:
+        """Build a session setting for the explicit file-copy methods."""
+        if self.template_dbname and not self.is_template() and self.copy_method is not None:
+            return sql.SQL("SET file_copy_method = {}").format(sql.Literal(self.copy_method))
+        return None
 
 
 class DatabaseJanitor(BaseDatabaseJanitor):
@@ -123,6 +146,9 @@ class DatabaseJanitor(BaseDatabaseJanitor):
                 # Otherwise, Creating database from template will fail
                 self._terminate_connection(cur, self.template_dbname)
             query = self._build_create_database_sql()
+            file_copy_method_sql = self._build_file_copy_method_sql()
+            if file_copy_method_sql is not None:
+                cur.execute(file_copy_method_sql)
             cur.execute(query)
 
     @staticmethod
@@ -231,6 +257,9 @@ class AsyncDatabaseJanitor(BaseDatabaseJanitor):
                 # Otherwise, Creating database from template will fail
                 await self._terminate_connection(cur, self.template_dbname)
             query = self._build_create_database_sql()
+            file_copy_method_sql = self._build_file_copy_method_sql()
+            if file_copy_method_sql is not None:
+                await cur.execute(file_copy_method_sql)
             await cur.execute(query)
 
     @staticmethod

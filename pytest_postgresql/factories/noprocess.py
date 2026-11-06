@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from pytest_postgresql.config import get_config
+from pytest_postgresql.config import get_config, validate_create_strategy
 from pytest_postgresql.executors import NoopExecutor
 from pytest_postgresql.janitor import DatabaseJanitor
 
@@ -48,6 +48,7 @@ def postgresql_noproc(
     load: list[Callable | str | Path] | None = None,
     load_autocommit: bool | None = None,
     depends_on: str | None = None,
+    create_strategy: str | None = None,
 ) -> Callable[[pytest.FixtureRequest], Iterator[NoopExecutor]]:
     """Postgresql noprocess factory.
 
@@ -67,8 +68,11 @@ def postgresql_noproc(
         Required for statements that cannot run inside a transaction block,
         e.g. ``CREATE DATABASE`` in a loaded ``.sql`` file.
     :param depends_on: Optional name of the fixture to depend on.
+    :param create_strategy: strategy used by client fixtures to clone the template:
+        ``wal_log``, ``file_copy``, or ``clone``. Defaults to configuration.
     :returns: function which makes a postgresql process
     """
+    validate_create_strategy(create_strategy)
 
     @pytest.fixture(scope="session")
     def postgresql_noproc_fixture(request: pytest.FixtureRequest) -> Iterator[NoopExecutor]:
@@ -120,6 +124,7 @@ def postgresql_noproc(
             dbname=noop_exec_dbname,
             options=pg_options,
             maintenance_dbname=pg_maintenance_dbname,
+            create_strategy=create_strategy if create_strategy is not None else config.create_strategy,
         )
         janitor = DatabaseJanitor(
             user=noop_exec.user,

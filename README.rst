@@ -416,6 +416,12 @@ You can define settings via fixture factory arguments, command line options, or 
      - --postgresql-load-autocommit
      - postgresql_load_autocommit
      - False
+   * - Test database cloning strategy
+     - create_strategy
+     - create_strategy
+     - --postgresql-create-strategy
+     - postgresql_create_strategy
+     - PostgreSQL's default
    * - PostgreSQL connection options
      - options
      - options
@@ -499,6 +505,61 @@ This example shows how to create an SQLAlchemy session fixture:
 
         SessionLocal.close()
         Base.metadata.drop_all(engine)
+
+Advanced Usage: Test database cloning
+-------------------------------------
+
+Use ``create_strategy`` on ``postgresql_proc`` or ``postgresql_noproc`` to choose
+how synchronous and asynchronous client fixtures clone the template database
+for each test. Initial and layered template creation keep the server default.
+
+.. code-block:: python
+
+    postgresql_my_proc = factories.postgresql_proc(create_strategy="clone")
+    postgresql_my = factories.postgresql("postgresql_my_proc")
+
+For an existing server, including PostgreSQL in Docker, configure the noproc
+factory instead:
+
+.. code-block:: python
+
+    postgresql_external = factories.postgresql_noproc(create_strategy="clone")
+    postgresql_my = factories.postgresql("postgresql_external")
+    postgresql_my_async = factories.postgresql_async("postgresql_external")
+
+The same setting is available on the command line and in ``pytest.ini``:
+
+.. code-block:: sh
+
+    pytest --postgresql-create-strategy=clone
+
+.. code-block:: ini
+
+    [pytest]
+    postgresql_create_strategy = clone
+
+The available values are:
+
+* Unset (the default): no ``STRATEGY`` clause or session setting is sent.
+* ``wal_log``: ``CREATE DATABASE ... STRATEGY WAL_LOG`` (PostgreSQL 15+).
+* ``file_copy``: ``SET file_copy_method = copy``, then
+  ``CREATE DATABASE ... STRATEGY FILE_COPY`` (PostgreSQL 18+).
+* ``clone``: ``SET file_copy_method = clone``, then
+  ``CREATE DATABASE ... STRATEGY FILE_COPY`` (PostgreSQL 18+).
+
+The session setting and database creation use the same connection; no server
+restart is needed. PostgreSQL reports unsupported settings or strategies directly.
+Factory arguments take precedence over command line and ini options. Chained
+fixtures use the client-facing noproc factory's argument or global configuration,
+not the strategy of its ``depends_on`` fixture.
+
+``clone`` needs operating-system support, and sharing disk blocks depends on the
+server's filesystem supporting reflinks. It is not guaranteed to improve
+performance; compare the full test suite at its usual worker count. For strategy,
+checkpoint and filesystem details, see PostgreSQL's `CREATE DATABASE documentation
+<https://www.postgresql.org/docs/18/sql-createdatabase.html>`_ and
+`file_copy_method documentation
+<https://www.postgresql.org/docs/18/runtime-config-resource.html#GUC-FILE-COPY-METHOD>`_.
 
 Advanced Usage: DatabaseJanitor
 -------------------------------
