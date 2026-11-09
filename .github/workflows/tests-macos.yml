@@ -34,7 +34,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up uv with python ${{ matrix.python-version }}
-        uses: fizyk/actions-reuse/.github/actions/uv-setup@723826f1995ca7fd088e1ca408592f275fd7aeee # v5.11.0
+        uses: fizyk/actions-reuse/.github/actions/uv-setup@a8292e61e765f89badf5420420611c3092922421 # v5.11.1
         with:
           python-version: ${{ matrix.python-version }}
       # ankane/setup-postgres publishes no tags/releases; v1 is a branch. Pinning
@@ -49,12 +49,12 @@ jobs:
       - name: Check installed locales
         run: |
           locale -a
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@723826f1995ca7fd088e1ca408592f275fd7aeee # v5.11.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@a8292e61e765f89badf5420420611c3092922421 # v5.11.1
         with:
           pytest-opts: -svv -p no:xdist --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           data-file: .coverage.serial
           output-file: coverage-serial.xml
-      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@723826f1995ca7fd088e1ca408592f275fd7aeee # v5.11.0
+      - uses: fizyk/actions-reuse/.github/actions/uv-pytest-coverage@a8292e61e765f89badf5420420611c3092922421 # v5.11.1
         with:
           pytest-opts: -n auto --dist loadgroup --max-worker-restart 0 --postgresql-exec="${{ env.POSTGRESQL_EXEC }}" -k "not docker" --basetemp="${{ runner.temp }}/pytest-basetemp"
           coverage-config: .coveragerc
