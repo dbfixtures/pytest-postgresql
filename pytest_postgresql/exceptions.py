@@ -62,6 +62,33 @@ class ExecutableMissingException(FileNotFoundError):
             cause = "No pg_ctl was found in any of the usual locations."
         return cls._no_pg_ctl(cause, checked)
 
+    @classmethod
+    def version_unreadable(cls, executable: str, error: OSError) -> "ExecutableMissingException":
+        """Build the error for a pg_ctl that cannot be run to read the PostgreSQL version.
+
+        :param executable: the pg_ctl path that could not be run
+        :param error: the error raised while running it
+        """
+        return cls(
+            f"Could not run {executable} to read the PostgreSQL version: {error}. "
+            f"Is the PostgreSQL server installed at that location? "
+            f"Point the plugin at a working pg_ctl with the --postgresql-exec command line option, "
+            f"the postgresql_exec ini option, or the executable factory argument."
+        )
+
 
 class PostgreSQLUnsupported(Exception):
     """Exception raised when unsupported postgresql would be detected."""
+
+    @classmethod
+    def unsupported_version(cls, version: object, min_supported_version: object) -> "PostgreSQLUnsupported":
+        """Build the error for a PostgreSQL version below the supported minimum.
+
+        :param version: the version reported by the installed pg_ctl
+        :param min_supported_version: the oldest version the plugin supports
+        """
+        return cls(
+            f"Your version of PostgreSQL is not supported. "
+            f"Consider updating to PostgreSQL {min_supported_version} at least. "
+            f"The currently installed version of PostgreSQL: {version}."
+        )

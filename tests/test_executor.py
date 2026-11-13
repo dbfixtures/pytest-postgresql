@@ -17,7 +17,7 @@ from psycopg import Connection
 
 import pytest_postgresql.factories.process as process
 from pytest_postgresql.config import get_config
-from pytest_postgresql.exceptions import PostgreSQLUnsupported
+from pytest_postgresql.exceptions import ExecutableMissingException, PostgreSQLUnsupported
 from pytest_postgresql.executors import PostgreSQLExecutor
 from pytest_postgresql.factories import _pg, postgresql, postgresql_async, postgresql_proc
 from pytest_postgresql.retry import retry
@@ -30,10 +30,12 @@ class UnitTestPostgreSQLExecutor(PostgreSQLExecutor):
         """Skip teardown that would invoke pg_ctl during garbage collection."""
 
 
-def _minimal_executor(datadir: str, **kwargs: Any) -> UnitTestPostgreSQLExecutor:
+def _minimal_executor(
+    datadir: str, *, executable: str = "/usr/bin/pg_ctl", **kwargs: Any
+) -> UnitTestPostgreSQLExecutor:
     """Build a PostgreSQLExecutor for unit tests without starting PostgreSQL."""
     return UnitTestPostgreSQLExecutor(
-        executable="/usr/bin/pg_ctl",
+        executable=executable,
         host="127.0.0.1",
         port=5432,
         datadir=datadir,
@@ -100,8 +102,28 @@ def test_unsupported_version(request: pytest.FixtureRequest) -> None:
         dbname="random_name",
     )
 
-    with pytest.raises(PostgreSQLUnsupported):
+    with pytest.raises(PostgreSQLUnsupported) as exc_info:
         executor.start()
+
+    assert str(exc_info.value) == (
+        "Your version of PostgreSQL is not supported. "
+        "Consider updating to PostgreSQL 14 at least. "
+        "The currently installed version of PostgreSQL: 8.9."
+    )
+
+
+def test_version_reports_missing_executable(tmp_path: Path) -> None:
+    """A missing pg_ctl is reported by the version check with the discovery remedies."""
+    executor = _minimal_executor(str(tmp_path), executable=str(tmp_path / "missing" / "pg_ctl"))
+
+    with pytest.raises(ExecutableMissingException) as exc_info:
+        executor.version
+
+    message = str(exc_info.value)
+    assert "Could not run" in message
+    assert "to read the PostgreSQL version" in message
+    assert "--postgresql-exec" in message
+    assert isinstance(exc_info.value.__cause__, OSError)
 
 
 def test_clean_directory_retains_directory_initialised_on_rmtree_failure(tmp_path: Path) -> None:

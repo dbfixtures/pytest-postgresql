@@ -1,0 +1,1 @@
+Move the unsupported-version and version-check exception messages into classmethods on the exception classes.
