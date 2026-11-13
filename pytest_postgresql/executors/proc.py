@@ -195,11 +195,7 @@ class PostgreSQLExecutor(TCPExecutor):
     def start(self) -> Self:
         """Add check for postgresql version before starting process."""
         if self.version < self.MIN_SUPPORTED_VERSION:
-            raise PostgreSQLUnsupported(
-                f"Your version of PostgreSQL is not supported. "
-                f"Consider updating to PostgreSQL {self.MIN_SUPPORTED_VERSION} at least. "
-                f"The currently installed version of PostgreSQL: {self.version}."
-            )
+            raise PostgreSQLUnsupported.unsupported_version(self.version, self.MIN_SUPPORTED_VERSION)
         self.init_directory()
         if platform.system() == "Windows":
             # On Windows, pg_ctl start -w exits as soon as the server is
@@ -346,12 +342,7 @@ class PostgreSQLExecutor(TCPExecutor):
         try:
             version_string = subprocess.check_output([self.executable, "--version"]).decode("utf-8")
         except OSError as ex:
-            raise ExecutableMissingException(
-                f"Could not run {self.executable} to read the PostgreSQL version: {ex}. "
-                f"Is the PostgreSQL server installed at that location? "
-                f"Point the plugin at a working pg_ctl with the --postgresql-exec command line option, "
-                f"the postgresql_exec ini option, or the executable factory argument."
-            ) from ex
+            raise ExecutableMissingException.version_unreadable(self.executable, ex) from ex
         matches = self.VERSION_RE.search(version_string)
         assert matches is not None
         return parse(matches.groupdict()["version"])
