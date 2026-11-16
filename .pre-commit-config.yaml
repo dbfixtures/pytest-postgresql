@@ -25,7 +25,7 @@ repos:
       - id: debug-statements
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 25bcf95026b96e2dd3c0aec3090c3d6ef6ca2e6c  # frozen: v0.17.3
+    rev: ef6cf06c079dd6b299dfc720b0f14400c9d168e1  # frozen: v0.17.5
     hooks:
       - id: ruff-check
         args: [--fix, --exit-non-zero-on-fix, --respect-gitignore, --show-fixes]
@@ -43,23 +43,23 @@ repos:
       - id: pyproject-fmt
 
   - repo: https://github.com/rstcheck/rstcheck
-    rev: d8774e96810795967ed9603f445b4e751e7b313f  # frozen: v6.3.0
+    rev: f10757576d6cfd0ac638cf0f0049c8b988ac553e  # frozen: v6.3.1
     hooks:
       - id: rstcheck
         additional_dependencies: [sphinx, toml]
 
   - repo: https://github.com/fizyk/pyproject-validator
-    rev: dba43a3da860553a5d41824ef949c244658cd6d1  # frozen: v1.1.0
+    rev: 4ec6447bfaa56ea3503cd9fa9ba6e54577121aaa  # frozen: v1.1.0
     hooks:
     -   id: check-python-version-consistency
 
   - repo: https://github.com/kjanat/actionlint
-    rev: 08bb2c4f0d039744455b87aef1c647fb8b66d37b  # frozen: v1.17.0
+    rev: 1a9278318c43b72cdf644214128fb0786d210147  # frozen: v1.17
     hooks:
       - id: actionlint
 
   - repo: https://github.com/astral-sh/ty-pre-commit
-    rev: f2f06f50bd9eed99488dad7aee9aed711a7d8d3e  # frozen: v0.0.98
+    rev: d598b95ef3cba3cf3a31c40620c3481ae978e4eb  # frozen: v0.0.104
     hooks:
       - id: ty
 
