@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from mirakuru import TCPExecutor
+from mirakuru.exceptions import ProcessFinishedWithError
 
 from pytest_postgresql.executors import PostgreSQLExecutor
 
@@ -577,6 +578,32 @@ class TestWindowsCompatibility:
             )
             mock_super_stop.assert_called_once_with(None, None)
             assert result is executor
+
+    def test_stop_method_unix_swallows_finished_with_error(self) -> None:
+        """A process that already finished is not an error on stop."""
+        executor = PostgreSQLExecutor(
+            executable="/path/to/pg_ctl",
+            host="localhost",
+            port=5432,
+            datadir="/tmp/data",
+            unixsocketdir="/tmp/socket",
+            logfile="/tmp/log",
+            startparams="-w",
+            dbname="test",
+        )
+
+        with (
+            patch("pytest_postgresql.executors.proc.subprocess.check_output"),
+            patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"),
+            patch.object(
+                TCPExecutor,
+                "stop",
+                side_effect=ProcessFinishedWithError(executor, 1),
+            ),
+        ):
+            result = executor.stop()
+
+        assert result is executor
 
     def test_command_formatting_windows(self) -> None:
         """Test that command is properly formatted for Windows paths."""
