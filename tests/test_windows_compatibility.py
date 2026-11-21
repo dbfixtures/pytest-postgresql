@@ -1,10 +1,11 @@
 """Test Windows compatibility fixes for pytest-postgresql."""
 
-import os
 import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
+from mirakuru import TCPExecutor
+from mirakuru.exceptions import ProcessFinishedWithError
 
 from pytest_postgresql.executors import PostgreSQLExecutor
 
@@ -520,58 +521,8 @@ class TestCommandTemplates:
 class TestWindowsCompatibility:
     """Test Windows-specific process management functionality."""
 
-    def test_windows_terminate_process(self) -> None:
-        """Test Windows process termination."""
-        executor = PostgreSQLExecutor(
-            executable="/path/to/pg_ctl",
-            host="localhost",
-            port=5432,
-            datadir="/tmp/data",
-            unixsocketdir="/tmp/socket",
-            logfile="/tmp/log",
-            startparams="-w",
-            dbname="test",
-        )
-
-        # Mock process
-        mock_process = MagicMock()
-        executor.process = mock_process
-
-        # No need to mock platform.system() since the method doesn't check it anymore
-        executor._windows_terminate_process()
-
-        # Should call terminate first
-        mock_process.terminate.assert_called_once()
-        mock_process.wait.assert_called()
-
-    def test_windows_terminate_process_force_kill(self) -> None:
-        """Test Windows process termination with force kill on timeout."""
-        executor = PostgreSQLExecutor(
-            executable="/path/to/pg_ctl",
-            host="localhost",
-            port=5432,
-            datadir="/tmp/data",
-            unixsocketdir="/tmp/socket",
-            logfile="/tmp/log",
-            startparams="-w",
-            dbname="test",
-        )
-
-        # Mock process that times out
-        mock_process = MagicMock()
-        mock_process.wait.side_effect = [subprocess.TimeoutExpired(cmd="test", timeout=5), None]
-        executor.process = mock_process
-
-        # No need to mock platform.system() since the method doesn't check it anymore
-        executor._windows_terminate_process()
-
-        # Should call terminate, wait (timeout), then kill, then wait again
-        mock_process.terminate.assert_called_once()
-        mock_process.kill.assert_called_once()
-        assert mock_process.wait.call_count == 2
-
     def test_stop_method_windows(self) -> None:
-        """Test stop method on Windows."""
+        """On Windows, stop() only runs pg_ctl stop."""
         executor = PostgreSQLExecutor(
             executable="/path/to/pg_ctl",
             host="localhost",
@@ -583,20 +534,19 @@ class TestWindowsCompatibility:
             dbname="test",
         )
 
-        # Mock subprocess and process
         with (
             patch("pytest_postgresql.executors.proc.subprocess.check_output") as mock_subprocess,
             patch("pytest_postgresql.executors.proc.platform.system", return_value="Windows"),
-            patch.object(executor, "_windows_terminate_process") as mock_terminate,
+            patch.object(TCPExecutor, "stop") as mock_super_stop,
         ):
             result = executor.stop()
 
-            # Should call pg_ctl stop and Windows terminate
             mock_subprocess.assert_called_once_with(
                 ["/path/to/pg_ctl", "stop", "-D", "/tmp/data", "-m", "f"],
                 timeout=executor._timeout,
             )
-            mock_terminate.assert_called_once_with(None)
+            mock_super_stop.assert_not_called()
+            assert not hasattr(executor, "_process")
             assert result is executor
 
     def test_stop_method_unix(self) -> None:
@@ -629,8 +579,8 @@ class TestWindowsCompatibility:
             mock_super_stop.assert_called_once_with(None, None)
             assert result is executor
 
-    def test_stop_method_fallback_on_killpg_error(self) -> None:
-        """Test stop method falls back to Windows termination on killpg AttributeError."""
+    def test_stop_method_unix_swallows_finished_with_error(self) -> None:
+        """A process that already finished is not an error on stop."""
         executor = PostgreSQLExecutor(
             executable="/path/to/pg_ctl",
             host="localhost",
@@ -642,30 +592,18 @@ class TestWindowsCompatibility:
             dbname="test",
         )
 
-        # Mock subprocess and super().stop to raise AttributeError
         with (
-            patch("pytest_postgresql.executors.proc.subprocess.check_output") as mock_subprocess,
+            patch("pytest_postgresql.executors.proc.subprocess.check_output"),
             patch("pytest_postgresql.executors.proc.platform.system", return_value="Linux"),
-            patch(
-                "pytest_postgresql.executors.proc.TCPExecutor.stop",
-                side_effect=AttributeError("module 'os' has no attribute 'killpg'"),
+            patch.object(
+                TCPExecutor,
+                "stop",
+                side_effect=ProcessFinishedWithError(executor, 1),
             ),
-            patch.object(executor, "_windows_terminate_process") as mock_terminate,
         ):
-            # Temporarily remove os.killpg so hasattr(os, "killpg") returns False
-            real_killpg = getattr(os, "killpg", None)
-            try:
-                if real_killpg is not None:
-                    delattr(os, "killpg")
-                result = executor.stop()
-            finally:
-                if real_killpg is not None:
-                    setattr(os, "killpg", real_killpg)
+            result = executor.stop()
 
-            # Should call pg_ctl stop, fail on super().stop, then use Windows terminate
-            mock_subprocess.assert_called_once()
-            mock_terminate.assert_called_once()
-            assert result is executor
+        assert result is executor
 
     def test_command_formatting_windows(self) -> None:
         """Test that command is properly formatted for Windows paths."""
