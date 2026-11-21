@@ -1,0 +1,1 @@
+Remove the unreachable Windows process termination from ``PostgreSQLExecutor.stop()``; ``pg_ctl stop`` already does the work.
