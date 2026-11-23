@@ -58,3 +58,5 @@ updates:
   open-pull-requests-limit: 0
   ignore:
     - dependency-name: "*"
+  cooldown:
+    default-days: 7
