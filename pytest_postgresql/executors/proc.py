@@ -385,38 +385,6 @@ class PostgreSQLExecutor(TCPExecutor):
             return self.running()
         return super().check_subprocess()
 
-    def _windows_terminate_process(self, _sig: int | None = None) -> None:
-        """Terminate process on Windows.
-
-        :param _sig: Signal parameter (unused on Windows but included for consistency)
-        """
-        if self.process is None:
-            return
-
-        try:
-            # On Windows, try to terminate gracefully first
-            self.process.terminate()
-            # Give it a chance to terminate gracefully
-            try:
-                self.process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                # If it doesn't terminate gracefully, force kill
-                self.process.kill()
-                try:
-                    self.process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
-                    logger.warning(
-                        "Process %s could not be cleaned up after kill() and may be a zombie process",
-                        self.process.pid if self.process else "unknown",
-                    )
-        except (OSError, AttributeError) as e:
-            # Process might already be dead or other issues
-            logger.debug(
-                "Exception during Windows process termination: %s: %s",
-                type(e).__name__,
-                e,
-            )
-
     def stop(self, stop_signal: int | None = None, expected_returncode: int | None = None) -> Self:
         """Issue a stop request to executable."""
         try:
@@ -426,24 +394,13 @@ class PostgreSQLExecutor(TCPExecutor):
             )
         except subprocess.TimeoutExpired as exc:
             raise TimeoutExpired(self, self._timeout) from exc
-        try:
-            if platform.system() == "Windows":
-                self._windows_terminate_process(stop_signal)
-                # Clean up mirakuru's internal process reference so that
-                # the stopped() context manager can call start() again
-                self._process = None
-            else:
+
+        if platform.system() != "Windows":
+            try:
                 super().stop(stop_signal, expected_returncode)
-        except ProcessFinishedWithError:
-            # Finished, leftovers ought to be cleaned afterwards anyway
-            pass
-        except AttributeError:
-            # Fallback for edge cases where os.killpg doesn't exist (e.g., Windows)
-            if not hasattr(os, "killpg"):
-                self._windows_terminate_process(stop_signal)
-                self._process = None
-            else:
-                raise
+            except ProcessFinishedWithError:
+                # Finished, leftovers ought to be cleaned afterwards anyway
+                pass
         return self
 
     def __del__(self) -> None:
