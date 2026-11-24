@@ -12,7 +12,7 @@ jobs:
   schedule:
     permissions:
       contents: read
-    uses: fizyk/actions-reuse/.github/workflows/shared-release-schedule.yml@08f39ebc48d9ae96c2a257b83507ce64be455ae0 # v5.12.0
+    uses: fizyk/actions-reuse/.github/workflows/shared-release-schedule.yml@87d3ad31f48a10d47052242b0217dd49ddbfbc16 # v5.12.1
     with:
       dependency-manager: 'uv'
       newsfragments-required: true
